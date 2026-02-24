@@ -1,0 +1,30 @@
+(dp0
+Vid
+p1
+V3edfe2a2d274b2
+p2
+sVname
+p3
+Vscene_cleaner
+p4
+sVinfo
+p5
+Vscene cleaner
+p6
+sVtags
+p7
+V,\uc6a9\uc9c4
+p8
+sVicon
+p9
+V
+p10
+sVcommand
+p11
+Vimport importlib\u000afrom rigging import scene_cleaner\u000aimportlib.reload(scene_cleaner)\u000ascene_cleaner.show_ui()
+p12
+sVsyntax
+p13
+Vpython
+p14
+s.

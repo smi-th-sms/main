@@ -1,0 +1,30 @@
+(dp0
+Vid
+p1
+V3edfe482b04c4e
+p2
+sVname
+p3
+Vmh body transfer manager
+p4
+sVinfo
+p5
+Vmh body transfer
+p6
+sVtags
+p7
+V\ubbfc\uc131
+p8
+sVicon
+p9
+V
+p10
+sVcommand
+p11
+Vimport importlib\u000afrom character import mh_body_transfer_manager\u000aimportlib.reload(mh_body_transfer_manager)
+p12
+sVsyntax
+p13
+Vpython
+p14
+s.

@@ -1,0 +1,30 @@
+(dp0
+Vid
+p1
+V3edfe330dce3fa
+p2
+sVname
+p3
+VMH_match_Json_Creator
+p4
+sVinfo
+p5
+Vplease selected joints
+p6
+sVtags
+p7
+V\uc6a9\uc9c4
+p8
+sVicon
+p9
+V
+p10
+sVcommand
+p11
+Vimport importlib\u000afrom rigging import MH_match_Json_Creator\u000aimportlib.reload(MH_match_Json_Creator)\u000a
+p12
+sVsyntax
+p13
+Vpython
+p14
+s.

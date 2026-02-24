@@ -1,0 +1,20 @@
+{
+  "rotate_match_patterns": [
+    "_correctiveRoot_",
+    "_twist_",
+    "_half_"
+  ],
+  "child_rotate_follow_patterns": [
+    "_outer_",
+    "_inner_",
+    "_bulge_",
+    "_palmMid_",
+    "_side_inn_",
+    "_side_out_",
+    "_bck_",
+    "_fwd_",
+    "_mcp_",
+    "_palm_",
+    "_slide_"
+  ]
+}
