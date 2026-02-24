@@ -1,0 +1,181 @@
+================================================================================
+ ASSETS NODE SCRIPTS DOCUMENTATION
+================================================================================
+
+Node: /obj/assets
+Type: Cinematic::assets::1.0
+HDA Library: Z:/inhouse/Houdini/otls/object_Cinematic.assets.1.0.hda
+
+================================================================================
+ PARAMETERS WITH SCRIPTS
+================================================================================
+
+
+--------------------------------------------------------------------------------
+PARAMETER: auto_setup_btn (Auto Setup (Load & Split))
+--------------------------------------------------------------------------------
+
+[BUTTON CALLBACK]
+  Purpose: Action triggered on button press
+  Code:
+
+    import hou
+    import os
+    import sys
+    
+    # --- 1. Original Load Logic ---
+    try:
+        tool_path = "d:/Antigravity/houdini_tools"
+        if tool_path not in sys.path: 
+            sys.path.append(tool_path)
+        import asset_loader_v2
+        import importlib
+        asset_loader_v2.load_assets(kwargs['node'])
+        print("Standard Asset Load Complete.")
+    except Exception as e:
+        print(f"Standard Load Failed: {e}")
+    
+    # --- 2. Custom Logic (FBX + Proxy) ---
+    try:
+        root = kwargs['node']
+        
+        # FBX Setup
+        fbx_node = root.node("FBX")
+        if not fbx_node: 
+            fbx_node = root.node("fbx_anim")
+        
+        if fbx_node:
+            anim_import_parm = fbx_node.parm("animation_import")
+            if anim_import_parm:
+                path = anim_import_parm.eval()
+                try:
+                    filename = os.path.basename(path)
+                    parts = filename.split('_')
+                    if len(parts) >= 2:
+                        asset_name = parts[-2]
+                        p = fbx_node.parm("asset_name")
+                        if p: 
+                            p.set(asset_name)
+                        print(f"Updated Asset Name: {asset_name}")
+                except: 
+                    pass
+    
+            out2 = fbx_node.node("output2")
+            if out2:
+                try: 
+                    out2.cook(force=True)
+                except: 
+                    pass
+                
+                geo = out2.geometry()
+                if geo:
+                    pts = geo.points()
+                    if len(pts) > 0:
+                        p = fbx_node.parm("root_name")
+                        if p: 
+                            p.set(pts[0].attribValue("name"))
+                    if len(pts) > 1:
+                        p = fbx_node.parm("pelvis_name")
+                        if p: 
+                            p.set(pts[1].attribValue("name"))
+                    print("Updated Root/Pelvis Names")
+    
+        # Proxy Split
+        constraint_node = root.node("Constraint")
+        if constraint_node:
+            proxy_node = constraint_node.node("proxy_path")
+            if proxy_node:
+                try: 
+                    proxy_node.cook(force=True)
+                except: 
+                    pass
+                
+                geo = proxy_node.geometry()
+                if geo and geo.findPrimAttrib("proxy_path"):
+                    all_vals = geo.primStringAttribValues("proxy_path")
+                    unique_vals = sorted(list(set(all_vals)))
+                    
+                    parent = constraint_node
+                    base_pos = proxy_node.position()
+                    
+                    # Cleanup old blasts
+                    for child in parent.children():
+                        if child.type().name() == "blast" and child.name().startswith("blast_"):
+                            child.destroy()
+                    
+                    # Create new blasts
+                    for i, part_name in enumerate(unique_vals):
+                        safe_name = part_name.replace("\\", "/").split("/")[-1]
+                        safe_name = safe_name.replace(":", "_").replace(".", "_").strip("_")
+                        node_name = f"blast_{safe_name}"
+                        
+                        blast = parent.createNode("blast", node_name)
+                        blast.setInput(0, proxy_node)
+                        blast.parm("grouptype").set(4)
+                        blast.parm("group").set(f'@proxy_path="{part_name}"')
+                        blast.parm("negate").set(1)
+                        blast.setPosition(base_pos + hou.Vector2((i * 2.5), -2.0))
+                    
+                    print(f"Test Setup Complete: Created {len(unique_vals)} blast nodes.")
+                else:
+                    print("Warning: proxy_path attribute missing.")
+            else:
+                print("Warning: proxy_path node missing.")
+    except Exception as e:
+        print(f"Test Setup Error: {e}")
+    
+
+
+--------------------------------------------------------------------------------
+PARAMETER: check_create_dir (Check/Create Dir)
+--------------------------------------------------------------------------------
+
+[BUTTON CALLBACK]
+  Purpose: Action triggered on button press
+  Code:
+
+    
+    import os
+    import hou
+    
+    n = kwargs['node']
+    try:
+        proj = n.parm("project_dir").evalAsString()
+        
+        # Helper to get value
+        def get_val(name, default=""):
+            p = n.parm(name)
+            return p.evalAsString() if p else default
+            
+        seq_sub = get_val("seq_subdir", "sequences/")
+        seq_name = get_val("seq_name")
+        shot_name = get_val("shot_name")
+        shot_sub = get_val("shot_subdir", "SIM/wip/houdini")
+        
+        if not proj or not seq_name or not shot_name:
+            hou.ui.displayMessage("Please set Project, Sequence, and Shot Name first.")
+        else:
+            # Construct Full Path
+            # Project/SeqSub/SeqName/ShotName/ShotSub
+            full_path = os.path.join(proj, seq_sub, seq_name, shot_name, shot_sub).replace(os.sep, "/")
+            
+            if not os.path.exists(full_path):
+                nl = chr(10)
+                msg = "Create directory?" + nl + full_path
+                
+                if hou.ui.displayMessage(msg, buttons=("Yes", "No")) == 0:
+                    os.makedirs(full_path)
+                    hou.ui.displayMessage("Created!")
+            else:
+                nl = chr(10)
+                msg = "Directory exists:" + nl + full_path
+                hou.ui.displayMessage(msg)
+    except Exception as e:
+        hou.ui.displayMessage(str(e))
+    
+
+
+================================================================================
+ SUMMARY
+================================================================================
+Total parameters with scripts: 2

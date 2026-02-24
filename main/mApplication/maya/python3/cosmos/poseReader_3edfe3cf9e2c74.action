@@ -1,0 +1,30 @@
+(dp0
+Vid
+p1
+V3edfe3cf9e2c74
+p2
+sVname
+p3
+VposeReader
+p4
+sVinfo
+p5
+VposeReader Create tool
+p6
+sVtags
+p7
+V\ubbfc\uc131
+p8
+sVicon
+p9
+V
+p10
+sVcommand
+p11
+Vimport importlib\u000afrom rigging import poseReaderV01_3\u000aimportlib.reload(poseReaderV01_3)\u000a
+p12
+sVsyntax
+p13
+Vpython
+p14
+s.

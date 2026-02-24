@@ -1,0 +1,848 @@
+[
+  {
+    "startJoint": "dup:thigh_l",
+    "endJoint": "dup:calf_l",
+    "aimAxis": "-x",
+    "upAxis": "-y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:calf_l_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:calf_l",
+    "endJoint": "dup:foot_l",
+    "aimAxis": "-x",
+    "upAxis": "-y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:calf_l_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:thigh_r",
+    "endJoint": "dup:calf_r",
+    "aimAxis": "x",
+    "upAxis": "y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:calf_r_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:calf_r",
+    "endJoint": "dup:foot_r",
+    "aimAxis": "x",
+    "upAxis": "y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:calf_r_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:pelvis",
+    "endJoint": "dup:spine_01",
+    "aimAxis": "x",
+    "upAxis": "-y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:spine_03_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:spine_01",
+    "endJoint": "dup:spine_02",
+    "aimAxis": "x",
+    "upAxis": "-y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:spine_03_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:spine_02",
+    "endJoint": "dup:spine_03",
+    "aimAxis": "x",
+    "upAxis": "-y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:spine_03_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:spine_03",
+    "endJoint": "dup:spine_04",
+    "aimAxis": "x",
+    "upAxis": "-y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:spine_03_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:spine_04",
+    "endJoint": "dup:spine_05",
+    "aimAxis": "x",
+    "upAxis": "-y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:spine_03_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:spine_05",
+    "endJoint": "dup:neck_01",
+    "aimAxis": "x",
+    "upAxis": "-y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:spine_03_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:neck_01",
+    "endJoint": "dup:neck_02",
+    "aimAxis": "x",
+    "upAxis": "-y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:spine_03_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:neck_02",
+    "endJoint": "dup:head",
+    "aimAxis": "x",
+    "upAxis": "-y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:spine_03_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:clavicle_r",
+    "endJoint": "dup:upperarm_r",
+    "aimAxis": "-x",
+    "upAxis": "-z",
+    "worldUpType": "vector",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": null,
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:upperarm_r",
+    "endJoint": "dup:lowerarm_r",
+    "aimAxis": "-x",
+    "upAxis": "-y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:hand_r",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:clavicle_l",
+    "endJoint": "dup:upperarm_l",
+    "aimAxis": "x",
+    "upAxis": "z",
+    "worldUpType": "vector",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": null,
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:upperarm_l",
+    "endJoint": "dup:lowerarm_l",
+    "aimAxis": "x",
+    "upAxis": "y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:lowerarm_l_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:lowerarm_l",
+    "endJoint": "dup:hand_l",
+    "aimAxis": "x",
+    "upAxis": "y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:lowerarm_l_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:hand_r",
+    "endJoint": "dup:middle_03_r",
+    "aimAxis": "-x",
+    "upAxis": "y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:wrist_outer_r",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:hand_l",
+    "endJoint": "dup:middle_03_l",
+    "aimAxis": "x",
+    "upAxis": "-y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:wrist_outer_l",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:index_metacarpal_r",
+    "endJoint": "dup:index_01_r",
+    "aimAxis": "-x",
+    "upAxis": "y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:index_metacarpal_slide_r",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:middle_metacarpal_r",
+    "endJoint": "dup:middle_01_r",
+    "aimAxis": "-x",
+    "upAxis": "y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:middle_metacarpal_slide_r",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:ring_metacarpal_r",
+    "endJoint": "dup:ring_01_r",
+    "aimAxis": "-x",
+    "upAxis": "y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:ring_metacarpal_slide_r",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:pinky_metacarpal_r",
+    "endJoint": "dup:pinky_01_r",
+    "aimAxis": "-x",
+    "upAxis": "y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:pinky_metacarpal_slide_r",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:index_01_r",
+    "endJoint": "dup:index_02_r",
+    "aimAxis": "-x",
+    "upAxis": "y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:index_02_r_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:index_02_r",
+    "endJoint": "dup:index_03_r",
+    "aimAxis": "-x",
+    "upAxis": "y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:index_02_r_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:middle_01_r",
+    "endJoint": "dup:middle_02_r",
+    "aimAxis": "-x",
+    "upAxis": "y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:middle_02_r_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:middle_02_r",
+    "endJoint": "dup:middle_03_r",
+    "aimAxis": "-x",
+    "upAxis": "y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:middle_02_r_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:thumb_01_r",
+    "endJoint": "dup:thumb_02_r",
+    "aimAxis": "-x",
+    "upAxis": "y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:thumb_02_r_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:thumb_02_r",
+    "endJoint": "dup:thumb_03_r",
+    "aimAxis": "-x",
+    "upAxis": "y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:thumb_02_r_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:ring_01_r",
+    "endJoint": "dup:ring_02_r",
+    "aimAxis": "-x",
+    "upAxis": "y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:ring_02_r_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:ring_02_r",
+    "endJoint": "dup:ring_03_r",
+    "aimAxis": "-x",
+    "upAxis": "y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:ring_02_r_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:pinky_01_r",
+    "endJoint": "dup:pinky_02_r",
+    "aimAxis": "-x",
+    "upAxis": "y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:pinky_02_r_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:pinky_02_r",
+    "endJoint": "dup:pinky_03_r",
+    "aimAxis": "-x",
+    "upAxis": "y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:pinky_02_r_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:index_metacarpal_l",
+    "endJoint": "dup:index_01_l",
+    "aimAxis": "x",
+    "upAxis": "-y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:index_metacarpal_slide_l",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:middle_metacarpal_l",
+    "endJoint": "dup:middle_01_l",
+    "aimAxis": "x",
+    "upAxis": "-y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:middle_metacarpal_slide_l",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:ring_metacarpal_l",
+    "endJoint": "dup:ring_01_l",
+    "aimAxis": "x",
+    "upAxis": "-y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:ring_metacarpal_slide_l",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:pinky_metacarpal_l",
+    "endJoint": "dup:pinky_01_l",
+    "aimAxis": "x",
+    "upAxis": "-y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:pinky_metacarpal_slide_l",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:index_01_l",
+    "endJoint": "dup:index_02_l",
+    "aimAxis": "x",
+    "upAxis": "-y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:index_02_l_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:index_02_l",
+    "endJoint": "dup:index_03_l",
+    "aimAxis": "x",
+    "upAxis": "-y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:index_02_l_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:middle_01_l",
+    "endJoint": "dup:middle_02_l",
+    "aimAxis": "x",
+    "upAxis": "-y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:middle_02_l_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:middle_02_l",
+    "endJoint": "dup:middle_03_l",
+    "aimAxis": "x",
+    "upAxis": "-y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:middle_02_l_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:thumb_01_l",
+    "endJoint": "dup:thumb_02_l",
+    "aimAxis": "x",
+    "upAxis": "-y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:thumb_02_l_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:thumb_02_l",
+    "endJoint": "dup:thumb_03_l",
+    "aimAxis": "x",
+    "upAxis": "-y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:thumb_02_l_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:ring_01_l",
+    "endJoint": "dup:ring_02_l",
+    "aimAxis": "x",
+    "upAxis": "-y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:ring_02_l_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:ring_02_l",
+    "endJoint": "dup:ring_03_l",
+    "aimAxis": "x",
+    "upAxis": "-y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:ring_02_l_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:pinky_01_l",
+    "endJoint": "dup:pinky_02_l",
+    "aimAxis": "x",
+    "upAxis": "-y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:pinky_02_l_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  },
+  {
+    "startJoint": "dup:pinky_02_l",
+    "endJoint": "dup:pinky_03_l",
+    "aimAxis": "x",
+    "upAxis": "-y",
+    "worldUpType": "object",
+    "worldUpVector": [
+      0.0,
+      1.0,
+      0.0
+    ],
+    "upObject": "dup:pinky_02_l_pv_loc",
+    "applyAxes": [
+      0,
+      1,
+      2
+    ]
+  }
+]

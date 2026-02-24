@@ -1,0 +1,30 @@
+(dp0
+Vid
+p1
+V3edee8939425c6
+p2
+sVname
+p3
+VSocket Joint Fix
+p4
+sVinfo
+p5
+Vsocket joint fix tool
+p6
+sVtags
+p7
+V,\uc6a9\uc9c4
+p8
+sVicon
+p9
+V
+p10
+sVcommand
+p11
+Vimport importlib\u000afrom rigging import socket_joint_fix\u000aimportlib.reload(socket_joint_fix)\u000asocket_joint_fix.run()
+p12
+sVsyntax
+p13
+Vpython
+p14
+s.
