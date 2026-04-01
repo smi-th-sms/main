@@ -1,0 +1,30 @@
+(dp0
+Vid
+p1
+V3f0a1ba47f0f14
+p2
+sVname
+p3
+Vas fit sekeleton hook
+p4
+sVinfo
+p5
+Vhook
+p6
+sVtags
+p7
+Vtools
+p8
+sVicon
+p9
+V
+p10
+sVcommand
+p11
+Vimport importlib\u000aimport as_fit_skeleton_hook\u000aimportlib.reload(as_fit_skeleton_hook)\u000a\u000ahook = as_fit_skeleton_hook.FitSkeletonHook()\u000ahook.install()
+p12
+sVsyntax
+p13
+Vpython
+p14
+s.

@@ -1,0 +1,107 @@
+[
+  {
+    "name": "Global",
+    "preset": "Global",
+    "action": "Create",
+    "parent": "",
+    "sided": false
+  },
+  {
+    "name": "Master",
+    "preset": "Master",
+    "action": "Create",
+    "parent": "Global",
+    "sided": false
+  },
+  {
+    "name": "Main",
+    "preset": "Main",
+    "action": "Swap Shape",
+    "parent": "",
+    "sided": false
+  },
+  {
+    "name": "IKLeg_L_switch_ANI",
+    "preset": "IKLeg_L_switch_ANI",
+    "action": "Create",
+    "parent": "IKLeg_L",
+    "sided": true
+  },
+  {
+    "name": "IKArm_L_Switch_ANI",
+    "preset": "IKArm_L_switch_ANI",
+    "action": "Create",
+    "parent": "IKArm_L",
+    "sided": true
+  },
+  {
+    "name": "L_weapon_offset",
+    "preset": "L_weapon_offset",
+    "action": "Create",
+    "parent": "Fingers_L",
+    "sided": true
+  },
+  {
+    "name": "FKRoot_M",
+    "preset": "FKRoot_M",
+    "action": "Swap Shape",
+    "parent": "",
+    "sided": false
+  },
+  {
+    "name": "FKSpine1_M",
+    "preset": "FKRoot_M",
+    "action": "Swap Shape",
+    "parent": "",
+    "sided": false
+  },
+  {
+    "name": "FKSpine2_M",
+    "preset": "FKRoot_M",
+    "action": "Swap Shape",
+    "parent": "",
+    "sided": false
+  },
+  {
+    "name": "FKChest_M",
+    "preset": "FKRoot_M",
+    "action": "Swap Shape",
+    "parent": "",
+    "sided": false
+  },
+  {
+    "name": "FKChestExtra_M",
+    "preset": "FKRoot_M",
+    "action": "Swap Shape",
+    "parent": "",
+    "sided": false
+  },
+  {
+    "name": "FKScapula_L",
+    "preset": "FKScapula_L",
+    "action": "Add Attrs",
+    "parent": "",
+    "sided": true
+  },
+  {
+    "name": "FKHead_M",
+    "preset": "FKHead_M",
+    "action": "Swap Shape",
+    "parent": "",
+    "sided": false
+  },
+  {
+    "name": "MainHip",
+    "preset": "MainHip",
+    "action": "Create",
+    "parent": "Main",
+    "sided": false
+  },
+  {
+    "name": "FKNeck0_M",
+    "preset": "FKNeck_M",
+    "action": "Swap Shape",
+    "parent": "",
+    "sided": false
+  }
+]
