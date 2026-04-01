@@ -1,0 +1,32 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find \"E:\\\\script\\\\pythonWorkSpace\\\\main\\\\mApplication\\\\maya\\\\python3\" -maxdepth 1 -name \"*.py\" | xargs wc -l 2>/dev/null)",
+      "Bash(where uv:*)",
+      "Bash(claude mcp:*)",
+      "Bash(python -c \"import sys,json; d=json.load\\(sys.stdin\\); print\\(json.dumps\\(d.get\\(''mcpServers'', {}\\), indent=2\\)\\)\")",
+      "Bash(ls not:*)",
+      "Bash(python:*)",
+      "Bash(pip show:*)",
+      "Bash(py:*)",
+      "Bash(python3 -m json.tool)",
+      "Read(//c/Users/smi_th/**)",
+      "Bash(uv:*)",
+      "mcp__houdini__houdini_get_info",
+      "mcp__houdini__houdini_list_nodes",
+      "Bash(xargs grep:*)",
+      "Bash(grep:*)",
+      "Bash(ls:*)",
+      "mcp__houdini__houdini_execute_code",
+      "mcp__MayaMCP__execute_python",
+      "mcp__maya__execute_python",
+      "mcp__maya__list_objects_by_type",
+      "Bash(find C:/Users/smi_th/Documents/maya/modules/MetaHumanForMaya/lib/PyDNA -name *.pyd -o -name *.py)",
+      "Bash(find C:/Users/smi_th/Documents/maya/modules/MetaHumanForMaya/lib/PyDNACalib2 -name *.pyd -o -name *.py)"
+    ]
+  },
+  "enableAllProjectMcpServers": true,
+  "enabledMcpjsonServers": [
+    "MayaMCP"
+  ]
+}
