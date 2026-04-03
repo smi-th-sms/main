@@ -322,6 +322,8 @@ def restore_structure():
                     snap_count += 1
                 except Exception as e:
                     errors.append((j, "snap: " + str(e)))
+            # else: re-parent 시 Maya 가 world position 을 유지하며 local translate 를 갱신함
+            # → 변경된 local transform 이 그대로 새 DNA neutral 이 됩니다.
     finally:
         cmds.undoInfo(closeChunk=True)
 
@@ -395,10 +397,15 @@ def export_dna_from_scene(
         if not cmds.objExists(maya_name):
             skipped += 1
             continue
-        t = cmds.getAttr(maya_name + ".translate")[0]
-        r = cmds.getAttr(maya_name + ".rotate")[0]
+        t  = cmds.getAttr(maya_name + ".translate")[0]
+        jo = cmds.getAttr(maya_name + ".jointOrient")[0]
         xs[i],  ys[i],  zs[i]  = t[0], t[1], t[2]
-        rxs[i], rys[i], rzs[i] = r[0], r[1], r[2]
+        # DNA neutralJointRotation = jointOrient (not .rotate)
+        # .rotate 는 RL4 가 pose 를 드라이빙할 때 사용하는 animated 값이며
+        # neutral pose 에서 항상 (0,0,0) 입니다.
+        # jointOrient 는 조인트의 축 정렬 오프셋 (root = -90°X 등) 으로
+        # Pose Editor 가 skeleton 을 재구성할 때 이 값을 사용합니다.
+        rxs[i], rys[i], rzs[i] = jo[0], jo[1], jo[2]
         updated += 1
 
     # translation / rotation 커맨드 실행
@@ -425,16 +432,42 @@ def export_dna_from_scene(
 #  4. Reconnect rl4
 # ══════════════════════════════════════════════════════════════
 
+def _rebuild_bind_pose_node(mesh, influences):
+    """
+    doDetachSkin 전에 dagPose 를 현재 계층 기준으로 재생성합니다.
+
+    fit chain 과정에서 helper joint 의 부모가 변경되면
+    기존 dagPose 에 저장된 parent 참조가 무효화됩니다.
+    dagPose 를 삭제 후 현재 상태로 재저장하면
+    doDetachSkin 내부의 'go to bind pose' 가 경고 없이 동작합니다.
+    """
+    try:
+        bp_nodes = cmds.dagPose(mesh, q=True, bp=True) or []
+        if bp_nodes:
+            cmds.delete(bp_nodes)
+    except Exception as e:
+        print("[MHEdit] WARN dagPose delete {}: {}".format(mesh, e))
+
+    try:
+        valid = [n for n in influences + [mesh] if cmds.objExists(n)]
+        if valid:
+            cmds.dagPose(valid, save=True, bp=True)
+            print("[MHEdit] dagPose rebuilt for {}.".format(mesh))
+    except Exception as e:
+        print("[MHEdit] WARN dagPose save {}: {}".format(mesh, e))
+
+
 def _rebind_skin(sc_name, info):
     """
     단일 skinCluster 에 대해 unbind (keep history) → rebind 를 수행합니다.
 
-    1) doDetachSkin 3 {"2","1","1"}
+    1) dagPose 재생성 (현재 계층 기준) → doDetachSkin 내 'go to bind pose' 오류 방지
+    2) doDetachSkin 3 {"2","1","1"}
        → sc 노드가 유지된 채로 detach (weights 보존됨)
-    2) 유지된 sc 의 matrix 연결에서 influence joints 쿼리
-    3) joints + mesh 선택 후 skinCluster 재실행
+    3) 유지된 sc 의 matrix 연결에서 influence joints 쿼리
+    4) joints + mesh 선택 후 skinCluster 재실행
        → 기존 sc 재활성화 (bindPose 경고는 무시)
-    4) sc envelope = 1.0
+    5) sc envelope = 1.0
 
     Bind settings
     -------------
@@ -452,7 +485,11 @@ def _rebind_skin(sc_name, info):
         print("[MHEdit] WARN: sc {} not found - skip.".format(sc_name))
         return False
 
-    # ── 1) doDetachSkin keep history ────────────────────────────
+    # ── 1) dagPose 재생성 (doDetachSkin 전 - 현재 계층 기준) ────
+    pre_influences = _get_sc_influences(sc_name) or info["influences"]
+    _rebuild_bind_pose_node(mesh, pre_influences)
+
+    # ── 2) doDetachSkin keep history ────────────────────────────
     cmds.select(mesh, replace=True)
     q = chr(34)
     try:
@@ -461,12 +498,12 @@ def _rebind_skin(sc_name, info):
         print("[MHEdit] WARN doDetachSkin {}: {}".format(mesh, e))
         return False
 
-    # ── 2) sc 에서 influence joints 쿼리 ────────────────────────
+    # ── 3) sc 에서 influence joints 쿼리 ────────────────────────
     influences = _get_sc_influences(sc_name)
     if not influences:
         influences = info["influences"]
 
-    # ── 3) joints + mesh 선택 → skinCluster 재실행 ──────────────
+    # ── 4) joints + mesh 선택 → skinCluster 재실행 ──────────────
     cmds.select(influences, replace=True)
     cmds.select(mesh, add=True)   # select -tgl mesh 와 동일
     try:
@@ -485,7 +522,7 @@ def _rebind_skin(sc_name, info):
             print("[MHEdit] WARN rebind {}: {}".format(mesh, e))
             return False
 
-    # ── 4) envelope = 1.0 ───────────────────────────────────────
+    # ── 5) envelope = 1.0 ───────────────────────────────────────
     if cmds.objExists(sc_name):
         cmds.setAttr(sc_name + ".envelope", 1.0)
 
@@ -498,8 +535,11 @@ def reconnect_rl4():
     편집 완료 후 rig 를 복원합니다.
 
     1) body_rl4Embedded.dnaFilePath = export 한 DNA 경로
-    2) rl4 output connections 재연결
-    3) 각 LOD mesh: unbind skin (keep history) → rebind
+    2) 각 LOD mesh: unbind skin (keep history) → rebind
+       ※ RL4 reconnect 전에 수행 - body_rl4Embedded 가 joints 를 드라이빙하기 전
+         dagPose 'go to bind pose' 를 실행해야 clavicle_out/scap 등 driven 조인트
+         오류("Could not reach pose") 가 발생하지 않음
+    3) rl4 output connections 재연결
     4) skinCluster envelope = 1.0
     """
     rl4_node    = _state["rl4_node"]
@@ -515,7 +555,12 @@ def reconnect_rl4():
         except Exception as e:
             print("[MHEdit] WARN dnaFilePath: {}".format(e))
 
-    # ── 2) rl4 connections 재연결 ────────────────────────────────
+    # ── 2) unbind (keep history) → rebind ───────────────────────
+    # RL4 reconnect 전에 수행: driven connection 간섭 없이 bind pose 복원
+    for sc_name, info in sc_info.items():
+        _rebind_skin(sc_name, info)
+
+    # ── 3) rl4 connections 재연결 ────────────────────────────────
     reconn = 0
     cmds.undoInfo(openChunk=True, chunkName="MHEdit_reconnectRL4")
     try:
@@ -529,10 +574,6 @@ def reconnect_rl4():
     finally:
         cmds.undoInfo(closeChunk=True)
     print("[MHEdit] Reconnected {} rl4 connections.".format(reconn))
-
-    # ── 3) unbind (keep history) → rebind ───────────────────────
-    for sc_name, info in sc_info.items():
-        _rebind_skin(sc_name, info)
 
     # ── 4) envelope = 1.0 (rebind 내부에서도 처리하지만 최종 보장) ─
     for sc_name in sc_info:

@@ -14,8 +14,9 @@ Workflow
 2. Build Fit Chains → config 기반 일괄 build_aim_system()
    (viewport 에서 fit controller 로 조인트 위치 조정)
 3. Apply & Remove   → apply_fit_to_joints() + remove_aim_system()
-4. Export & Reconnect → restore_structure() → export_dna_from_scene()
-                        → reconnect_rl4()
+4a. Restore Structure  → restore_structure()
+    (viewport 에서 스켈레톤 상태 검수)
+4b. Export DNA         → export_dna_from_scene() → reconnect_rl4()
 
 Usage
 -----
@@ -261,13 +262,27 @@ def apply_and_remove_fit_chains(parts=None):
     print("[MHFit] Apply & Remove 완료: {} 파트".format(len(applied)))
 
 
-def export_and_reconnect(
+def restore_structure_only():
+    """
+    restore_structure 만 실행 — 작업자 뷰포트 검수용 단계.
+
+    secondary joints 를 원래 parent 로 재연결하고 visible 로 복원합니다.
+    이 시점에서 rl4 는 아직 미연결 상태이므로 스켈레톤을 자유롭게 확인할 수 있습니다.
+    검수 완료 후 export_dna_and_reconnect() 를 호출하세요.
+    """
+    print("[MHFit] restore_structure 실행 중...")
+    mhem.restore_structure()
+    print("[MHFit] Restore 완료 — 씬을 검수한 뒤 'Export DNA & Reconnect' 를 실행하세요.")
+
+
+def export_dna_and_reconnect(
     output_path=None,
     input_dna_path=None,
     namespace=mhem.DEFAULT_NAMESPACE,
 ):
     """
-    restore_structure → export_dna_from_scene → reconnect_rl4 를 순차 실행.
+    export_dna_from_scene → reconnect_rl4 를 순차 실행.
+    restore_structure_only() 로 씬 검수를 완료한 뒤 호출하세요.
 
     Parameters
     ----------
@@ -291,9 +306,6 @@ def export_and_reconnect(
 
     if not input_dna_path or not input_dna_path.strip():
         input_dna_path = _get_dna_source_path() or mhem.DEFAULT_DNA_INPUT
-
-    print("[MHFit] restore_structure 실행 중...")
-    mhem.restore_structure()
 
     print("[MHFit] export_dna_from_scene 실행 중...")
     mhem.export_dna_from_scene(output_path, input_dna_path, namespace)
@@ -361,11 +373,29 @@ def _on_build(chk_map, up_menu, method_menu, ns_field):
     build_fit_chains(selected, settings, namespace)
 
 
-def _on_export(out_field, in_field, ns_field):
+def _on_restore():
+    restore_structure_only()
+
+
+def _on_export_dna(out_field, in_field, ns_field):
     out = cmds.textFieldButtonGrp(out_field, q=True, text=True).strip()
     src = cmds.textFieldButtonGrp(in_field,  q=True, text=True).strip()
     ns  = cmds.textFieldGrp(ns_field,        q=True, text=True).strip()
-    export_and_reconnect(out or None, src or None, ns)
+
+    result = cmds.confirmDialog(
+        title="Export DNA — 검수 확인",
+        message=(
+            "뷰포트에서 스켈레톤 상태를 검수했습니까?\n\n"
+            "Output : {}\n\n"
+            "확인을 누르면 DNA 를 내보내고 rl4 를 재연결합니다."
+        ).format(out or "(자동 추론)"),
+        button=["Export", "취소"],
+        defaultButton="Export",
+        cancelButton="취소",
+        dismissString="취소",
+    )
+    if result == "Export":
+        export_dna_and_reconnect(out or None, src or None, ns)
 
 
 def _show_help(title, msg):
@@ -420,12 +450,22 @@ _HELP_STEP3 = (
     "  · Mirror Plane : 미러 기준 평면 (기본값 YZ)"
 )
 
-_HELP_STEP4 = (
-    "【 Step 4 : Export DNA & Reconnect 】\n\n"
-    "아래 순서로 자동 실행됩니다 :\n"
-    "  1. restore_structure : secondary joints 재연결 및 표시\n"
-    "  2. export DNA        : 변경된 스켈레톤을 DNA 파일로 저장\n"
-    "  3. reconnect rl4     : body_rl4Embedded 재연결 및 스킨 rebind\n\n"
+_HELP_STEP4A = (
+    "【 Step 4a : Restore Structure 】\n\n"
+    "secondary joints 를 원래 parent 로 재연결하고 visible 로 복원합니다.\n\n"
+    "  · correctiveRoot / half : re-parent 후 local translate = (0,0,0) snap\n"
+    "  · 나머지 : re-parent 만 (Maya 가 world position 유지)\n\n"
+    "이 시점에서 rl4 는 아직 미연결 상태입니다.\n"
+    "뷰포트에서 스켈레톤 형태를 꼼꼼히 검수한 뒤\n"
+    "'Export DNA & Reconnect' 버튼을 누르세요."
+)
+
+_HELP_STEP4B = (
+    "【 Step 4b : Export DNA & Reconnect 】\n\n"
+    "Restore 후 검수를 완료했을 때 실행합니다.\n"
+    "확인 대화상자를 거친 뒤 아래 순서로 자동 실행됩니다 :\n"
+    "  1. export DNA    : 변경된 스켈레톤을 DNA 파일로 저장\n"
+    "  2. reconnect rl4 : body_rl4Embedded 재연결 및 스킨 rebind\n\n"
     "Output : 저장할 DNA 파일 경로\n"
     "  · 미입력 시 rl4.dnaFilePath 기반으로 자동 추론합니다.\n"
     "  · 예) body.dna  →  body_edit.dna\n\n"
@@ -610,16 +650,45 @@ def build_tab_ui(parent=None):
     cmds.setParent("..")   # columnLayout → frameLayout
     cmds.setParent("..")   # frameLayout  → root_col
 
-    # ── Step 4 : Export DNA & Reconnect ───────────────────────
+    # ── Step 4a : Restore Structure ────────────────────────────
     cmds.frameLayout(
-        label="  4.  Export DNA & Reconnect",
+        label="  4a.  Restore Structure",
         collapsable=False,
         marginWidth=6,
         marginHeight=6,
     )
     cmds.columnLayout(adjustableColumn=True, rowSpacing=4)
     cmds.text(
-        label="restore_structure → export DNA → reconnect rl4 & rebind skins",
+        label="secondary joints 재연결 & 표시 — 뷰포트에서 스켈레톤 검수",
+        align="left",
+        font="smallPlainLabelFont",
+    )
+    cmds.rowLayout(numberOfColumns=2, columnWidth2=(322, 26), adjustableColumn=1)
+    cmds.button(
+        label="Restore Structure",
+        height=30,
+        backgroundColor=(0.40, 0.28, 0.52),
+        command=lambda *_: _on_restore(),
+    )
+    cmds.button(
+        label="?", width=26, height=30,
+        backgroundColor=(0.25, 0.25, 0.35),
+        command=lambda *_: _show_help("Restore Structure", _HELP_STEP4A),
+    )
+    cmds.setParent("..")   # rowLayout → columnLayout
+    cmds.setParent("..")   # columnLayout → frameLayout
+    cmds.setParent("..")   # frameLayout  → root_col
+
+    # ── Step 4b : Export DNA & Reconnect ───────────────────────
+    cmds.frameLayout(
+        label="  4b.  Export DNA & Reconnect",
+        collapsable=False,
+        marginWidth=6,
+        marginHeight=6,
+    )
+    cmds.columnLayout(adjustableColumn=True, rowSpacing=4)
+    cmds.text(
+        label="검수 완료 후 실행 — export DNA → reconnect rl4 & rebind skins",
         align="left",
         font="smallPlainLabelFont",
     )
@@ -646,12 +715,12 @@ def build_tab_ui(parent=None):
         label="Export DNA & Reconnect",
         height=32,
         backgroundColor=(0.52, 0.28, 0.28),
-        command=lambda *_: _on_export(out_field, in_field, ns_field),
+        command=lambda *_: _on_export_dna(out_field, in_field, ns_field),
     )
     cmds.button(
         label="?", width=26, height=32,
         backgroundColor=(0.25, 0.25, 0.35),
-        command=lambda *_: _show_help("Export DNA & Reconnect", _HELP_STEP4),
+        command=lambda *_: _show_help("Export DNA & Reconnect", _HELP_STEP4B),
     )
     cmds.setParent("..")   # rowLayout → columnLayout
     cmds.setParent("..")
