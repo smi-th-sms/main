@@ -409,22 +409,23 @@ def build_weapon_offsets(namespace="", size=8.0):
 
 # ctrl name : (color index, default radius)
 _MAIN_CTRL_DEFAULTS = {
-    "Master":  (_COLOR_DEFAULT, 120.0),  # yellow
-    "Global":  (16,             100.0),  # white
+    "Global":  (16,             120.0),  # white
+    "Master":  (_COLOR_DEFAULT, 100.0),  # yellow
     "MainHip": (18,              40.0),  # cyan
 }
 
 
 def build_main_hierarchy(namespace="",
-                         master_size=120.0,
-                         global_size=100.0,
+                         master_size=100.0,
+                         global_size=120.0,
                          mainhip_size=40.0):
     """
-    MainSystem 내에 Master > Global > MainHip_OS > MainHip > Main 계층 구성.
+    MainSystem 내에 Global > Master > MainHip_OS > MainHip > Main_OS > Main 계층 구성.
 
-    - Master, Global : world zero
+    - Global, Master : world zero
     - MainHip_OS, MainHip : Root_M 월드 위치
-    - 기존 Main 은 MainHip 하위로 재배치
+    - Main_OS : 기존 Main 월드 위치
+    - 기존 Main 은 Main_OS 하위로 재배치
 
     Parameters
     ----------
@@ -433,7 +434,7 @@ def build_main_hierarchy(namespace="",
 
     Returns
     -------
-    dict  {"Master": node, "Global": node, "MainHip": node}
+    dict  {"Global": node, "Master": node, "MainHip": node, "Main_OS": node}
     """
     ns = _ns_prefix(namespace)
 
@@ -446,8 +447,8 @@ def build_main_hierarchy(namespace="",
             cmds.warning("rig_develop_tool: not found – " + node)
             return {}
 
-    master_name    = ns + "Master"
     global_name    = ns + "Global"
+    master_name    = ns + "Master"
     mainhip_os_name = ns + "MainHip_OS"
     mainhip_name   = ns + "MainHip"
     main_os_name   = ns + "Main_OS"
@@ -457,9 +458,9 @@ def build_main_hierarchy(namespace="",
     if cur_parent != "MainSystem":
         cmds.parent(main_ctrl, main_system)
 
-    # ── 기존 Master 트리 삭제 (cascade) ──────────────────────────────────
-    if cmds.objExists(master_name):
-        cmds.delete(master_name)
+    # ── 기존 Global 트리 삭제 (cascade) ──────────────────────────────────
+    if cmds.objExists(global_name):
+        cmds.delete(global_name)
 
     # ── Root_M 위치 ───────────────────────────────────────────────────────
     if cmds.objExists(root_m):
@@ -468,22 +469,22 @@ def build_main_hierarchy(namespace="",
         cmds.warning("rig_develop_tool: Root_M not found, MainHip placed at origin.")
         hip_pos = [0.0, 0.0, 0.0]
 
-    # ── Master (world zero, under MainSystem) ─────────────────────────────
-    master = _make_circle_ctrl(master_name, radius=master_size,
-                               normal=(0, 1, 0), color=_COLOR_DEFAULT)
-    cmds.parent(master, main_system)
-    cmds.xform(master, worldSpace=True,
-               translation=[0, 0, 0], rotation=[0, 0, 0], scale=[1, 1, 1])
-
-    # ── Global (world zero, under Master) ────────────────────────────────
+    # ── Global (world zero, under MainSystem) ────────────────────────────
     global_ctrl = _make_circle_ctrl(global_name, radius=global_size,
                                     normal=(0, 1, 0), color=16)
-    cmds.parent(global_ctrl, master)
-    cmds.xform(global_ctrl, objectSpace=True,
+    cmds.parent(global_ctrl, main_system)
+    cmds.xform(global_ctrl, worldSpace=True,
                translation=[0, 0, 0], rotation=[0, 0, 0], scale=[1, 1, 1])
 
-    # ── MainHip_OS (Root_M 위치, under Global) ────────────────────────────
-    mainhip_os = cmds.group(empty=True, name=mainhip_os_name, parent=global_ctrl)
+    # ── Master (world zero, under Global) ────────────────────────────────
+    master = _make_circle_ctrl(master_name, radius=master_size,
+                               normal=(0, 1, 0), color=_COLOR_DEFAULT)
+    cmds.parent(master, global_ctrl)
+    cmds.xform(master, objectSpace=True,
+               translation=[0, 0, 0], rotation=[0, 0, 0], scale=[1, 1, 1])
+
+    # ── MainHip_OS (Root_M 위치, under Master) ───────────────────────────
+    mainhip_os = cmds.group(empty=True, name=mainhip_os_name, parent=master)
     cmds.xform(mainhip_os, worldSpace=True,
                translation=hip_pos, rotation=[0, 0, 0], scale=[1, 1, 1])
 
@@ -498,7 +499,7 @@ def build_main_hierarchy(namespace="",
     main_ws_t = cmds.xform(main_ctrl, query=True, worldSpace=True, translation=True)
     main_ws_r = cmds.xform(main_ctrl, query=True, worldSpace=True, rotation=True)
 
-    # ── Main_OS (offset group, Main 월드 위치에 배치, under MainHip) ───────
+    # ── Main_OS (Main 월드 위치에 배치, under MainHip) ────────────────────
     main_os = cmds.group(empty=True, name=main_os_name, parent=mainhip)
     cmds.xform(main_os, worldSpace=True,
                translation=main_ws_t, rotation=main_ws_r)
@@ -532,8 +533,8 @@ def build_main_hierarchy(namespace="",
     else:
         cmds.warning("rig_develop_tool: metahuman root joint not found – parentConstraint skipped.")
 
-    print("rig_develop_tool: built  MainSystem > Master > Global > MainHip_OS > MainHip > Main_OS > Main")
-    return {"Master": master, "Global": global_ctrl, "MainHip": mainhip, "Main_OS": main_os}
+    print("rig_develop_tool: built  MainSystem > Global > Master > MainHip_OS > MainHip > Main_OS > Main")
+    return {"Global": global_ctrl, "Master": master, "MainHip": mainhip, "Main_OS": main_os}
 
 
 # ===========================================================================
@@ -1130,11 +1131,11 @@ def revert_main_hierarchy(namespace=""):
     """
     Feature 3 원상 복구.
     - Main 을 MainSystem 직속으로 이동
-    - Master 삭제 (cascade: Global, MainHip_OS, MainHip, Main_OS 포함)
+    - Global 삭제 (cascade: Master, MainHip 포함)
     """
     ns = _ns_prefix(namespace)
     main_ctrl   = ns + "Main"
-    master_name = ns + "Master"
+    global_name = ns + "Global"
     main_system = ns + "MainSystem"
 
     # metahuman root joint 의 parentConstraint 중 Main 타겟만 제거
@@ -1160,9 +1161,9 @@ def revert_main_hierarchy(namespace=""):
         cmds.parent(main_ctrl, main_system)
         print("rig_develop_tool: revert Main parent -> MainSystem")
 
-    # Master cascade 삭제
-    _safe_delete(master_name)
-    print("rig_develop_tool: revert main hierarchy – Master cascade deleted")
+    # Global cascade 삭제
+    _safe_delete(global_name)
+    print("rig_develop_tool: revert main hierarchy – Global cascade deleted")
 
 
 def revert_corrective_root_rx_mute(namespace=""):
@@ -1929,7 +1930,7 @@ def revert_cleanup_animation_sets():
 # ===========================================================================
 
 def build_all(namespace="", ik_size=3.0, weapon_size=8.0,
-              master_size=120.0, global_size=100.0, mainhip_size=40.0):
+              global_size=120.0, master_size=100.0, mainhip_size=40.0):
     """Feature 1~6 한번에 빌드."""
     build_ik_settings_ctrls(namespace=namespace, ctrl_size=ik_size)
     build_weapon_offsets(namespace=namespace, size=weapon_size)
@@ -2059,19 +2060,19 @@ class _UI(object):
         cmds.setParent("..")
 
         # ── Feature 3 ──────────────────────────────────────────────────────
-        cmds.frameLayout(label="Main Hierarchy  (Master / Global / MainHip)",
+        cmds.frameLayout(label="Main Hierarchy  (Global / Master / MainHip / Main)",
                          collapsable=True, collapse=False,
                          marginHeight=6, marginWidth=4)
         cmds.columnLayout(adj=True, rowSpacing=4)
 
         cmds.rowLayout(nc=2, adjustableColumn=2, columnWidth2=[90, 190])
-        cmds.text(label="Master Size")
-        self._ff_master_size = cmds.floatField(value=120.0, minValue=0.1, maxValue=1000.0)
+        cmds.text(label="Global Size")
+        self._ff_global_size = cmds.floatField(value=120.0, minValue=0.1, maxValue=1000.0)
         cmds.setParent("..")
 
         cmds.rowLayout(nc=2, adjustableColumn=2, columnWidth2=[90, 190])
-        cmds.text(label="Global Size")
-        self._ff_global_size = cmds.floatField(value=100.0, minValue=0.1, maxValue=1000.0)
+        cmds.text(label="Master Size")
+        self._ff_master_size = cmds.floatField(value=100.0, minValue=0.1, maxValue=1000.0)
         cmds.setParent("..")
 
         cmds.rowLayout(nc=2, adjustableColumn=2, columnWidth2=[90, 190])
@@ -2089,10 +2090,11 @@ class _UI(object):
         cmds.button(label="?", width=22, height=30,
                     backgroundColor=[0.25, 0.25, 0.35],
                     c=lambda *_: _show_help("Main Hierarchy",
-                        "Master / Global / MainHip 컨트롤러 계층을 생성합니다.\n\n"
-                        "· Master  : 씬 최상위 컨트롤러\n"
-                        "· Global  : 전체 이동/회전/스케일 컨트롤러\n"
-                        "· MainHip : 허리 오프셋 컨트롤러\n\n"
+                        "Global > Master > MainHip > Main 계층을 생성합니다.\n\n"
+                        "· Global  : 씬 최상위 컨트롤러\n"
+                        "· Master  : 전체 이동/회전/스케일 컨트롤러\n"
+                        "· MainHip : 허리 오프셋 컨트롤러\n"
+                        "· Main    : 기존 메인 컨트롤러 (재배치)\n\n"
                         "Revert : 생성된 계층을 삭제하고 원래 상태로 복구합니다."))
         cmds.setParent("..")  # rowLayout
         cmds.setParent("..")
