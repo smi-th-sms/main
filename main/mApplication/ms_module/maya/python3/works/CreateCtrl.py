@@ -160,7 +160,7 @@ def hierarchy_(object_):
 object_ = cmds.ls(sl=1,r=1)
 # control_(object_, 'sphere')
 
-ctrl_ = control_(object_, 'cube')
+ctrl_ = control_(object_, 'circle')
 name_ = object_
 ctrllist = []
 for i,ctl in enumerate(ctrl_):

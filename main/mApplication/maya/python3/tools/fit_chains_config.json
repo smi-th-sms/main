@@ -9,7 +9,8 @@
     "leg_r": [
       "thigh_r",
       "calf_r",
-      "foot_r"
+      "foot_r",
+      "ball_r"
     ],
     "spine": [
       "pelvis",

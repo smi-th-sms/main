@@ -115,6 +115,15 @@ def transfer_vertex_order_via_resultmesh_ui():
     tgt_map, tgt_fn, _ = mesh_reorder_from_face(with_map=True)
     src_inv = {v: k for k, v in enumerate(src_map) if v != -1}
     tgt_inv = {v: k for k, v in enumerate(tgt_map) if v != -1}
+
+    if src_fn.numVertices != tgt_fn.numVertices:
+        set_status(f"버텍스 수가 다릅니다: src={src_fn.numVertices}, tgt={tgt_fn.numVertices}")
+        return
+    missing = [new_id for new_id in src_inv if new_id not in tgt_inv]
+    if missing:
+        set_status(f"tgt 메쉬에서 순회되지 않은 버텍스 {len(missing)}개 존재 (disconnected shell 의심). 중단합니다.")
+        return
+
     tgt_points = tgt_fn.getPoints(om2.MSpace.kWorld)
     new_points = src_fn.getPoints(om2.MSpace.kObject)
     for new_id in src_inv:

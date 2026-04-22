@@ -83,10 +83,61 @@ except ImportError:
             Window = None
 
 
+class AttrPickerDialog(QtWidgets.QDialog):
+    """오브젝트의 모든 attribute를 검색/선택할 수 있는 다이얼로그"""
+
+    def __init__(self, obj_name, parent=None):
+        super(AttrPickerDialog, self).__init__(parent)
+        self.setWindowTitle(f"Attributes  —  {obj_name}")
+        self.setMinimumSize(260, 420)
+        self.selected_attr = None
+
+        layout = QtWidgets.QVBoxLayout(self)
+        layout.setContentsMargins(8, 8, 8, 8)
+        layout.setSpacing(4)
+
+        self.filterLE = QtWidgets.QLineEdit()
+        self.filterLE.setPlaceholderText("Filter attributes...")
+        layout.addWidget(self.filterLE)
+
+        self.attrList = QtWidgets.QListWidget()
+        layout.addWidget(self.attrList)
+
+        btn_layout = QtWidgets.QHBoxLayout()
+        self.okBtn = QtWidgets.QPushButton("OK")
+        self.cancelBtn = QtWidgets.QPushButton("Cancel")
+        btn_layout.addWidget(self.okBtn)
+        btn_layout.addWidget(self.cancelBtn)
+        layout.addLayout(btn_layout)
+
+        self._all_attrs = sorted(cmds.listAttr(obj_name) or [])
+        self.attrList.addItems(self._all_attrs)
+
+        self.filterLE.textChanged.connect(self._filter)
+        self.attrList.itemDoubleClicked.connect(self._accept)
+        self.okBtn.clicked.connect(self._accept)
+        self.cancelBtn.clicked.connect(self.reject)
+
+    def _filter(self, text):
+        text = text.lower()
+        for i in range(self.attrList.count()):
+            item = self.attrList.item(i)
+            item.setHidden(text not in item.text().lower())
+
+    def _accept(self):
+        current = self.attrList.currentItem()
+        if current:
+            self.selected_attr = current.text()
+            self.accept()
+
+    def get_selected(self):
+        return self.selected_attr
+
+
 class Ui_CNTManager(object):
     def setupUi(self, CNTManager):
         CNTManager.setObjectName("CNTManager")
-        CNTManager.resize(430, 650)
+        CNTManager.resize(430, 720)
         self.gridLayout_3 = QtWidgets.QGridLayout(CNTManager)
         self.gridLayout_3.setObjectName("gridLayout_3")
         self.horizontalLayout_5 = QtWidgets.QHBoxLayout()
@@ -216,6 +267,38 @@ class Ui_CNTManager(object):
         self.ConstPB.setObjectName("ConstPB")
         self.horizontalLayout_4.addWidget(self.ConstPB)
         self.verticalLayout_2.addLayout(self.horizontalLayout_4)
+        self.line2 = QtWidgets.QFrame(CNTManager)
+        self.line2.setFrameShape(QtWidgets.QFrame.HLine)
+        self.line2.setFrameShadow(QtWidgets.QFrame.Sunken)
+        self.line2.setObjectName("line2")
+        self.verticalLayout_2.addWidget(self.line2)
+        self.batchAttrLayout = QtWidgets.QHBoxLayout()
+        self.batchAttrLayout.setObjectName("batchAttrLayout")
+        self.batchAttrLabel = QtWidgets.QLabel(CNTManager)
+        self.batchAttrLabel.setObjectName("batchAttrLabel")
+        self.batchAttrLayout.addWidget(self.batchAttrLabel)
+        self.batchAttrLE = QtWidgets.QLineEdit(CNTManager)
+        self.batchAttrLE.setObjectName("batchAttrLE")
+        self.batchAttrLayout.addWidget(self.batchAttrLE)
+        self.batchAttrPickPB = QtWidgets.QPushButton(CNTManager)
+        self.batchAttrPickPB.setObjectName("batchAttrPickPB")
+        self.batchAttrLayout.addWidget(self.batchAttrPickPB)
+        self.verticalLayout_2.addLayout(self.batchAttrLayout)
+        self.batchValueLayout = QtWidgets.QHBoxLayout()
+        self.batchValueLayout.setObjectName("batchValueLayout")
+        self.batchValueLabel = QtWidgets.QLabel(CNTManager)
+        self.batchValueLabel.setObjectName("batchValueLabel")
+        self.batchValueLayout.addWidget(self.batchValueLabel)
+        self.batchValueLE = QtWidgets.QLineEdit(CNTManager)
+        self.batchValueLE.setObjectName("batchValueLE")
+        self.batchValueLayout.addWidget(self.batchValueLE)
+        self.batchAttrGetPB = QtWidgets.QPushButton(CNTManager)
+        self.batchAttrGetPB.setObjectName("batchAttrGetPB")
+        self.batchValueLayout.addWidget(self.batchAttrGetPB)
+        self.batchAttrSetPB = QtWidgets.QPushButton(CNTManager)
+        self.batchAttrSetPB.setObjectName("batchAttrSetPB")
+        self.batchValueLayout.addWidget(self.batchAttrSetPB)
+        self.verticalLayout_2.addLayout(self.batchValueLayout)
         self.gridLayout_3.addLayout(self.verticalLayout_2, 1, 0, 1, 1)
         self.verticalLayout_4 = QtWidgets.QVBoxLayout()
         self.verticalLayout_4.setObjectName("verticalLayout_4")
@@ -233,32 +316,37 @@ class Ui_CNTManager(object):
         QtCore.QMetaObject.connectSlotsByName(CNTManager)
 
     def retranslateUi(self, CNTManager):
-        CNTManager.setWindowTitle(QtWidgets.QApplication.translate("CNTManager", "CNTManager - Refactored", None, -1))
-        self.AAddPB.setText(QtWidgets.QApplication.translate("CNTManager", "Add", None, -1))
-        self.ARemovePB.setText(QtWidgets.QApplication.translate("CNTManager", "Remove", None, -1))
-        self.SortPB.setText(QtWidgets.QApplication.translate("CNTManager", "Sort", None, -1))
-        self.ChangePB.setText(QtWidgets.QApplication.translate("CNTManager", "Change", None, -1))
-        self.OneToNRB.setText(QtWidgets.QApplication.translate("CNTManager", "One To N", None, -1))
-        self.NToNRB.setText(QtWidgets.QApplication.translate("CNTManager", "N To N", None, -1))
-        self.BAddPB.setText(QtWidgets.QApplication.translate("CNTManager", "Add", None, -1))
-        self.BRemovePB.setText(QtWidgets.QApplication.translate("CNTManager", "Remove", None, -1))
-        self.OutLE.setText(QtWidgets.QApplication.translate("CNTManager", "OutPut..", None, -1))
-        self.ConnectionPB.setText(QtWidgets.QApplication.translate("CNTManager", ">>", None, -1))
-        self.InLE.setText(QtWidgets.QApplication.translate("CNTManager", "InPut..", None, -1))
-        self.GetSetPB.setText(QtWidgets.QApplication.translate("CNTManager", "Get Set", None, -1))
-        self.PPPB.setText(QtWidgets.QApplication.translate("CNTManager", "PParent", None, -1))
-        self.SetDrivenPB.setText(QtWidgets.QApplication.translate("CNTManager", "SetDriven", None, -1))
-        self.AllCKB.setText(QtWidgets.QApplication.translate("CNTManager", "All", None, -1))
-        self.TransCKB.setText(QtWidgets.QApplication.translate("CNTManager", "Trans", None, -1))
-        self.RotCKB.setText(QtWidgets.QApplication.translate("CNTManager", "Rot", None, -1))
-        self.ScaleCKB.setText(QtWidgets.QApplication.translate("CNTManager", "Scale", None, -1))
-        self.ShearCKB.setText(QtWidgets.QApplication.translate("CNTManager", "Shear", None, -1))
-        self.PivotCKB.setText(QtWidgets.QApplication.translate("CNTManager", "Pivot", None, -1))
-        self.MatchPB.setText(QtWidgets.QApplication.translate("CNTManager", "Match", None, -1))
-        self.MConPB.setText(QtWidgets.QApplication.translate("CNTManager", "MCon", None, -1))
-        self.ConstPB.setText(QtWidgets.QApplication.translate("CNTManager", "Const", None, -1))
-        self.AUTHORLB.setText(QtWidgets.QApplication.translate("CNTManager", "AUTHOR : MinSung", None, -1))
-        self.UPDATALB.setText(QtWidgets.QApplication.translate("CNTManager", "UPDATE : 20250101 - Refactored", None, -1))
+        CNTManager.setWindowTitle(QtWidgets.QApplication.translate("CNTManager", "CNTManager - Refactored", None))
+        self.AAddPB.setText(QtWidgets.QApplication.translate("CNTManager", "Add", None))
+        self.ARemovePB.setText(QtWidgets.QApplication.translate("CNTManager", "Remove", None))
+        self.SortPB.setText(QtWidgets.QApplication.translate("CNTManager", "Sort", None))
+        self.ChangePB.setText(QtWidgets.QApplication.translate("CNTManager", "Change", None))
+        self.OneToNRB.setText(QtWidgets.QApplication.translate("CNTManager", "One To N", None))
+        self.NToNRB.setText(QtWidgets.QApplication.translate("CNTManager", "N To N", None))
+        self.BAddPB.setText(QtWidgets.QApplication.translate("CNTManager", "Add", None))
+        self.BRemovePB.setText(QtWidgets.QApplication.translate("CNTManager", "Remove", None))
+        self.OutLE.setText(QtWidgets.QApplication.translate("CNTManager", "OutPut..", None))
+        self.ConnectionPB.setText(QtWidgets.QApplication.translate("CNTManager", ">>", None))
+        self.InLE.setText(QtWidgets.QApplication.translate("CNTManager", "InPut..", None))
+        self.GetSetPB.setText(QtWidgets.QApplication.translate("CNTManager", "Get Set", None))
+        self.PPPB.setText(QtWidgets.QApplication.translate("CNTManager", "PParent", None))
+        self.SetDrivenPB.setText(QtWidgets.QApplication.translate("CNTManager", "SetDriven", None))
+        self.AllCKB.setText(QtWidgets.QApplication.translate("CNTManager", "All", None))
+        self.TransCKB.setText(QtWidgets.QApplication.translate("CNTManager", "Trans", None))
+        self.RotCKB.setText(QtWidgets.QApplication.translate("CNTManager", "Rot", None))
+        self.ScaleCKB.setText(QtWidgets.QApplication.translate("CNTManager", "Scale", None))
+        self.ShearCKB.setText(QtWidgets.QApplication.translate("CNTManager", "Shear", None))
+        self.PivotCKB.setText(QtWidgets.QApplication.translate("CNTManager", "Pivot", None))
+        self.MatchPB.setText(QtWidgets.QApplication.translate("CNTManager", "Match", None))
+        self.MConPB.setText(QtWidgets.QApplication.translate("CNTManager", "MCon", None))
+        self.ConstPB.setText(QtWidgets.QApplication.translate("CNTManager", "Const", None))
+        self.batchAttrLabel.setText(QtWidgets.QApplication.translate("CNTManager", "Attr :", None))
+        self.batchAttrPickPB.setText(QtWidgets.QApplication.translate("CNTManager", "Pick", None))
+        self.batchValueLabel.setText(QtWidgets.QApplication.translate("CNTManager", "Value:", None))
+        self.batchAttrGetPB.setText(QtWidgets.QApplication.translate("CNTManager", "Get", None))
+        self.batchAttrSetPB.setText(QtWidgets.QApplication.translate("CNTManager", "Set All", None))
+        self.AUTHORLB.setText(QtWidgets.QApplication.translate("CNTManager", "AUTHOR : MinSung", None))
+        self.UPDATALB.setText(QtWidgets.QApplication.translate("CNTManager", "UPDATE : 20250101 - Refactored", None))
 
 
 class CNTManager3(BaseMayaUI):
@@ -300,10 +388,17 @@ class CNTManager3(BaseMayaUI):
         self.ui.MatchPB.clicked.connect(self.match_transform)
         self.ui.SetDrivenPB.clicked.connect(self.set_drivens)
         self.ui.MConPB.clicked.connect(self.m_const)
+        self.ui.batchAttrPickPB.clicked.connect(self.batch_attr_pick)
+        self.ui.batchAttrGetPB.clicked.connect(self.batch_attr_get)
+        self.ui.batchAttrSetPB.clicked.connect(self.batch_attr_set)
     
     def safe_index_access(self, item_list, target_index):
-        """안전한 인덱스 접근"""
-        return MayaUtils.safe_index_access(item_list, target_index)
+        """OneToN / NToN 모드에 따른 안전한 인덱스 반환"""
+        if not item_list:
+            return 0
+        if self.ui.OneToNRB.isChecked():
+            return 0
+        return min(target_index, len(item_list) - 1)
     
     def add_a_list_widget(self):
         """A 리스트에 아이템 추가"""
@@ -648,6 +743,86 @@ class CNTManager3(BaseMayaUI):
         
         self.logger.log_operation_end("Matrix Constraint", True)
     
+    def batch_attr_pick(self):
+        """전체 attribute 브라우저 다이얼로그를 열어 attr 선택"""
+        a_list = self.a_all_list_item()
+        if a_list:
+            obj = a_list[0]
+        else:
+            sel = cmds.ls(selection=True)
+            if not sel:
+                self.logger.error("A 리스트에 오브젝트를 추가하거나 씬에서 오브젝트를 선택하세요")
+                return
+            obj = sel[0]
+
+        if not cmds.objExists(obj):
+            self.logger.error(f"오브젝트를 찾을 수 없습니다: {obj}")
+            return
+
+        dialog = AttrPickerDialog(obj, parent=self)
+        if dialog.exec_() == QtWidgets.QDialog.Accepted:
+            attr = dialog.get_selected()
+            if attr:
+                self.ui.batchAttrLE.setText(attr)
+                self.logger.info(f"Selected attribute: {attr}")
+
+    def batch_attr_get(self):
+        """A 리스트 첫 번째 오브젝트의 현재 attribute 값을 Value 필드에 채움"""
+        attr = self.ui.batchAttrLE.text().strip()
+        if not attr:
+            self.logger.error("Attr 필드를 먼저 입력하세요")
+            return
+        a_list = self.a_all_list_item()
+        if not a_list:
+            self.logger.error("A 리스트가 비어 있습니다")
+            return
+        try:
+            value = cmds.getAttr(f"{a_list[0]}.{attr}")
+            self.ui.batchValueLE.setText(str(value))
+            self.logger.info(f"Got: {a_list[0]}.{attr} = {value}")
+        except Exception as e:
+            self.logger.error(f"attribute 읽기 실패: {e}")
+
+    def batch_attr_set(self):
+        """A 리스트의 모든 오브젝트에 attribute 값을 일괄 설정"""
+        attr = self.ui.batchAttrLE.text().strip()
+        value_str = self.ui.batchValueLE.text().strip()
+        if not attr or not value_str:
+            self.logger.error("Attr과 Value를 모두 입력하세요")
+            return
+        a_list = self.a_all_list_item()
+        if not a_list:
+            self.logger.error("A 리스트가 비어 있습니다")
+            return
+
+        # 값 타입 자동 변환: int → float → bool → string 순으로 시도
+        try:
+            value = int(value_str)
+        except ValueError:
+            try:
+                value = float(value_str)
+            except ValueError:
+                if value_str.lower() in ('true', 'false'):
+                    value = value_str.lower() == 'true'
+                else:
+                    value = value_str
+
+        self.logger.log_operation_start("Batch Attr Set")
+        cmds.undoInfo(openChunk=True)
+        success_count = 0
+        try:
+            for obj in a_list:
+                try:
+                    cmds.setAttr(f"{obj}.{attr}", value)
+                    success_count += 1
+                    self.logger.debug(f"Set: {obj}.{attr} = {value}")
+                except Exception as e:
+                    self.logger.warning(f"실패 - {obj}.{attr}: {e}")
+        finally:
+            cmds.undoInfo(closeChunk=True)
+        self.logger.log_operation_end("Batch Attr Set", True)
+        self.logger.info(f"완료: {success_count}/{len(a_list)} 오브젝트 처리됨")
+
     def _cleanup(self):
         """정리 작업"""
         self.logger.info("CNTManager3 cleanup completed")
