@@ -199,9 +199,29 @@ def build_fit_chains(parts, settings=None, namespace=mhem.DEFAULT_NAMESPACE):
     print("[MHFit] Build 완료: {} / {} 파트".format(len(built), len(parts)))
 
 
+def _collect_descendants(root):
+    """root joint 의 전체 하위 joint 을 재귀적으로 수집 (root 포함)."""
+    result = [root]
+    children = cmds.listRelatives(root, children=True, type="joint") or []
+    for c in children:
+        result.extend(_collect_descendants(c))
+    return result
+
+
+def _hier_depth(j):
+    """joint 의 hierarchy depth 를 반환."""
+    d = 0
+    p = cmds.listRelatives(j, parent=True, fullPath=False)
+    while p:
+        d += 1
+        p = cmds.listRelatives(p[0], parent=True, fullPath=False)
+    return d
+
+
 def mirror_fit_chains(parts, across="yz", namespace=mhem.DEFAULT_NAMESPACE):
     """
-    config 파트 리스트의 조인트에 대해 선택 없이 반대편으로 mirror 적용.
+    config 파트 리스트의 조인트 및 하위 secondary joints 전체를
+    반대편으로 mirror 적용.  hierarchy 상위 → 하위 순서로 진행.
 
     Parameters
     ----------
@@ -209,30 +229,72 @@ def mirror_fit_chains(parts, across="yz", namespace=mhem.DEFAULT_NAMESPACE):
     across    : str        'yz' / 'xz' / 'xy'
     namespace : str        MetaHuman scene namespace
     """
+    # rl4 output connection 이 있으면 차단
+    rl4 = mhem.DEFAULT_RL4_NODE
+    if cmds.objExists(rl4):
+        conns = cmds.listConnections(
+            rl4, source=False, destination=True, plugs=True,
+        ) or []
+        if conns:
+            cmds.confirmDialog(
+                title="MH Fit Tool",
+                message=(
+                    "{} 에 {} 개의 output connection 이 남아 있습니다.\n"
+                    "rl4 가 연결된 상태에서는 Mirror 를 실행할 수 없습니다.\n"
+                    "Edit Mode 상태에서 실행하세요."
+                ).format(rl4, len(conns)),
+                button=["확인"],
+            )
+            return
+
     cfg       = _load_config()
     all_parts = cfg.get("parts", {})
 
-    joints = []
+    # config 파트의 root joints 수집
+    root_joints = []
     for part in parts:
         if part not in all_parts:
             continue
         part_joints = _resolve_joints(all_parts[part], namespace)
-        # side suffix (_l/_r 등)가 하나라도 있는 파트만 포함
         if not any(fit_chain_tool._find_opposite_joint(j) for j in part_joints):
             print("[MHFit] Mirror skip (no side): {}".format(part))
             continue
-        joints.extend(part_joints)
+        root_joints.extend(part_joints)
 
-    if not joints:
+    if not root_joints:
         print("[MHFit] Mirror: 미러 가능한 파트가 없습니다.")
         return
 
-    fit_chain_tool.mirror_to_opposite_side(joints, across)
+    # root joints 의 전체 하위 계층 수집 (secondary 포함) + 중복 제거
+    seen = set()
+    all_joints = []
+    for rj in root_joints:
+        for j in _collect_descendants(rj):
+            if j not in seen:
+                # opposite 이 존재하는 joint 만 포함
+                if fit_chain_tool._find_opposite_joint(j):
+                    seen.add(j)
+                    all_joints.append(j)
+
+    if not all_joints:
+        print("[MHFit] Mirror: 미러 가능한 조인트가 없습니다.")
+        return
+
+    # hierarchy 상위 → 하위 순으로 정렬
+    all_joints.sort(key=_hier_depth)
+
+    print("[MHFit] Mirror: {} joints (primary + secondary)".format(len(all_joints)))
+    fit_chain_tool.mirror_to_opposite_side(all_joints, across)
 
 
 def apply_and_remove_fit_chains(parts=None):
     """
     선택된 파트들의 fit null transform 을 joint 에 적용 후 시스템 제거.
+
+    전체 파트의 null matrix 를 한 번에 캡처한 뒤,
+    aim system 을 전부 제거하고,
+    hierarchy 상위 joint 부터 순차 적용하여
+    parent 이동에 의한 누적 오차를 방지합니다.
 
     Parameters
     ----------
@@ -241,25 +303,47 @@ def apply_and_remove_fit_chains(parts=None):
     if parts is None:
         parts = list(_fit_state.keys())
 
+    # ── 1) 전체 파트 null matrix 일괄 캡처 ─────────────────────
+    all_captured = []   # [(jnt, m16), ...]
+    grps = []
     applied = []
+
     for part in parts:
         if part not in _fit_state:
             cmds.warning("[MHFit] {} 는 build 되지 않았습니다.".format(part))
             continue
         info = _fit_state[part]
-        # 1. null worldMatrix 를 aim system 이 살아있는 상태에서 미리 캡처
         captured = fit_chain_tool.collect_null_matrices(info["joints"])
-        # 2. aim system 제거 (VP 노드 삭제 → joint 이동 시 zero-vector 재평가 없음)
-        fit_chain_tool.remove_aim_system(info["grp"])
-        # 3. 캡처된 matrix 로 joint 에 적용
-        fit_chain_tool.apply_captured_matrices(captured)
+        all_captured.extend(captured)
+        grps.append(info["grp"])
         applied.append(part)
-        print("[MHFit] Applied & Removed: {}".format(part))
+
+    if not all_captured:
+        print("[MHFit] 캡처된 null matrix 가 없습니다.")
+        return
+
+    # ── 2) aim system 전체 제거 ────────────────────────────────
+    for grp in grps:
+        fit_chain_tool.remove_aim_system(grp)
+
+    # ── 3) hierarchy 상위 → 하위 정렬 후 일괄 적용 ────────────
+    def _depth(pair):
+        j = pair[0]
+        d = 0
+        p = cmds.listRelatives(j, parent=True, fullPath=False)
+        while p:
+            d += 1
+            p = cmds.listRelatives(p[0], parent=True, fullPath=False)
+        return d
+
+    all_captured.sort(key=_depth)
+    fit_chain_tool.apply_captured_matrices(all_captured)
 
     for part in applied:
         _fit_state.pop(part, None)
 
-    print("[MHFit] Apply & Remove 완료: {} 파트".format(len(applied)))
+    print("[MHFit] Apply & Remove 완료: {} 파트, {} joints".format(
+        len(applied), len(all_captured)))
 
 
 def restore_structure_only():
@@ -273,6 +357,190 @@ def restore_structure_only():
     print("[MHFit] restore_structure 실행 중...")
     mhem.restore_structure()
     print("[MHFit] Restore 완료 — 씬을 검수한 뒤 'Export DNA & Reconnect' 를 실행하세요.")
+
+
+def _enhanced_restore(follow_parent=False):
+    """
+    강화된 restore: twist positioning + correctiveRoot 순서 제어.
+
+    Parameters
+    ----------
+    follow_parent : bool
+        True  — secondary joints 가 상위 관절의 이동된 위치를 따름
+                (correctiveRoot 제로화 전에 하위 조인트를 parent)
+        False — 기존 위치 유지 (correctiveRoot 제로화 후 하위 조인트를 parent)
+    """
+    mhem.ensure_state()
+    if not mhem._state["active"]:
+        print("[MHFit] Not in edit mode.")
+        return
+
+    parent_map = mhem._state["parent_map"]
+    if not parent_map:
+        return
+
+    # ── 분류 ─────────────────────────────────────────────────
+    twist_joints = set()
+    cr_joints = set()
+
+    for j in parent_map:
+        short = j.split(":")[-1]
+        if "correctiveRoot" in short:
+            cr_joints.add(j)
+        elif "twist" in short and "twistCor" not in short:
+            twist_joints.add(j)
+
+    # twist 를 parent 별로 그룹핑
+    twist_by_parent = {}
+    for t in twist_joints:
+        twist_by_parent.setdefault(parent_map[t], []).append(t)
+    for v in twist_by_parent.values():
+        v.sort()
+
+    # twist 의 하위 조인트 (parent 가 twist 인 것 — twistCor 등)
+    twist_children = {}
+    for j, p in parent_map.items():
+        if p in twist_joints and j not in twist_joints:
+            twist_children.setdefault(p, []).append(j)
+
+    # correctiveRoot 의 하위 조인트
+    cr_child_map = {cr: [] for cr in cr_joints}
+    for j, p in parent_map.items():
+        if p in cr_joints and j not in cr_joints:
+            cr_child_map[p].append(j)
+
+    # 나머지 (other)
+    all_twist_ch = set()
+    for ch in twist_children.values():
+        all_twist_ch.update(ch)
+    all_cr_ch = set()
+    for ch in cr_child_map.values():
+        all_cr_ch.update(ch)
+
+    other_joints = [
+        j for j in parent_map
+        if j not in twist_joints
+        and j not in cr_joints
+        and j not in all_twist_ch
+        and j not in all_cr_ch
+    ]
+    other_sorted = mhem._sort_by_depth({j: parent_map[j] for j in other_joints})
+
+    cmds.undoInfo(openChunk=True, chunkName="MHFit_enhancedRestore")
+    try:
+        # ── 기타 secondary 복원 ──────────────────────────────
+        for j in other_sorted:
+            orig_par = parent_map[j]
+            if not cmds.objExists(j):
+                continue
+            if orig_par and cmds.objExists(orig_par):
+                cmds.parent(j, orig_par)
+            if mhem._is_snap(j):
+                cmds.setAttr(j + ".translate", 0, 0, 0, type="double3")
+
+        # ── twist joints 복원 ────────────────────────────────
+        for parent_jnt, twists in twist_by_parent.items():
+            if not parent_jnt or not cmds.objExists(parent_jnt):
+                continue
+
+            # 상위 관절의 primary child 찾기
+            children = cmds.listRelatives(
+                parent_jnt, children=True, type="joint",
+            ) or []
+            child_primary = None
+            for c in children:
+                if not mhem._is_secondary(c):
+                    child_primary = c
+                    break
+
+            par_pos = cmds.xform(parent_jnt, q=True, ws=True, t=True)
+            child_pos = (
+                cmds.xform(child_primary, q=True, ws=True, t=True)
+                if child_primary else None
+            )
+
+            n = len(twists)
+            for i, t in enumerate(twists):
+                if not cmds.objExists(t):
+                    continue
+                cmds.parent(t, parent_jnt)
+                # jointOrient / rotate 제로화 (먼저 — 이후 position 설정이 정확)
+                cmds.setAttr(t + ".jointOrient", 0, 0, 0, type="double3")
+                cmds.setAttr(t + ".rotate", 0, 0, 0, type="double3")
+
+                if child_pos:
+                    frac = (i + 1.0) / (n + 1.0)
+                    pos = [
+                        par_pos[k] + (child_pos[k] - par_pos[k]) * frac
+                        for k in range(3)
+                    ]
+                    cmds.xform(t, ws=True, t=pos)
+
+                # twist 하위 조인트 transform 제로화
+                for tc in twist_children.get(t, []):
+                    if cmds.objExists(tc):
+                        cmds.parent(tc, t)
+                        cmds.setAttr(tc + ".translate", 0, 0, 0, type="double3")
+                        cmds.setAttr(tc + ".rotate", 0, 0, 0, type="double3")
+                        cmds.setAttr(tc + ".jointOrient", 0, 0, 0, type="double3")
+
+        # ── correctiveRoot 복원 ──────────────────────────────
+        for cr in cr_joints:
+            orig_par = parent_map[cr]
+            if not cmds.objExists(cr):
+                continue
+            if not (orig_par and cmds.objExists(orig_par)):
+                continue
+
+            cmds.parent(cr, orig_par)
+
+            if follow_parent:
+                # 하위 조인트 먼저 parent → correctiveRoot 제로화
+                for child in cr_child_map.get(cr, []):
+                    if cmds.objExists(child):
+                        cmds.parent(child, cr)
+                cmds.setAttr(cr + ".translate", 0, 0, 0, type="double3")
+                cmds.setAttr(cr + ".rotate", 0, 0, 0, type="double3")
+                cmds.setAttr(cr + ".jointOrient", 0, 0, 0, type="double3")
+            else:
+                # correctiveRoot 제로화 먼저 → DG 평가 → 하위 조인트 parent
+                cmds.setAttr(cr + ".translate", 0, 0, 0, type="double3")
+                cmds.setAttr(cr + ".rotate", 0, 0, 0, type="double3")
+                cmds.setAttr(cr + ".jointOrient", 0, 0, 0, type="double3")
+                cmds.getAttr(cr + ".worldMatrix[0]")  # DG 강제 평가
+                for child in cr_child_map.get(cr, []):
+                    if cmds.objExists(child):
+                        cmds.parent(child, cr)
+
+    finally:
+        cmds.undoInfo(closeChunk=True)
+
+    # visibility 복원
+    for j in parent_map:
+        if cmds.objExists(j):
+            try:
+                cmds.setAttr(j + ".visibility", 1)
+            except Exception:
+                pass
+
+    print("[MHFit] Enhanced restore 완료 (follow_parent={})".format(follow_parent))
+
+
+def apply_remove_and_restore(follow_parent=False):
+    """
+    Apply & Remove All Fit Chains + Enhanced Restore 를 한 번에 실행.
+    _fit_state 가 비어 있으면 팝업 후 중단.
+    """
+    if not _fit_state:
+        cmds.confirmDialog(
+            title="MH Fit Tool",
+            message="Build 된 Fit Chain 이 없습니다.\nStep 2 의 'Build Fit Chains' 를 먼저 실행하세요.",
+            button=["확인"],
+        )
+        return
+
+    apply_and_remove_fit_chains()
+    _enhanced_restore(follow_parent)
 
 
 def export_dna_and_reconnect(
@@ -307,6 +575,10 @@ def export_dna_and_reconnect(
     if not input_dna_path or not input_dna_path.strip():
         input_dna_path = _get_dna_source_path() or mhem.DEFAULT_DNA_INPUT
 
+    # rotate → jointOrient 베이크 (RL4 가 rotate 를 드라이빙하므로 reconnect 전에 실행)
+    print("[MHFit] bake_rotate_to_joint_orient 실행 중...")
+    mhem.bake_rotate_to_joint_orient(namespace)
+
     print("[MHFit] export_dna_from_scene 실행 중...")
     mhem.export_dna_from_scene(output_path, input_dna_path, namespace)
 
@@ -333,6 +605,17 @@ def _set_all_checks(chk_map, value):
         cmds.checkBox(chk, edit=True, value=value)
 
 
+def _browse_dir(field_ctrl, caption="Select Folder"):
+    result = cmds.fileDialog2(
+        dialogStyle=2,
+        fileMode=3,
+        caption=caption,
+    )
+    if result:
+        cmds.textFieldButtonGrp(field_ctrl, edit=True, text=result[0])
+        mhem.set_mh_lib_root(result[0])
+
+
 def _browse_file(field_ctrl, mode, caption="Select DNA File"):
     result = cmds.fileDialog2(
         fileFilter="DNA Files (*.dna);;All Files (*.*)",
@@ -345,6 +628,14 @@ def _browse_file(field_ctrl, mode, caption="Select DNA File"):
 
 
 def _on_build(chk_map, up_menu, method_menu, ns_field):
+    if not mhem._state["active"]:
+        cmds.confirmDialog(
+            title="MH Fit Tool",
+            message="Edit Mode 가 활성화되어 있지 않습니다.\nStep 1 의 'Enter Edit Mode' 를 먼저 실행하세요.",
+            button=["확인"],
+        )
+        return
+
     selected = [p for p, chk in chk_map.items()
                 if cmds.checkBox(chk, q=True, value=True)]
     if not selected:
@@ -371,10 +662,6 @@ def _on_build(chk_map, up_menu, method_menu, ns_field):
     }
     namespace = cmds.textFieldGrp(ns_field, q=True, text=True).strip()
     build_fit_chains(selected, settings, namespace)
-
-
-def _on_restore():
-    restore_structure_only()
 
 
 def _on_export_dna(out_field, in_field, ns_field):
@@ -439,30 +726,37 @@ _HELP_STEP2 = (
 )
 
 _HELP_STEP3 = (
-    "【 Step 3 : Apply & Remove Fit Chains 】\n\n"
-    "Apply & Remove All Fit Chains :\n"
+    "【 Step 3 : Apply & Restore 】\n\n"
+    "Apply & Restore :\n"
     "  · fit null 의 world transform 을 joint 에 반영합니다.\n"
     "  · 반영 완료 후 Aim 시스템 노드를 전부 제거합니다.\n"
-    "  · Build 된 모든 파트에 일괄 적용됩니다.\n\n"
-    "Mirror → Opposite Side :\n"
-    "  · 선택된 파트의 fit 결과를 반대쪽(_r ↔ _l)으로 미러합니다.\n"
-    "  · spine / neck 등 side 없는 파트는 자동으로 건너뜁니다.\n"
-    "  · Mirror Plane : 미러 기준 평면 (기본값 YZ)"
+    "  · secondary joints 를 원래 hierarchy 로 복원합니다.\n\n"
+    "Twist joints :\n"
+    "  · 상위 관절 ~ 하위 관절 사이 1/3, 2/3 지점에 위치\n"
+    "  · jointOrient / rotate 제로화\n\n"
+    "correctiveRoot joints :\n"
+    "  · 상위 관절에 parent 후 transform 제로화\n\n"
+    "□ Follow Parent Transform :\n"
+    "  OFF — correctiveRoot 제로화 후 하위 조인트 parent\n"
+    "        (하위 조인트가 기존 월드 위치 유지)\n"
+    "  ON  — 하위 조인트 parent 후 correctiveRoot 제로화\n"
+    "        (하위 조인트가 상위 관절 이동을 따라감)\n\n"
+    "이 시점에서 rl4 는 아직 미연결 상태입니다.\n"
+    "뷰포트에서 스켈레톤을 검수한 뒤 Mirror / Export 를 진행하세요."
 )
 
-_HELP_STEP4A = (
-    "【 Step 4a : Restore Structure 】\n\n"
-    "secondary joints 를 원래 parent 로 재연결하고 visible 로 복원합니다.\n\n"
-    "  · correctiveRoot / half : re-parent 후 local translate = (0,0,0) snap\n"
-    "  · 나머지 : re-parent 만 (Maya 가 world position 유지)\n\n"
-    "이 시점에서 rl4 는 아직 미연결 상태입니다.\n"
-    "뷰포트에서 스켈레톤 형태를 꼼꼼히 검수한 뒤\n"
-    "'Export DNA & Reconnect' 버튼을 누르세요."
+_HELP_MIRROR = (
+    "【 Mirror → Opposite Side 】\n\n"
+    "  · 선택된 파트의 fit 결과를 반대쪽(_r ↔ _l)으로 미러합니다.\n"
+    "  · spine / neck 등 side 없는 파트는 자동으로 건너뜁니다.\n"
+    "  · Mirror Plane : 미러 기준 평면 (기본값 YZ)\n\n"
+    "Apply & Restore 실행 후, 뷰포트에서 스켈레톤을 검수한 뒤\n"
+    "필요한 경우에만 실행하세요."
 )
 
 _HELP_STEP4B = (
-    "【 Step 4b : Export DNA & Reconnect 】\n\n"
-    "Restore 후 검수를 완료했을 때 실행합니다.\n"
+    "【 Step 4 : Export DNA & Reconnect 】\n\n"
+    "Apply & Restore 후 검수를 완료했을 때 실행합니다.\n"
     "확인 대화상자를 거친 뒤 아래 순서로 자동 실행됩니다 :\n"
     "  1. export DNA    : 변경된 스켈레톤을 DNA 파일로 저장\n"
     "  2. reconnect rl4 : body_rl4Embedded 재연결 및 스킨 rebind\n\n"
@@ -482,6 +776,42 @@ def build_tab_ui(parent=None):
     scroll = cmds.scrollLayout(childResizable=True, parent=parent) if parent \
              else cmds.scrollLayout(childResizable=True)
     cmds.columnLayout(adjustableColumn=True, rowSpacing=4, columnOffset=["both", 8])
+
+    # ── Path Settings ──────────────────────────────────────────
+    cmds.separator(h=6, style="none")
+    cmds.frameLayout(
+        label="  Path Settings",
+        collapsable=True,
+        collapse=bool(mhem.MH_LIB_ROOT),
+        marginWidth=6,
+        marginHeight=6,
+    )
+    cmds.columnLayout(adjustableColumn=True, rowSpacing=4)
+    cmds.text(
+        label="MetaHumanForMaya lib 경로  (자동 탐색됨 — 변경 시 폴더 선택)",
+        align="left",
+        font="smallPlainLabelFont",
+    )
+    lib_field = cmds.textFieldButtonGrp(
+        label="MH Lib :",
+        text=mhem.MH_LIB_ROOT,
+        buttonLabel="...",
+        columnWidth3=(58, 220, 36),
+        adjustableColumn=2,
+        buttonCommand=lambda *_: _browse_dir(lib_field, caption="Select MetaHumanForMaya/lib"),
+    )
+    cmds.textFieldButtonGrp(
+        lib_field, edit=True,
+        changeCommand=lambda val: mhem.set_mh_lib_root(val),
+    )
+    if not mhem.MH_LIB_ROOT:
+        cmds.text(
+            label="  !! 경로를 찾을 수 없습니다 — 직접 설정하세요",
+            align="left",
+            font="smallBoldLabelFont",
+        )
+    cmds.setParent("..")   # columnLayout → frameLayout
+    cmds.setParent("..")   # frameLayout  → root_col
 
     # ── Step 1 : Enter Edit Mode ───────────────────────────────
     cmds.separator(h=6, style="none")
@@ -592,34 +922,45 @@ def build_tab_ui(parent=None):
     cmds.setParent("..")   # columnLayout → frameLayout
     cmds.setParent("..")   # frameLayout  → root_col
 
-    # ── Step 3 : Apply & Remove ────────────────────────────────
+    # ── Step 3 : Apply & Restore ─────────────────────────────
     cmds.frameLayout(
-        label="  3.  Apply & Remove Fit Chains",
+        label="  3.  Apply & Restore",
         collapsable=False,
         marginWidth=6,
         marginHeight=6,
     )
     cmds.columnLayout(adjustableColumn=True, rowSpacing=4)
     cmds.text(
-        label="fit 수정 완료 후 실행 — joint 에 transform 반영 후 시스템 제거",
+        label="fit 결과 반영 → aim system 제거 → secondary joints 복원",
         align="left",
         font="smallPlainLabelFont",
     )
+    follow_chk = cmds.checkBox(
+        label="Secondary joints 가 상위 관절의 이동을 따름",
+        value=False,
+    )
     cmds.rowLayout(numberOfColumns=2, columnWidth2=(322, 26), adjustableColumn=1)
     cmds.button(
-        label="Apply & Remove All Fit Chains",
+        label="Apply & Restore",
         height=30,
         backgroundColor=(0.52, 0.44, 0.28),
-        command=lambda *_: apply_and_remove_fit_chains(),
+        command=lambda *_: apply_remove_and_restore(
+            follow_parent=cmds.checkBox(follow_chk, q=True, value=True),
+        ),
     )
     cmds.button(
         label="?", width=26, height=30,
         backgroundColor=(0.25, 0.25, 0.35),
-        command=lambda *_: _show_help("Apply & Remove Fit Chains", _HELP_STEP3),
+        command=lambda *_: _show_help("Apply & Restore", _HELP_STEP3),
     )
     cmds.setParent("..")   # rowLayout → columnLayout
 
     cmds.separator(h=6)
+    cmds.text(
+        label="뷰포트에서 스켈레톤 검수 후 필요 시 Mirror 실행",
+        align="left",
+        font="smallPlainLabelFont",
+    )
     cmds.rowLayout(
         numberOfColumns=4,
         columnWidth4=(70, 64, 192, 26),
@@ -644,44 +985,15 @@ def build_tab_ui(parent=None):
     cmds.button(
         label="?", width=26, height=26,
         backgroundColor=(0.25, 0.25, 0.35),
-        command=lambda *_: _show_help("Apply & Remove Fit Chains", _HELP_STEP3),
+        command=lambda *_: _show_help("Mirror", _HELP_MIRROR),
     )
     cmds.setParent("..")   # rowLayout → columnLayout
     cmds.setParent("..")   # columnLayout → frameLayout
     cmds.setParent("..")   # frameLayout  → root_col
 
-    # ── Step 4a : Restore Structure ────────────────────────────
+    # ── Step 4 : Export DNA & Reconnect ────────────────────────
     cmds.frameLayout(
-        label="  4a.  Restore Structure",
-        collapsable=False,
-        marginWidth=6,
-        marginHeight=6,
-    )
-    cmds.columnLayout(adjustableColumn=True, rowSpacing=4)
-    cmds.text(
-        label="secondary joints 재연결 & 표시 — 뷰포트에서 스켈레톤 검수",
-        align="left",
-        font="smallPlainLabelFont",
-    )
-    cmds.rowLayout(numberOfColumns=2, columnWidth2=(322, 26), adjustableColumn=1)
-    cmds.button(
-        label="Restore Structure",
-        height=30,
-        backgroundColor=(0.40, 0.28, 0.52),
-        command=lambda *_: _on_restore(),
-    )
-    cmds.button(
-        label="?", width=26, height=30,
-        backgroundColor=(0.25, 0.25, 0.35),
-        command=lambda *_: _show_help("Restore Structure", _HELP_STEP4A),
-    )
-    cmds.setParent("..")   # rowLayout → columnLayout
-    cmds.setParent("..")   # columnLayout → frameLayout
-    cmds.setParent("..")   # frameLayout  → root_col
-
-    # ── Step 4b : Export DNA & Reconnect ───────────────────────
-    cmds.frameLayout(
-        label="  4b.  Export DNA & Reconnect",
+        label="  4.  Export DNA & Reconnect",
         collapsable=False,
         marginWidth=6,
         marginHeight=6,

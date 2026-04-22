@@ -759,52 +759,53 @@ def build_aim_system(joints, settings):
         all_nodes.append(vis)
 
     # ── Auto Rotate Offset (matrix 기반) ──
-    # M_off = R_aim_in_GRP⁻¹ × R_joint_in_GRP
-    # orient_MM × M_off → rotOff_DC → null.rotate
-    def _rot_only(m16):
-        rows = []
-        for row in range(3):
-            v  = [m16[row*4+col] for col in range(3)]
-            ln = math.sqrt(sum(x*x for x in v))
-            if ln > 1e-8:
-                v = [x/ln for x in v]
-            rows.extend(v + [0.0])
-        rows.extend([0.0, 0.0, 0.0, 1.0])
-        return om.MMatrix(rows)
+    # preserve_joint_orient=True  : null 초기 방향을 joint 의 현재 방향으로 맞춤
+    # preserve_joint_orient=False : aim system 이 계산한 방향 그대로 사용 (up_method 반영)
+    if settings.get("preserve_joint_orient", True):
+        def _rot_only(m16):
+            rows = []
+            for row in range(3):
+                v  = [m16[row*4+col] for col in range(3)]
+                ln = math.sqrt(sum(x*x for x in v))
+                if ln > 1e-8:
+                    v = [x/ln for x in v]
+                rows.extend(v + [0.0])
+            rows.extend([0.0, 0.0, 0.0, 1.0])
+            return om.MMatrix(rows)
 
-    # orient_MM 노드만 타겟 평가 — global dgdirty/refresh 불필요
-    for _om_node in null_to_orient_mm.values():
-        cmds.getAttr(_om_node + ".matrixSum")
+        # orient_MM 노드만 타겟 평가 — global dgdirty/refresh 불필요
+        for _om_node in null_to_orient_mm.values():
+            cmds.getAttr(_om_node + ".matrixSum")
 
-    identity16 = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]
+        identity16 = [1,0,0,0, 0,1,0,0, 0,0,1,0, 0,0,0,1]
 
-    for jnt, null in zip(joints, nulls):
-        orient_mm_node = null_to_orient_mm.get(null)
-        if not orient_mm_node:
-            continue
+        for jnt, null in zip(joints, nulls):
+            orient_mm_node = null_to_orient_mm.get(null)
+            if not orient_mm_node:
+                continue
 
-        R_aim = _rot_only(cmds.getAttr(orient_mm_node + ".matrixSum"))
-        R_jnt = _rot_only(list(
-            om.MMatrix(cmds.getAttr(jnt + ".worldMatrix[0]")) *
-            om.MMatrix(cmds.getAttr(grp + ".worldInverseMatrix[0]"))
-        ))
-        M_off   = R_aim.inverse() * R_jnt
-        M_off16 = [M_off[i] for i in range(16)]
-        if all(abs(M_off16[k] - identity16[k]) < 1e-4 for k in range(16)):
-            continue
+            R_aim = _rot_only(cmds.getAttr(orient_mm_node + ".matrixSum"))
+            R_jnt = _rot_only(list(
+                om.MMatrix(cmds.getAttr(jnt + ".worldMatrix[0]")) *
+                om.MMatrix(cmds.getAttr(grp + ".worldInverseMatrix[0]"))
+            ))
+            M_off   = R_aim.inverse() * R_jnt
+            M_off16 = [M_off[i] for i in range(16)]
+            if all(abs(M_off16[k] - identity16[k]) < 1e-4 for k in range(16)):
+                continue
 
-        p = _safe(null)
-        for src in cmds.listConnections(null + ".rotate", s=True, d=False, plugs=True) or []:
-            try: cmds.disconnectAttr(src, null + ".rotate")
-            except: pass
+            p = _safe(null)
+            for src in cmds.listConnections(null + ".rotate", s=True, d=False, plugs=True) or []:
+                try: cmds.disconnectAttr(src, null + ".rotate")
+                except: pass
 
-        rot_mm = cmds.createNode("multMatrix",      name="{}_rotOff_MM".format(p))
-        rot_dc = cmds.createNode("decomposeMatrix", name="{}_rotOff_DC".format(p))
-        cmds.connectAttr(orient_mm_node + ".matrixSum", rot_mm + ".matrixIn[0]", f=True)
-        cmds.setAttr(rot_mm + ".matrixIn[1]", M_off16, type="matrix")
-        cmds.connectAttr(rot_mm + ".matrixSum",   rot_dc + ".inputMatrix",   f=True)
-        cmds.connectAttr(rot_dc + ".outputRotate", null  + ".rotate",         f=True)
-        all_nodes += [rot_mm, rot_dc]
+            rot_mm = cmds.createNode("multMatrix",      name="{}_rotOff_MM".format(p))
+            rot_dc = cmds.createNode("decomposeMatrix", name="{}_rotOff_DC".format(p))
+            cmds.connectAttr(orient_mm_node + ".matrixSum", rot_mm + ".matrixIn[0]", f=True)
+            cmds.setAttr(rot_mm + ".matrixIn[1]", M_off16, type="matrix")
+            cmds.connectAttr(rot_mm + ".matrixSum",   rot_dc + ".inputMatrix",   f=True)
+            cmds.connectAttr(rot_dc + ".outputRotate", null  + ".rotate",         f=True)
+            all_nodes += [rot_mm, rot_dc]
 
     # ── Pole Vector Visualization ──
     pv_nodes = _build_pv_visualization(grp, joints, ctrls, nulls)
@@ -1323,6 +1324,10 @@ def mirror_to_opposite_side(joints=None, across="yz"):
     Step 1  setMatrixAxis_ 등가 — 소스 월드 매트릭스 컬럼 반전 (위치 포함)
     Step 2  setMatrixRot_  등가 — 결과 월드 매트릭스 rot_row1 부호 반전 (in-place)
     Step 3  setMatrixRot_  등가 — 동일 매트릭스에 rot_row2 추가 부호 반전
+
+    Note: step 사이 dgdirty(a=True) 불필요.
+    _apply_world_m16_to_joint 마지막 getAttr 가 해당 joint 의 DG 를 강제 평가하므로
+    다음 getAttr(opp+".worldMatrix") 는 항상 올바른 값을 반환한다.
     """
     if joints is None:
         joints = [n for n in (cmds.ls(sl=True) or []) if cmds.nodeType(n) == "joint"]
@@ -1332,6 +1337,7 @@ def mirror_to_opposite_side(joints=None, across="yz"):
         return
 
     flip_col, rot_row1, rot_row2 = _MIRROR_ACROSS[across]
+    # 시작 시 한 번만 dirty — 이후 per-joint dirty 없음
     cmds.dgdirty(a=True)
     cmds.refresh()
 
@@ -1347,13 +1353,12 @@ def mirror_to_opposite_side(joints=None, across="yz"):
         # Step 1: flip col (setMatrixAxis_ 등가) — 새 리스트
         W1 = _flip_col(cmds.getAttr(jnt + ".worldMatrix[0]"), flip_col)
         _apply_world_m16_to_joint(opp, W1, par)
-        cmds.dgdirty(a=True)
+        # _apply_world_m16_to_joint 내부 getAttr 로 opp DG 강제 평가됨 → dgdirty 불필요
 
         # Step 2: 현재 월드 매트릭스 취득 후 rot_row1 반전 (in-place)
         W2 = list(cmds.getAttr(opp + ".worldMatrix[0]"))
         _negate_row(W2, rot_row1)
         _apply_world_m16_to_joint(opp, W2, par)
-        cmds.dgdirty(a=True)
 
         # Step 3: 동일 W2 (이미 rot_row1 반전됨)에 rot_row2 추가 반전
         _negate_row(W2, rot_row2)

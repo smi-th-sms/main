@@ -460,10 +460,11 @@ class MHToolsIntegrated:
         
         self._create_cleanup_task_row("task1", "1. Joints 및 그룹 정리 (joints_grp/geometry_grp/head_grp)", self.execute_cleanup_task1)
         self._create_cleanup_task_row("task2", "2. Head LOD 정리 (head_lod0_grp 제외 삭제)", self.execute_cleanup_task2)
-        self._create_cleanup_task_row("task3", "3. Facial 조인트 Constraint 및 그룹핑", self.execute_cleanup_task3)
-        self._create_cleanup_task_row("task4", "4. Lights 그룹 제거", self.execute_cleanup_task4)
-        self._create_cleanup_task_row("task5", "5. Delete Unused Nodes & Plugins", self.execute_cleanup_task5)
-        self._create_cleanup_task_row("task6", "6. Create Animation Sets", self.execute_cleanup_task6)
+        self._create_cleanup_task_row("task_body_match", "3. Body Joint Transform Match", self.execute_cleanup_task_body_match)
+        self._create_cleanup_task_row("task3", "4. Facial 조인트 Constraint 및 그룹핑", self.execute_cleanup_task3)
+        self._create_cleanup_task_row("task4", "5. Lights 그룹 제거", self.execute_cleanup_task4)
+        self._create_cleanup_task_row("task5", "6. Delete Unused Nodes & Plugins", self.execute_cleanup_task5)
+        self._create_cleanup_task_row("task6", "7. Create Animation Sets", self.execute_cleanup_task6)
         
         cmds.setParent('..')
         cmds.setParent('..')
@@ -677,8 +678,222 @@ class MHToolsIntegrated:
         except Exception as e:
             self.cleanup_log(f"[작업 2] 오류: {str(e)}")
     
+    def execute_cleanup_task_body_match(self):
+        """작업 3. Body Joint Transform Match"""
+        self.cleanup_log(u"\n[작업 3. Body Joint Transform Match] 시작...")
+
+        try:
+            # Step 1: Reference 파일 선택
+            file_path_result = cmds.fileDialog2(
+                fileMode=1,
+                caption="Reference 파일 선택",
+                fileFilter="Maya Files (*.ma *.mb);;All Files (*.*)",
+                dialogStyle=2
+            )
+
+            if not file_path_result:
+                self.cleanup_log(u"  ⚠ 파일 선택이 취소되었습니다.")
+                return
+
+            file_path = file_path_result[0]
+            base_name = os.path.splitext(os.path.basename(file_path))[0]
+
+            # Namespace 입력
+            ns_result = cmds.promptDialog(
+                title="Namespace 입력",
+                message="레퍼런스에 사용할 Namespace:",
+                text=base_name,
+                button=["OK", "Cancel"],
+                defaultButton="OK",
+                cancelButton="Cancel",
+                dismissString="Cancel"
+            )
+
+            if ns_result != "OK":
+                self.cleanup_log(u"  ⚠ 취소되었습니다.")
+                return
+
+            namespace = cmds.promptDialog(query=True, text=True).strip()
+            if not namespace:
+                namespace = base_name
+
+            # Reference 로드
+            self.cleanup_log(u"  레퍼런스 로드: {} (ns: {})".format(os.path.basename(file_path), namespace))
+            cmds.file(file_path, reference=True, namespace=namespace)
+            self.cleanup_log(u"  ✓ 레퍼런스 로드 완료")
+
+            # Step 2: Joint 구조 파악
+            all_joints = cmds.ls(type='joint')
+            scene_joints = [j for j in all_joints if ':' not in j]
+
+            root_joint = None
+            for j in scene_joints:
+                if j.lower().startswith('root'):
+                    parent = cmds.listRelatives(j, parent=True)
+                    if not parent:
+                        root_joint = j
+                        break
+
+            if not root_joint:
+                self.cleanup_log(u"  ⚠ root 조인트를 찾을 수 없습니다. 레퍼런스를 제거합니다.")
+                self._remove_reference_by_namespace(namespace)
+                return
+
+            self.cleanup_log(u"  ✓ root 조인트: {}".format(root_joint))
+
+            # 하이라키 전체 조인트 (fullPath 기준 depth 정렬 → parent-first)
+            hier_fp = cmds.listRelatives(root_joint, allDescendents=True, type='joint', fullPath=True) or []
+            hier_fp_sorted = sorted(hier_fp, key=lambda x: x.count('|'))
+
+            # Facial 최상위 조인트 식별 (FACIAL_ 포함, 부모는 비-FACIAL)
+            facial_joint_set = set()
+            facial_top_joints = []
+
+            for fp in hier_fp_sorted:
+                short = fp.split('|')[-1]
+                if 'FACIAL_' in short:
+                    facial_joint_set.add(short)
+                    parent_nodes = cmds.listRelatives(fp, parent=True, fullPath=True)
+                    if parent_nodes:
+                        parent_short = parent_nodes[0].split('|')[-1]
+                        if 'FACIAL_' not in parent_short:
+                            facial_top_joints.append(short)
+
+            self.cleanup_log(u"  ✓ Facial 조인트: {}개 (최상위 {}개)".format(len(facial_joint_set), len(facial_top_joints)))
+
+            # Facial 최상위 조인트 임시 분리
+            facial_parent_map = {}
+            for fj in facial_top_joints:
+                parent = cmds.listRelatives(fj, parent=True)
+                if parent:
+                    facial_parent_map[fj] = parent[0]
+                    try:
+                        cmds.parent(fj, world=True)
+                    except Exception as e:
+                        self.cleanup_log(u"  ✗ Unparent 실패: {} - {}".format(fj, str(e)))
+
+            self.cleanup_log(u"  ✓ Facial 조인트 임시 분리: {}개".format(len(facial_parent_map)))
+
+            # 레퍼런스 조인트 맵 구성 (short_name → full_name)
+            ref_prefix = namespace + ':'
+            ref_joints = [j for j in cmds.ls(type='joint') if j.startswith(ref_prefix)]
+            ref_joint_map = {j[len(ref_prefix):]: j for j in ref_joints}
+
+            self.cleanup_log(u"  ✓ 레퍼런스 조인트: {}개".format(len(ref_joints)))
+
+            # Body 조인트 Transform Match (parent-first 순서)
+            body_joints = [root_joint]
+            for fp in hier_fp_sorted:
+                short = fp.split('|')[-1]
+                if short not in facial_joint_set:
+                    body_joints.append(short)
+
+            matched = 0
+            skipped = 0
+
+            for j in body_joints:
+                if j in ref_joint_map:
+                    ref_j = ref_joint_map[j]
+                    try:
+                        ws_matrix = cmds.xform(ref_j, q=True, ws=True, matrix=True)
+                        cmds.xform(j, ws=True, matrix=ws_matrix)
+                        matched += 1
+                    except Exception as e:
+                        self.cleanup_log(u"  ✗ Match 실패: {} - {}".format(j, str(e)))
+                else:
+                    skipped += 1
+
+            self.cleanup_log(u"  ✓ Transform Match: {}개 완료, {}개 미매치".format(matched, skipped))
+
+            # Facial 조인트 복원
+            for fj, orig_parent in facial_parent_map.items():
+                try:
+                    cmds.parent(fj, orig_parent)
+                except Exception as e:
+                    self.cleanup_log(u"  ✗ Re-parent 실패: {} → {} - {}".format(fj, orig_parent, str(e)))
+
+            self.cleanup_log(u"  ✓ Facial 조인트 복원 완료")
+
+            # Step 3: Set Bind Default
+            self.cleanup_log(u"  Set Bind Default 실행 중...")
+            self._execute_set_bind_default()
+
+            # Step 4: 레퍼런스 제거
+            self.cleanup_log(u"  레퍼런스 제거 중...")
+            self._remove_reference_by_namespace(namespace)
+
+            self.cleanup_log(u"[작업 3. Body Joint Transform Match] 완료!")
+
+        except Exception as e:
+            import traceback
+            self.cleanup_log(u"[작업 3. Body Joint Transform Match] 오류: {}".format(str(e)))
+            self.cleanup_log(traceback.format_exc())
+
+    def _execute_set_bind_default(self):
+        """모든 skinCluster에 현재 조인트 위치를 bind pose로 설정"""
+        import maya.OpenMaya as om
+
+        def get_mobj(node_name):
+            sel_list = om.MSelectionList()
+            sel_list.add(node_name)
+            mobj = om.MObject()
+            sel_list.getDependNode(0, mobj)
+            return mobj
+
+        skin_clusters = cmds.ls(type='skinCluster') or []
+
+        if not skin_clusters:
+            self.cleanup_log(u"  ⚠ skinCluster를 찾을 수 없습니다.")
+            return
+
+        success = 0
+        failed = 0
+
+        for skin_node in skin_clusters:
+            try:
+                fn_skin = om.MFnDependencyNode(get_mobj(skin_node))
+                plug_matrix = fn_skin.findPlug('matrix')
+                plug_bind_pre = fn_skin.findPlug('bindPreMatrix')
+
+                for i in range(plug_matrix.numElements()):
+                    lo_idx = plug_matrix[i].logicalIndex()
+                    o_mtx = plug_matrix[i].asMObject()
+                    mtx_data = om.MFnMatrixData(o_mtx)
+                    mtx = mtx_data.matrix()
+                    inv_data = om.MFnMatrixData()
+                    o_inv = inv_data.create(mtx.inverse())
+                    plug_bind_pre.elementByLogicalIndex(lo_idx).setMObject(o_inv)
+
+                self.cleanup_log(u"  ✓ {}".format(skin_node))
+                success += 1
+            except Exception as e:
+                self.cleanup_log(u"  ✗ {} - {}".format(skin_node, str(e)))
+                failed += 1
+
+        self.cleanup_log(u"  ✓ Set Bind Default 완료: {}개 성공, {}개 실패".format(success, failed))
+
+    def _remove_reference_by_namespace(self, namespace):
+        """지정된 namespace의 reference를 제거"""
+        try:
+            ref_nodes = cmds.ls(type='reference') or []
+            for rn in ref_nodes:
+                if rn == 'sharedReferenceNode':
+                    continue
+                try:
+                    ns = cmds.referenceQuery(rn, namespace=True).lstrip(':')
+                    if ns == namespace:
+                        fname = cmds.referenceQuery(rn, filename=True)
+                        cmds.file(fname, removeReference=True)
+                        self.cleanup_log(u"  ✓ 레퍼런스 제거: {}".format(os.path.basename(fname)))
+                        return
+                except Exception:
+                    continue
+            self.cleanup_log(u"  ⚠ namespace '{}' 레퍼런스를 찾을 수 없습니다.".format(namespace))
+        except Exception as e:
+            self.cleanup_log(u"  ✗ 레퍼런스 제거 실패: {}".format(str(e)))
+
     def execute_cleanup_task3(self):
-        """작업 3: Facial 조인트 처리"""
+        """작업 4: Facial 조인트 처리"""
         self.cleanup_log("\n[작업 3] Facial 조인트 처리 시작...")
         
         try:
@@ -882,6 +1097,7 @@ class MHToolsIntegrated:
         task_functions = {
             'task1': self.execute_cleanup_task1,
             'task2': self.execute_cleanup_task2,
+            'task_body_match': self.execute_cleanup_task_body_match,
             'task3': self.execute_cleanup_task3,
             'task4': self.execute_cleanup_task4,
             'task5': self.execute_cleanup_task5,
@@ -897,6 +1113,7 @@ class MHToolsIntegrated:
         self.cleanup_log("\n" + "="*50)
         self.execute_cleanup_task1()
         self.execute_cleanup_task2()
+        self.execute_cleanup_task_body_match()
         self.execute_cleanup_task3()
         self.execute_cleanup_task4()
         self.execute_cleanup_task5()

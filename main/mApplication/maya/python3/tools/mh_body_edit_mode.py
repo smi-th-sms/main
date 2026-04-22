@@ -49,16 +49,54 @@ correctiveRoot, half → re-parent 후 local translate = (0,0,0)
 
 import os
 import sys
+import glob
+import json
+import math
 import maya.cmds as cmds
 import maya.mel  as mel
+import maya.api.OpenMaya as om2
 
 
 # ══════════════════════════════════════════════════════════════
 #  설정값  (환경에 맞게 수정)
 # ══════════════════════════════════════════════════════════════
 
-# MetaHumanForMaya 라이브러리 루트
-MH_LIB_ROOT = "C:/Users/smi_th/Documents/maya/modules/MetaHumanForMaya/lib"
+def _find_mh_lib_root():
+    """Documents/maya/modules/MetaHumanForMaya/lib 경로를 자동 탐색."""
+    # Windows: C:/Users/*/Documents/maya/modules/MetaHumanForMaya/lib
+    pattern = os.path.join(
+        os.path.expanduser("~"),
+        "Documents/maya/modules/MetaHumanForMaya/lib",
+    )
+    if os.path.isdir(pattern):
+        return pattern.replace("\\", "/")
+
+    # fallback: 모든 사용자 폴더에서 탐색
+    for match in glob.glob("C:/Users/*/Documents/maya/modules/MetaHumanForMaya/lib"):
+        if os.path.isdir(match):
+            return match.replace("\\", "/")
+
+    return ""
+
+
+# MetaHumanForMaya 라이브러리 루트 (자동 탐색, set_mh_lib_root() 로 변경 가능)
+MH_LIB_ROOT = _find_mh_lib_root()
+
+
+def set_mh_lib_root(path):
+    """MH_LIB_ROOT 를 직접 설정한다.
+
+    Parameters
+    ----------
+    path : str
+        MetaHumanForMaya/lib 폴더의 절대 경로.
+    """
+    global MH_LIB_ROOT
+    path = path.replace("\\", "/")
+    if not os.path.isdir(path):
+        cmds.warning("[MHEdit] 경로가 존재하지 않습니다: {}".format(path))
+    MH_LIB_ROOT = path
+    print("[MHEdit] MH_LIB_ROOT = {}".format(MH_LIB_ROOT))
 
 # Maya Python 버전 (Maya 2025 = python-3.11 / Maya 2024 = python-3.10)
 MH_PY_VER   = "python-3.11"
@@ -77,6 +115,10 @@ DEFAULT_RL4_NODE = "body_rl4Embedded"
 # skinCluster 이름 패턴 및 개수 (body_lod{i}_mesh_skinCluster, i = 0..LOD_COUNT-1)
 LOD_COUNT = 4
 
+# rl4 connections JSON 파일 경로 (씬에서 연결을 캡처할 수 없을 때 fallback)
+_TOOLS_DIR = os.path.dirname(os.path.abspath(__file__))
+RL4_CONNECTIONS_JSON = os.path.join(_TOOLS_DIR, "rl4_connections.json")
+
 
 # ══════════════════════════════════════════════════════════════
 #  패턴 정의
@@ -88,7 +130,7 @@ _SECONDARY_PATTERNS = [
     "side_out", "side_inn", "side_in",
     "half", "scap", "latissimus", "lat_", "pec",
     "_bck_", "_fwd_", "_pip_", "_dip_", "_mcp_", "_palm",
-    "twist", "ankle_bck", "ankle_fwd", "ball_",
+    "twist", "ankle_bck", "ankle_fwd", "_slide",
     "wrist_inner", "wrist_outer", "kneeBack",
 ]
 
@@ -108,6 +150,70 @@ _state = {
     "sc_info"          : {},   # {sc_name: {"mesh": str, "influences": [str]}}
     "last_exported_dna": "",
 }
+
+
+# ══════════════════════════════════════════════════════════════
+#  씬 데이터 노드  (리로드 시에도 state 유지)
+# ══════════════════════════════════════════════════════════════
+
+_DATA_NODE = "MHEdit_stateData"
+
+
+def _save_state_to_scene():
+    """_state 를 씬 내 network 노드에 직렬화하여 저장."""
+    if not cmds.objExists(_DATA_NODE):
+        cmds.createNode("network", name=_DATA_NODE)
+
+    for attr in [
+        "parent_map_json", "rl4_connections_json", "sc_info_json",
+        "rl4_node_str", "last_exported_dna_str",
+    ]:
+        if not cmds.attributeQuery(attr, node=_DATA_NODE, exists=True):
+            cmds.addAttr(_DATA_NODE, longName=attr, dataType="string")
+
+    n = _DATA_NODE
+    cmds.setAttr(n + ".parent_map_json",
+                 json.dumps(_state["parent_map"]), type="string")
+    cmds.setAttr(n + ".rl4_connections_json",
+                 json.dumps(_state["rl4_connections"]), type="string")
+    cmds.setAttr(n + ".sc_info_json",
+                 json.dumps(_state["sc_info"]), type="string")
+    cmds.setAttr(n + ".rl4_node_str",
+                 _state["rl4_node"], type="string")
+    cmds.setAttr(n + ".last_exported_dna_str",
+                 _state["last_exported_dna"], type="string")
+
+
+def _load_state_from_scene():
+    """씬 내 network 노드에서 _state 복원.  성공 시 True."""
+    if not cmds.objExists(_DATA_NODE):
+        return False
+    n = _DATA_NODE
+    try:
+        _state["parent_map"]       = json.loads(cmds.getAttr(n + ".parent_map_json") or "{}")
+        _state["rl4_connections"]  = json.loads(cmds.getAttr(n + ".rl4_connections_json") or "[]")
+        _state["sc_info"]          = json.loads(cmds.getAttr(n + ".sc_info_json") or "{}")
+        _state["rl4_node"]         = cmds.getAttr(n + ".rl4_node_str") or DEFAULT_RL4_NODE
+        _state["last_exported_dna"]= cmds.getAttr(n + ".last_exported_dna_str") or ""
+        _state["active"]           = True
+        print("[MHEdit] State restored from scene node.")
+        return True
+    except Exception as e:
+        print("[MHEdit] WARN load_state_from_scene: {}".format(e))
+        return False
+
+
+def _clear_scene_state():
+    """씬 내 state 노드를 삭제."""
+    if cmds.objExists(_DATA_NODE):
+        cmds.delete(_DATA_NODE)
+        print("[MHEdit] Scene state node deleted.")
+
+
+def ensure_state():
+    """_state 가 비어있으면 씬 노드에서 복원 시도."""
+    if not _state["active"] and cmds.objExists(_DATA_NODE):
+        _load_state_from_scene()
 
 
 # ══════════════════════════════════════════════════════════════
@@ -232,24 +338,56 @@ def enter_edit_mode(rl4_node=DEFAULT_RL4_NODE, force=False):
             rl4_node, source=False, destination=True,
             connections=True, plugs=True,
         ) or []
-        saved = [(out_conns[i], out_conns[i + 1]) for i in range(0, len(out_conns), 2)]
+        saved = [[out_conns[i], out_conns[i + 1]] for i in range(0, len(out_conns), 2)]
+
+        # 씬에서 연결이 없으면 JSON 파일에서 로드
+        if not saved and os.path.isfile(RL4_CONNECTIONS_JSON):
+            with open(RL4_CONNECTIONS_JSON, "r") as f:
+                saved = json.load(f)
+            print("[MHEdit] Loaded {} connections from {}.".format(
+                len(saved), os.path.basename(RL4_CONNECTIONS_JSON)))
 
         cmds.undoInfo(openChunk=True, chunkName="MHEdit_disconnectRL4")
         try:
             for src, dst in saved:
                 try:
-                    cmds.disconnectAttr(src, dst)
+                    if cmds.isConnected(src, dst):
+                        cmds.disconnectAttr(src, dst)
                 except Exception as e:
                     print("[MHEdit] WARN disconnect {}: {}".format(src, e))
         finally:
             cmds.undoInfo(closeChunk=True)
 
         _state["rl4_connections"] = saved
-        print("[MHEdit] Disconnected {} connections from {}.".format(len(saved), rl4_node))
+        print("[MHEdit] Disconnected / stored {} connections from {}.".format(len(saved), rl4_node))
 
     # ── 3) secondary joints unparent ────────────────────────────
     secondary  = [j for j in cmds.ls(type="joint") if _is_secondary(j)]
+    sec_set    = set(secondary)
+
+    # secondary 하위의 non-secondary joint 도 unparent 대상에 포함
+    # (예: calf_knee → calf_correctiveRoot 하위, upperarm_bicep → twist 하위)
+    all_joints = cmds.ls(type="joint")
+    for j in all_joints:
+        if j in sec_set:
+            continue
+        par = cmds.listRelatives(j, parent=True, type="joint", fullPath=False)
+        if par and par[0] in sec_set:
+            secondary.append(j)
+            sec_set.add(j)
+
     parent_map = {}
+
+    # child → parent 순서로 unparent (leaf 먼저)
+    def _hier_depth(j):
+        d = 0
+        p = cmds.listRelatives(j, parent=True, fullPath=False)
+        while p:
+            d += 1
+            p = cmds.listRelatives(p[0], parent=True, fullPath=False)
+        return d
+
+    secondary.sort(key=_hier_depth, reverse=True)
 
     cmds.undoInfo(openChunk=True, chunkName="MHEdit_unparent")
     try:
@@ -275,6 +413,9 @@ def enter_edit_mode(rl4_node=DEFAULT_RL4_NODE, force=False):
             except Exception:
                 pass
 
+    # ── 5) state 를 씬 노드에 저장 ──────────────────────────────
+    _save_state_to_scene()
+
     print("[MHEdit] Unparented {} secondary joints.".format(len(secondary)))
     print("[MHEdit] Primary joints in tree: {}.".format(len(_get_primary_joints())))
     print("[MHEdit] >>> EDIT MODE ACTIVE - modify primary joint transforms now. <<<")
@@ -293,6 +434,7 @@ def restore_structure():
     이 시점에서 rl4 는 아직 미연결 상태입니다.
     다음 단계: export_dna_from_scene() → reconnect_rl4()
     """
+    ensure_state()
     if not _state["active"]:
         print("[MHEdit] Not in edit mode.")
         return
@@ -424,6 +566,11 @@ def export_dna_from_scene(
     writer.write()
 
     _state["last_exported_dna"] = output_dna_path
+    # 씬 노드에도 갱신
+    if cmds.objExists(_DATA_NODE):
+        if not cmds.attributeQuery("last_exported_dna_str", node=_DATA_NODE, exists=True):
+            cmds.addAttr(_DATA_NODE, longName="last_exported_dna_str", dataType="string")
+        cmds.setAttr(_DATA_NODE + ".last_exported_dna_str", output_dna_path, type="string")
     print("[MHEdit] DNA export: updated={}, skipped={}.".format(updated, skipped))
     print("[MHEdit] Saved -> {} ({} bytes)".format(output_dna_path, os.path.getsize(output_dna_path)))
 
@@ -530,6 +677,78 @@ def _rebind_skin(sc_name, info):
     return True
 
 
+def bake_rotate_to_joint_orient(namespace=DEFAULT_NAMESPACE):
+    """
+    모든 joint 의 rotate 값을 jointOrient 에 합산하고 rotate 를 (0,0,0) 으로 만듭니다.
+    worldMatrix 는 변경되지 않습니다.
+
+    Maya joint 로컬 매트릭스 회전 순서(row-vector): R * JO
+    → new_JO = R_matrix * JO_matrix  를 XYZ euler 로 분해하여 jointOrient 에 설정.
+
+    RL4 reconnect 전에 호출해야 합니다 (RL4 가 rotate 를 드라이빙하므로).
+    """
+    prefix = (namespace + ":") if namespace else ""
+    joints = cmds.ls(prefix + "*", type="joint", long=True) or []
+
+    baked = 0
+    skipped = 0
+
+    for jnt in joints:
+        r = cmds.getAttr(jnt + ".rotate")[0]
+        if abs(r[0]) < 1e-6 and abs(r[1]) < 1e-6 and abs(r[2]) < 1e-6:
+            continue
+
+        # locked / connected 검사
+        skip = False
+        for attr in (".rx", ".ry", ".rz", ".jox", ".joy", ".joz"):
+            full = jnt + attr
+            if cmds.getAttr(full, lock=True):
+                skip = True
+                break
+            if cmds.listConnections(full, source=True, destination=False):
+                skip = True
+                break
+        if skip:
+            skipped += 1
+            continue
+
+        wm_before = list(cmds.getAttr(jnt + ".worldMatrix[0]"))
+
+        jo = cmds.getAttr(jnt + ".jointOrient")[0]
+        ro = cmds.getAttr(jnt + ".rotateOrder")
+
+        jo_euler = om2.MEulerRotation(
+            math.radians(jo[0]), math.radians(jo[1]), math.radians(jo[2]), 0
+        )
+        r_euler = om2.MEulerRotation(
+            math.radians(r[0]), math.radians(r[1]), math.radians(r[2]), ro
+        )
+
+        combined_mat = r_euler.asMatrix() * jo_euler.asMatrix()
+        new_jo_e = om2.MTransformationMatrix(combined_mat).rotation(asQuaternion=False)
+        new_jo_e.reorderIt(0)  # jointOrient 은 항상 XYZ
+
+        cmds.setAttr(
+            jnt + ".jointOrient",
+            math.degrees(new_jo_e.x),
+            math.degrees(new_jo_e.y),
+            math.degrees(new_jo_e.z),
+        )
+        cmds.setAttr(jnt + ".rotate", 0, 0, 0)
+
+        wm_after = list(cmds.getAttr(jnt + ".worldMatrix[0]"))
+        max_diff = max(abs(a - b) for a, b in zip(wm_before, wm_after))
+        if max_diff > 0.0001:
+            print("[MHEdit] WARN bake {} worldMatrix diff={:.6f}".format(
+                jnt.split("|")[-1], max_diff))
+
+        baked += 1
+
+    print("[MHEdit] bake_rotate_to_joint_orient: baked={}, skipped={}".format(
+        baked, skipped))
+    return baked, skipped
+
+
 def reconnect_rl4():
     """
     편집 완료 후 rig 를 복원합니다.
@@ -542,6 +761,7 @@ def reconnect_rl4():
     3) rl4 output connections 재연결
     4) skinCluster envelope = 1.0
     """
+    ensure_state()
     rl4_node    = _state["rl4_node"]
     exported    = _state.get("last_exported_dna", "")
     sc_info     = _state.get("sc_info", {})
@@ -581,12 +801,13 @@ def reconnect_rl4():
             cmds.setAttr(sc_name + ".envelope", 1.0)
     print("[MHEdit] Restored skinCluster envelopes to 1.0.")
 
-    # ── 상태 초기화 ──────────────────────────────────────────────
+    # ── 상태 초기화 + 씬 노드 삭제 ─────────────────────────────
     _state["active"]            = False
     _state["rl4_connections"]   = []
     _state["parent_map"]        = {}
     _state["sc_info"]           = {}
     _state["last_exported_dna"] = ""
+    _clear_scene_state()
     print("[MHEdit] >>> Done. <<<")
 
 
@@ -602,12 +823,14 @@ def full_exit():
 
 def get_state():
     """현재 _state 를 출력합니다."""
+    ensure_state()
     print("[MHEdit] active            :", _state["active"])
     print("[MHEdit] rl4 node          :", _state["rl4_node"])
     print("[MHEdit] rl4 connections   :", len(_state["rl4_connections"]))
     print("[MHEdit] parent_map        :", len(_state["parent_map"]))
     print("[MHEdit] sc_info           :", list(_state["sc_info"].keys()))
     print("[MHEdit] last_exported_dna :", _state["last_exported_dna"])
+    print("[MHEdit] scene node        :", cmds.objExists(_DATA_NODE))
 
 
 def reset_state():
@@ -622,4 +845,6 @@ def reset_state():
     _state["parent_map"]        = {}
     _state["sc_info"]           = {}
     _state["last_exported_dna"] = ""
+    _clear_scene_state()
     print("[MHEdit] _state 초기화 완료.")
+##########################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################################

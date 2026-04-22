@@ -59,11 +59,10 @@ _SETTINGS_OS_SUFFIX = "_Settings_OS"
 # Feature 7 – Constraint to Joints: AS→MH 기본 매핑 (MetaHuman 기준)
 _CONSTRAINT_DEFAULT_MAPPING = {
     "Root":          "pelvis",
-    "Spine1":        "spine_01",
-    "Spine2":        "spine_02",
-    "Spine3":        "spine_03",
-    "Spine4":        "spine_04",
-    "Chest":         "spine_05",
+    "Spine1":        "spine_02",
+    "Spine2":        "spine_03",
+    "Chest_M":       "spine_04",
+    "ChestExtra_M":  "spine_05",
     "Neck0":         "neck_01",
     "Neck1":         "neck_02",
     "Head":          "head",
@@ -590,9 +589,10 @@ def build_corrective_root_rx_mute(namespace=""):
             continue
         rx_src = rx_srcs[0]
 
-        # rxLock attr 추가 (long, 0/1)
+        # rxLock attr 추가 (long, 0/1) – 기본값 0 으로 생성 후 즉시 1(mute) 로 활성화
         cmds.addAttr(jnt, longName="rxLock", attributeType="long",
                      minValue=0, maxValue=1, defaultValue=0, keyable=True)
+        cmds.setAttr(jnt + ".rxLock", 1)
 
         # ── condition 노드 생성 ────────────────────────────────────────────
         cond = cmds.createNode("condition", name=short + "_rxMute_cond")
@@ -1015,6 +1015,13 @@ def constraint_to_joints(ns_as="", ns_mh="",
             except Exception:
                 pass
 
+        # AS 조인트 rotateOrder 를 MH 조인트에 동기화 (constraint 전에 설정)
+        try:
+            ro = cmds.getAttr(dj + ".rotateOrder")
+            cmds.setAttr(target + ".rotateOrder", ro)
+        except Exception:
+            pass
+
         cmds.parentConstraint(dj, target, mo=True)
         cmds.scaleConstraint(dj, target, mo=True)
         count += 1
@@ -1074,6 +1081,11 @@ def revert_constraint_to_joints(ns_as="", ns_mh="",
         )
         if cons:
             cmds.delete(cons)
+            # rotateOrder → XYZ (0) 복원 (MetaHuman 기본값)
+            try:
+                cmds.setAttr(target + ".rotateOrder", 0)
+            except Exception:
+                pass
             print("rig_develop_tool: constraint 제거 – " + target)
             count += 1
 

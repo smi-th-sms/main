@@ -1,98 +1,73 @@
-# -*- coding: utf-8 -*-
-"""============================================================================
-Module descriptions.
-
-
-__AUTHOR__ = 'minsung'
-__UPDATE__ = 20210707
-
-:Example:
-from python3.libs import surfaceParam
-reload(surfaceParam)
-spaces_ = surfaceParam.SurfParamSpace()
-
-blah blah blah blah blah blah
-blah blah blah blah blah blah
-============================================================================"""
-#
-# when start coding 3 empty lines.
-#
-from pymel.core import *
+import maya.cmds as cmds
 from collections import OrderedDict
-from python3.libs import _attribute
-from python3.libs import _node
-from python3.libs import _connect
 
-try:
-    from imp import *
-except:
-    pass
 
-reload(_attribute)
-reload(_node)
-reload(_connect)
+def _get_shape(node):
+    if cmds.objectType(node) == 'transform':
+        shapes = cmds.listRelatives(node, shapes=True)
+        return shapes[0] if shapes else None
+    return node
+
 
 class SurfParamSpace():
     def __init__(self, object_, *args, **kwargs):
-        if object_:
-            self.object_ = object_
-        shape_ = self.object_[0].getShape()
-        uNum_ = shape_.numSpansInU()+1
-        vNum_ = shape_.numSpansInV()+1
-        spaces = self.surf_param_space(self.object_, uNum_, vNum_)
+        self.object_ = object_
+        surf_ = self.object_[0]
+        shape_ = _get_shape(surf_)
+        uNum_ = cmds.getAttr(shape_ + '.spansU') + 1
+        vNum_ = cmds.getAttr(shape_ + '.spansV') + 1
+        spaces = self.surf_param_space(surf_, uNum_, vNum_)
         paramGRPs = self.param_structure(spaces.keys())
-        for i,grp in enumerate(paramGRPs['V_param']):
+        for i, grp in enumerate(paramGRPs['V_param']):
             for spc in spaces[i]:
-                parent(spc, grp)
+                cmds.parent(spc, grp)
 
     def surf_param_space(self, object_, uNum, vNum):
         spaceDict = OrderedDict()
-        _shape = object_.getShape()
-        uMax, vMax = _attribute.surface_uvSpans_num(_shape)
-        _name = object_.name()
+        _shape = _get_shape(object_)
+        uMax = cmds.getAttr(_shape + '.spansU')
+        vMax = cmds.getAttr(_shape + '.spansV')
+        _name = object_
+
         for v in range(vNum):
             uList = []
             spaceDict[v] = uList
             for u in range(uNum):
                 name = '{}_U{}_V{}'.format(_name, u, v)
-                _POSI = _node.po_surf_info(name, _shape)
-                _POSI.setAttr('parameterU', u)
-                _POSI.setAttr('parameterV', v)
-                _rotH = _node.rot_helper(name, _POSI)
-                _space = _node.space_(name, parent_=None)
-                addAttr(_space, 
-                        ln='paramU', 
-                        sn='pu', 
-                        at='float', 
-                        dv=u, 
-                        min=0, 
-                        max=uMax, 
-                        k=1)
-                addAttr(_space, 
-                        ln='paramV', 
-                        sn='pv', 
-                        at='float', 
-                        dv=v, 
-                        min=0, 
-                        max=vMax, 
-                        k=1)
-                _connect.connect_attrs([_space, _POSI], 
-                                       'pu', 'parameterU')
-                _connect.connect_attrs([_space, _POSI], 
-                                       'pv', 'parameterV')
-                _connect.connect_attrs([_POSI, _space], 
-                                       'p', 't')
-                _DCM = _node.decompose_(name)
-                _connect.connect_attrs([_rotH, _DCM], 
-                                       'rotateMatrix', 'inputMatrix')
-                _connect.connect_attrs([_DCM, _space], 
-                                       'or', 'r')
+
+                _POSI = cmds.createNode('pointOnSurfaceInfo', n='{}PSI'.format(name))
+                cmds.connectAttr(_shape + '.worldSpace[0]', _POSI + '.inputSurface')
+
+                _rotH = cmds.createNode('rotateHelper', n='{}RH'.format(name))
+                cmds.connectAttr(_POSI + '.normalizedNormal', _rotH + '.up')
+                cmds.connectAttr(_POSI + '.normalizedTangentV', _rotH + '.forward')
+
+                _space = cmds.createNode('transform', n='{}Grp'.format(name))
+                cmds.addAttr(_space, ln='paramU', sn='pu', at='float', dv=u, min=0, max=uMax, k=True)
+                cmds.addAttr(_space, ln='paramV', sn='pv', at='float', dv=v, min=0, max=vMax, k=True)
+
+                cmds.connectAttr(_space + '.pu', _POSI + '.parameterU')
+                cmds.connectAttr(_space + '.pv', _POSI + '.parameterV')
+                cmds.connectAttr(_POSI + '.position', _space + '.translate')
+
+                _DCM = cmds.createNode('decomposeMatrix', n='{}DM'.format(name))
+                cmds.connectAttr(_rotH + '.rotateMatrix', _DCM + '.inputMatrix')
+                cmds.connectAttr(_DCM + '.outputRotate', _space + '.rotate')
+
                 uList.append(_space)
         return spaceDict
-                
+
     def param_structure(self, list_):
         GRPDict = OrderedDict()
-        GRPDict['param'] = _node.space_('param')
-        GRPDict['V_param'] = [_node.space_('V{}_space'.format(i), 
-                             parent_=GRPDict['param']) for i in list_]
+        GRPDict['param'] = cmds.createNode('transform', n='paramGrp')
+        v_params = []
+        for i in list_:
+            grp = cmds.createNode('transform', n='V{}_spaceGrp'.format(i))
+            cmds.parent(grp, GRPDict['param'])
+            v_params.append(grp)
+        GRPDict['V_param'] = v_params
         return GRPDict
+
+
+sel = cmds.ls(sl=True)
+SurfParamSpace(sel)

@@ -1,59 +1,79 @@
-from pymel.core import *
+# -*- coding: utf-8 -*-
+import maya.cmds as cmds
+
 
 def getChildren_(object_, type_=None):
-    """Get the childrens from top object
+    """Get the children from top object
 
     Arguments:
-        object_ (node): transform node
-        type_ (type): node type
+        object_ (str): transform node name
+        type_   (str): node type filter
 
     Returns:
-        list : childrens list
-
+        list: children list (top → bottom order)
     """
-    object_ = PyNode(object_)
     if not type_:
         type_ = 'transform'
-    child_ = object_.listRelatives(ad=1, c=1, typ=type_)
+    child_ = cmds.listRelatives(object_, allDescendents=True, type=type_) or []
     child_ = child_ + [object_]
     child_.reverse()
     return child_
 
+
 def hierarchy_(object_):
-    for i,obj in enumerate(object_):
-        if i>0:
-            parent(obj, object_[i-1])
+    for i, obj in enumerate(object_):
+        if i > 0:
+            cmds.parent(obj, object_[i - 1])
+
 
 def list_chuck(arr, n):
     return [arr[i: i + n] for i in range(0, len(arr), n)]
 
-def IKFKBlend(object_):
-    # The current number of list checks is based on fingers.
-    result_array = list_chuck(object_, 4)
+
+def IKFKBlend(object_, ik_pos=1):
+    total = len(object_)
+    if total % 3 != 0:
+        cmds.error('IKFKBlend: 선택 수({})가 3의 배수여야 합니다. '
+                   'FK / IK / Drv 체인을 같은 수로 선택하세요.'.format(total))
+        return
+
+    chain_len    = total // 3
+    result_array = list_chuck(object_, chain_len)
     FKChain, IKChain, DrvChain = result_array
-    IKPos_ = [createNode('transform', n='{0}Pos'.format(ik.name())) for ik in IKChain]
-    [matchTransform(IKPos_[i],Drv) for i,Drv in enumerate(DrvChain)]
-    hierarchy_(IKPos_)
 
-    for i,drv in enumerate(DrvChain):
-        name_ = drv.name()
+    if ik_pos:
+        cmds.select(cl=1)
+        IKPos_ = [cmds.joint(name='{0}Pos'.format(ik))
+                  for ik in IKChain]
+        [cmds.matchTransform(IKPos_[i], IKC) for i, IKC in enumerate(IKChain)]
+        hierarchy_(IKPos_)
+        cmds.makeIdentity(IKPos_[0], apply=True, rotate=True)
+
+    for i, drv in enumerate(DrvChain):
+        name_ = drv
         print(name_, FKChain[i], IKChain[i])
-        PB_ = createNode('pairBlend', n='{0}PB'.format(name_))
-        BC_ = shadingNode('blendColors', au=1, n='{0}BC'.format(name_))
-            
-        FKChain[i].r >> PB_.ir2
-        FKChain[i].t >> PB_.it2
-        FKChain[i].s >> BC_.color1
-        IKChain[i].r >> IKPos_[i].r
-        IKChain[i].t >> IKPos_[i].t
-        IKChain[i].s >> IKPos_[i].s
-        IKPos_[i].r >> PB_.ir1
-        IKPos_[i].t >> PB_.it1
-        IKPos_[i].s >> BC_.color2
-        PB_.outTranslate >> drv.t
-        PB_.outRotate >> drv.r
-        BC_.output >> drv.s
+        PB_ = cmds.createNode('pairBlend',
+                              name='{0}PB'.format(name_))
+        '''
+        BC_ = cmds.shadingNode('blendColors', asUtility=True,
+                               name='{0}BC'.format(name_))'''
 
-# 첫번째 FK 조인트 리스트, IK 조인트 리스트, Drv 조인트 리스트 선택후 실행해주세요
-sel = ls(sl=1,r=1,fl=1)
-IKFKBlend(sel)
+        ik_src = IKPos_[i] if ik_pos else IKChain[i]
+
+        cmds.connectAttr(FKChain[i] + '.r',            PB_    + '.ir2')
+        cmds.connectAttr(FKChain[i] + '.t',            PB_    + '.it2')
+        # cmds.connectAttr(FKChain[i] + '.s',            BC_    + '.color1')
+        if ik_pos:
+            cmds.parentConstraint(IKChain[i],IKPos_[i],mo=1)
+        cmds.connectAttr(ik_src     + '.r',            PB_    + '.ir1')
+        cmds.connectAttr(ik_src     + '.t',            PB_    + '.it1')
+        # cmds.connectAttr(ik_src     + '.s',            BC_    + '.color2')
+        # cmds.connectAttr(PB_        + '.outTranslate', drv    + '.t')
+        cmds.connectAttr(PB_        + '.outRotate',    drv    + '.r')
+        cmds.setAttr( f"{PB_}.rotInterpolation", 1)
+        # cmds.connectAttr(BC_        + '.output',       drv    + '.s')
+
+
+# FK 조인트 리스트, IK 조인트 리스트, Drv 조인트 리스트 선택 후 실행
+sel = cmds.ls(sl=True, r=True, fl=True)
+IKFKBlend(sel, ik_pos=1)
