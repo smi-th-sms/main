@@ -1,0 +1,11 @@
+2026-04-22 16:29:39 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-04-22 16:29:40 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed
+2026-04-22 16:37:02 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-04-22 16:37:04 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-22 16:37:04 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 16 items to A list
+2026-04-22 16:37:33 - MayaTools.CNTManager3 - INFO - [CNTManager3] Selected attribute: overrideEnabled
+2026-04-22 16:37:36 - MayaTools.CNTManager3 - INFO - [CNTManager3] Got: Scaglione_Claws_geo.overrideEnabled = True
+2026-04-22 16:37:39 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-04-22 16:37:39 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-04-22 16:37:39 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 16/16 오브젝트 처리됨
+2026-04-22 16:37:43 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed

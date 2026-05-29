@@ -1,0 +1,30 @@
+(dp0
+Vid
+p1
+V3f3b14b9b568ee
+p2
+sVname
+p3
+VCurveToMesh
+p4
+sVinfo
+p5
+Vcurve to mesh tool
+p6
+sVtags
+p7
+Vtools
+p8
+sVicon
+p9
+V
+p10
+sVcommand
+p11
+Vimport importlib\u000aimport curve_to_mesh\u000aimport tools.curve_to_mesh_tool as curve_to_mesh_tool\u000a\u000aimportlib.reload(curve_to_mesh_tool)\u000aimportlib.reload(curve_to_mesh)\u000a\u000acurve_to_mesh.show()
+p12
+sVsyntax
+p13
+Vpython
+p14
+s.

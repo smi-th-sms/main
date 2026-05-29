@@ -22,7 +22,8 @@
       "mcp__maya__execute_python",
       "mcp__maya__list_objects_by_type",
       "Bash(find C:/Users/smi_th/Documents/maya/modules/MetaHumanForMaya/lib/PyDNA -name *.pyd -o -name *.py)",
-      "Bash(find C:/Users/smi_th/Documents/maya/modules/MetaHumanForMaya/lib/PyDNACalib2 -name *.pyd -o -name *.py)"
+      "Bash(find C:/Users/smi_th/Documents/maya/modules/MetaHumanForMaya/lib/PyDNACalib2 -name *.pyd -o -name *.py)",
+      "mcp__houdini__houdini_get_parameter"
     ]
   },
   "enableAllProjectMcpServers": true,

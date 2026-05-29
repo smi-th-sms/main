@@ -1,0 +1,412 @@
+2026-04-23 14:01:50 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-04-23 14:01:53 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-23 14:01:53 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 4 items to B list
+2026-04-23 14:01:57 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-23 14:01:57 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 1 items to A list
+2026-04-23 14:02:00 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-23 14:02:00 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 2 items to B list
+2026-04-23 14:02:08 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Match Transform
+2026-04-23 14:02:08 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Match Transform completed
+2026-04-23 14:02:54 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-23 14:02:54 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 12 items to A list
+2026-04-23 14:03:00 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-23 14:03:00 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 4 items to B list
+2026-04-23 14:03:09 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:03:09 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:03:26 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:03:26 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:03:29 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:03:29 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:03:32 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:03:32 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:03:36 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:03:36 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:03:38 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:03:38 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:03:45 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:03:45 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:03:47 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:03:47 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:03:49 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:03:49 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:03:52 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:03:52 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:03:53 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:03:53 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:03:55 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:03:55 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:03:57 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:03:57 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:03:59 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:03:59 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:04:00 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:04:00 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:04:07 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-23 14:04:07 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 12 items to B list
+2026-04-23 14:04:09 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Swap A and B lists
+2026-04-23 14:04:09 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-23 14:04:09 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 12 items to A list
+2026-04-23 14:04:09 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-23 14:04:09 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 12 items to B list
+2026-04-23 14:04:09 - MayaTools.CNTManager3 - INFO - [CNTManager3] Lists swapped
+2026-04-23 14:04:31 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-23 14:04:31 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 4 items to A list
+2026-04-23 14:04:41 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-23 14:04:41 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 12 items to B list
+2026-04-23 14:04:45 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Swap A and B lists
+2026-04-23 14:04:45 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-23 14:04:45 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 12 items to A list
+2026-04-23 14:04:45 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-23 14:04:45 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 4 items to B list
+2026-04-23 14:04:45 - MayaTools.CNTManager3 - INFO - [CNTManager3] Lists swapped
+2026-04-23 14:04:59 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:04:59 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:05:01 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:05:01 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:05:03 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:05:03 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:05:06 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:05:06 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:05:08 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:05:08 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:05:09 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:05:09 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:05:11 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:05:11 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:05:13 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:05:13 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:05:14 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:05:14 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:05:16 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:05:16 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:05:18 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:05:18 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:05:19 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:05:19 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:05:20 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed
+2026-04-23 14:14:22 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-04-23 14:14:31 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-23 14:14:31 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 27 items to B list
+2026-04-23 14:14:48 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-23 14:14:48 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 27 items to A list
+2026-04-23 14:15:19 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Match Transform
+2026-04-23 14:15:19 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Match Transform completed
+2026-04-23 14:15:40 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Match Transform
+2026-04-23 14:15:40 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Match Transform completed
+2026-04-23 14:15:46 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Match Transform
+2026-04-23 14:15:46 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Match Transform completed
+2026-04-23 14:15:58 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed
+2026-04-23 14:17:28 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-04-23 14:17:30 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-23 14:17:30 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 2 items to B list
+2026-04-23 14:17:34 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Swap A and B lists
+2026-04-23 14:17:34 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-23 14:17:34 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 2 items to A list
+2026-04-23 14:17:34 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-23 14:17:34 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 0 items to B list
+2026-04-23 14:17:34 - MayaTools.CNTManager3 - INFO - [CNTManager3] Lists swapped
+2026-04-23 14:17:38 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-23 14:17:38 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 2 items to B list
+2026-04-23 14:17:43 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Match Transform
+2026-04-23 14:17:43 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Match Transform completed
+2026-04-23 14:18:02 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-23 14:18:02 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 12 items to A list
+2026-04-23 14:18:08 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-23 14:18:08 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 2 items to B list
+2026-04-23 14:18:31 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:18:31 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:18:33 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:18:33 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:18:39 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-23 14:18:39 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 4 items to B list
+2026-04-23 14:18:42 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:18:42 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:18:44 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:18:44 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:18:45 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:18:45 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:18:47 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:18:47 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:18:49 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:18:49 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:18:50 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:18:50 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:18:52 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:18:52 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:18:53 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:18:53 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:18:55 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:18:55 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:18:57 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:18:57 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:18:58 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:18:58 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:18:59 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:18:59 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:19:14 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-23 14:19:14 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 12 items to A list
+2026-04-23 14:19:18 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-23 14:19:18 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 4 items to B list
+2026-04-23 14:19:36 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:19:36 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:19:38 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:19:38 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:19:39 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:19:39 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:19:41 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:19:41 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:19:42 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:19:42 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:19:44 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:19:44 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:19:46 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:19:46 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:19:48 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:19:48 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:19:50 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:19:50 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:19:51 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:19:51 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:19:53 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:19:53 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:19:54 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:19:54 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:20:20 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed
+2026-04-23 14:24:58 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-04-23 14:25:02 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-23 14:25:02 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 1 items to B list
+2026-04-23 14:25:06 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-23 14:25:06 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 2 items to B list
+2026-04-23 14:25:44 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-23 14:25:44 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 10 items to A list
+2026-04-23 14:26:09 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Match Transform
+2026-04-23 14:26:09 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Match Transform completed
+2026-04-23 14:26:44 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Swap A and B lists
+2026-04-23 14:26:44 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-23 14:26:44 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 2 items to A list
+2026-04-23 14:26:44 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-23 14:26:44 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 10 items to B list
+2026-04-23 14:26:44 - MayaTools.CNTManager3 - INFO - [CNTManager3] Lists swapped
+2026-04-23 14:26:52 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Match Transform
+2026-04-23 14:26:52 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Match Transform completed
+2026-04-23 14:27:04 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Match Transform
+2026-04-23 14:27:04 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Match Transform completed
+2026-04-23 14:27:44 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-23 14:27:44 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 10 items to B list
+2026-04-23 14:27:55 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Match Transform
+2026-04-23 14:27:55 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Match Transform completed
+2026-04-23 14:28:04 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Match Transform
+2026-04-23 14:28:04 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Match Transform completed
+2026-04-23 14:28:15 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-23 14:28:15 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 4 items to B list
+2026-04-23 14:28:19 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-23 14:28:19 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 12 items to A list
+2026-04-23 14:28:22 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:28:22 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:28:24 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:28:24 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:28:25 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:28:25 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:28:28 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:28:28 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:28:29 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:28:29 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:28:30 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:28:30 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:28:33 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:28:33 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:28:34 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:28:34 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:28:35 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:28:35 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:28:38 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:28:38 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:28:39 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:28:39 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:28:40 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:28:40 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:28:44 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-23 14:28:44 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 12 items to A list
+2026-04-23 14:29:29 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:29:29 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:29:31 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:29:31 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:29:32 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:29:32 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:29:34 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:29:34 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:29:36 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:29:36 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:29:38 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:29:38 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:29:40 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:29:40 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:29:41 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:29:41 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:29:42 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:29:42 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:29:44 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:29:44 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:29:45 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:29:45 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:29:46 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:29:46 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:29:50 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-23 14:29:50 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 12 items to A list
+2026-04-23 14:29:56 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-23 14:29:56 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 4 items to B list
+2026-04-23 14:30:01 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:30:01 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:30:03 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:30:03 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:30:04 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:30:04 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:30:07 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:30:07 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:30:08 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:30:08 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:30:10 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:30:10 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:30:12 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:30:12 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:30:14 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:30:14 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:30:15 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:30:16 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:30:17 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:30:17 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:30:19 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:30:19 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:30:20 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:30:20 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:30:25 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-23 14:30:25 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 2 items to B list
+2026-04-23 14:30:28 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-23 14:30:28 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 2 items to A list
+2026-04-23 14:30:34 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:30:34 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:30:45 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed
+2026-04-23 14:31:45 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-04-23 14:31:51 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-23 14:31:51 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 32 items to A list
+2026-04-23 14:31:57 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-23 14:31:57 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 27 items to B list
+2026-04-23 14:32:04 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-23 14:32:04 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 27 items to A list
+2026-04-23 14:32:09 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Swap A and B lists
+2026-04-23 14:32:09 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-23 14:32:09 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 27 items to A list
+2026-04-23 14:32:09 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-23 14:32:09 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 27 items to B list
+2026-04-23 14:32:09 - MayaTools.CNTManager3 - INFO - [CNTManager3] Lists swapped
+2026-04-23 14:32:21 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:32:21 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:32:25 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Swap A and B lists
+2026-04-23 14:32:25 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-23 14:32:25 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 27 items to A list
+2026-04-23 14:32:25 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-23 14:32:25 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 27 items to B list
+2026-04-23 14:32:25 - MayaTools.CNTManager3 - INFO - [CNTManager3] Lists swapped
+2026-04-23 14:32:27 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Sort items
+2026-04-23 14:32:27 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-23 14:32:27 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 27 items to A list
+2026-04-23 14:32:27 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-23 14:32:27 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 27 items to B list
+2026-04-23 14:32:27 - MayaTools.CNTManager3 - INFO - [CNTManager3] Items sorted
+2026-04-23 14:32:36 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-23 14:32:36 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 27 items to A list
+2026-04-23 14:32:40 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-23 14:32:40 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 27 items to B list
+2026-04-23 14:32:46 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:32:46 - MayaTools.CNTManager3 - ERROR - [CNTManager3] Error in parent items: Referenced objects parented to referenced objects may not be reparented.
+
+2026-04-23 14:32:46 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:32:58 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Match Transform
+2026-04-23 14:32:58 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Match Transform completed
+2026-04-23 14:33:27 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Match Transform
+2026-04-23 14:33:27 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Match Transform completed
+2026-04-23 14:33:42 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Match Transform
+2026-04-23 14:33:42 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Match Transform completed
+2026-04-23 14:34:00 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Match Transform
+2026-04-23 14:34:00 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Match Transform completed
+2026-04-23 14:34:11 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Swap A and B lists
+2026-04-23 14:34:11 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-23 14:34:11 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 27 items to A list
+2026-04-23 14:34:11 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-23 14:34:11 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 27 items to B list
+2026-04-23 14:34:11 - MayaTools.CNTManager3 - INFO - [CNTManager3] Lists swapped
+2026-04-23 14:34:19 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Match Transform
+2026-04-23 14:34:19 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Match Transform completed
+2026-04-23 14:34:28 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Match Transform
+2026-04-23 14:34:28 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Match Transform completed
+2026-04-23 14:34:33 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Match Transform
+2026-04-23 14:34:33 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Match Transform completed
+2026-04-23 14:34:39 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Match Transform
+2026-04-23 14:34:39 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Match Transform completed
+2026-04-23 14:34:46 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Match Transform
+2026-04-23 14:34:46 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Match Transform completed
+2026-04-23 14:34:50 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Match Transform
+2026-04-23 14:34:50 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Match Transform completed
+2026-04-23 14:34:54 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed
+2026-04-23 14:51:33 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-04-23 14:51:40 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-23 14:51:40 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 12 items to A list
+2026-04-23 14:51:48 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-23 14:51:48 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 4 items to B list
+2026-04-23 14:52:13 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Match Transform
+2026-04-23 14:52:13 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Match Transform completed
+2026-04-23 14:52:16 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Match Transform
+2026-04-23 14:52:16 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Match Transform completed
+2026-04-23 14:52:46 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:52:46 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:52:48 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:52:48 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:52:49 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:52:49 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:52:51 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:52:51 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:52:52 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:52:52 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:52:54 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:52:54 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:52:56 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:52:56 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:52:57 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:52:57 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:52:59 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:52:59 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:53:01 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:53:02 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:53:03 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:53:03 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:53:04 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:53:04 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:53:17 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-23 14:53:17 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 12 items to A list
+2026-04-23 14:53:22 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-23 14:53:22 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 4 items to B list
+2026-04-23 14:53:50 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:53:50 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:53:51 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:53:51 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:53:53 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:53:53 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:53:55 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:53:55 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:53:56 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:53:56 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:53:57 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:53:57 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:53:59 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:53:59 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:54:01 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:54:01 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:54:02 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:54:02 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:54:04 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:54:04 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:54:04 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:54:04 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:54:06 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Parent Items
+2026-04-23 14:54:06 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Parent Items completed
+2026-04-23 14:54:15 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed
