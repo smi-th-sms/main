@@ -1,0 +1,66 @@
+2026-04-21 11:04:32 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-04-21 11:04:37 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed
+2026-04-21 11:04:46 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-04-21 11:04:49 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed
+2026-04-21 11:08:14 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-04-21 11:17:21 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed
+2026-04-21 11:33:52 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-04-21 11:33:54 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed
+2026-04-21 11:34:08 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-04-21 11:35:29 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed
+2026-04-21 13:29:20 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-04-21 13:29:35 - MayaTools.CNTManager3 - WARNING - [CNTManager3] Channel Box에서 선택된 attribute가 없습니다
+2026-04-21 13:29:37 - MayaTools.CNTManager3 - WARNING - [CNTManager3] Channel Box에서 선택된 attribute가 없습니다
+2026-04-21 13:29:39 - MayaTools.CNTManager3 - WARNING - [CNTManager3] Channel Box에서 선택된 attribute가 없습니다
+2026-04-21 13:29:40 - MayaTools.CNTManager3 - WARNING - [CNTManager3] Channel Box에서 선택된 attribute가 없습니다
+2026-04-21 13:29:42 - MayaTools.CNTManager3 - WARNING - [CNTManager3] Channel Box에서 선택된 attribute가 없습니다
+2026-04-21 13:29:43 - MayaTools.CNTManager3 - WARNING - [CNTManager3] Channel Box에서 선택된 attribute가 없습니다
+2026-04-21 13:29:55 - MayaTools.CNTManager3 - WARNING - [CNTManager3] Channel Box에서 선택된 attribute가 없습니다
+2026-04-21 13:29:57 - MayaTools.CNTManager3 - WARNING - [CNTManager3] Channel Box에서 선택된 attribute가 없습니다
+2026-04-21 13:29:59 - MayaTools.CNTManager3 - WARNING - [CNTManager3] Channel Box에서 선택된 attribute가 없습니다
+2026-04-21 13:30:06 - MayaTools.CNTManager3 - INFO - [CNTManager3] Picked attribute: tx
+2026-04-21 13:31:53 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed
+2026-04-21 13:45:59 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-04-21 13:46:15 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-21 13:46:15 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 3 items to A list
+2026-04-21 13:47:02 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Remove items from A list
+2026-04-21 13:47:02 - MayaTools.CNTManager3 - INFO - [CNTManager3] Removed 3 items from A list
+2026-04-21 13:47:06 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-21 13:47:06 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 3 items to A list
+2026-04-21 13:47:09 - MayaTools.CNTManager3 - INFO - [CNTManager3] Selected attribute: boundingBox
+2026-04-21 13:47:10 - MayaTools.CNTManager3 - ERROR - [CNTManager3] attribute 읽기 실패: The attribute is compound with mixed type elements.
+
+2026-04-21 13:47:18 - MayaTools.CNTManager3 - INFO - [CNTManager3] Selected attribute: boundingBoxCenterX
+2026-04-21 13:47:19 - MayaTools.CNTManager3 - INFO - [CNTManager3] Got: group3.boundingBoxCenterX = 0.0
+2026-04-21 13:47:24 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-04-21 13:47:24 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-04-21 13:47:24 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 3/3 오브젝트 처리됨
+2026-04-21 13:47:29 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed
+2026-04-21 17:24:44 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-04-21 17:24:45 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-21 17:24:45 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 22 items to A list
+2026-04-21 17:24:53 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-21 17:24:53 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 20 items to B list
+2026-04-21 17:24:57 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Sort items
+2026-04-21 17:24:57 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-21 17:24:57 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 22 items to A list
+2026-04-21 17:24:57 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-21 17:24:57 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 20 items to B list
+2026-04-21 17:24:57 - MayaTools.CNTManager3 - INFO - [CNTManager3] Items sorted
+2026-04-21 17:25:41 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Remove items from A list
+2026-04-21 17:25:41 - MayaTools.CNTManager3 - INFO - [CNTManager3] Removed 2 items from A list
+2026-04-21 17:25:46 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Remove items from A list
+2026-04-21 17:25:46 - MayaTools.CNTManager3 - INFO - [CNTManager3] Removed 1 items from A list
+2026-04-21 17:25:57 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-21 17:25:57 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 1 items to A list
+2026-04-21 17:26:01 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-21 17:26:01 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 20 items to A list
+2026-04-21 17:26:03 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Sort items
+2026-04-21 17:26:03 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-21 17:26:03 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 20 items to A list
+2026-04-21 17:26:03 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-21 17:26:03 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 20 items to B list
+2026-04-21 17:26:03 - MayaTools.CNTManager3 - INFO - [CNTManager3] Items sorted
+2026-04-21 17:26:15 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Apply Constraints
+2026-04-21 17:26:15 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Apply Constraints completed
+2026-04-21 17:27:57 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed

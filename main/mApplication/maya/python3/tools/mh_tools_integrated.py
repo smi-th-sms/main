@@ -1065,14 +1065,14 @@ class MHToolsIntegrated:
             else:
                 self.cleanup_log("  ℹ 'AssetFBX_Set' 이미 존재")
             
-            # 'AniOutSet' 생성 및 'AniFBXSet'에 추가
-            if not cmds.objExists('AniOutSet'):
-                ani_out_set = cmds.sets(name='AniOutSet', empty=True)
+            # 'FaceAniOutSet' 생성 및 'AniFBXSet'에 추가
+            if not cmds.objExists('FaceAniOutSet'):
+                ani_out_set = cmds.sets(name='FaceAniOutSet', empty=True)
                 cmds.sets(ani_out_set, add=ani_fbx_set)
-                self.cleanup_log("  ✓ 'AniOutSet' 생성 (AniFBXSet 하위)")
+                self.cleanup_log("  ✓ 'FaceAniOutSet' 생성 (AniFBXSet 하위)")
                 created_count += 1
             else:
-                self.cleanup_log("  ℹ 'AniOutSet' 이미 존재")
+                self.cleanup_log("  ℹ 'FaceAniOutSet' 이미 존재")
             
             # 'AnimControlSet' 생성 및 'Sets'에 추가
             if not cmds.objExists('AnimControlSet'):
