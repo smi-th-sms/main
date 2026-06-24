@@ -13,7 +13,7 @@ for groom_group_id, group_name in enumerate(groups):
     curves = cmds.listRelatives(group_name, ad=True, type='nurbsCurve')
     
     # 그룹 ID로 태그 그루핑
-    cmds.addAttr(group_name, longName=attr_name, attributeType='short', defaultValue=groom_group_id, keyable=True)
+    cmds.addAttr(group_name, longName=attr_name, attributeType='short', defaultValue=0, keyable=True)
     
     # 어트리뷰트 범위 추가
     # Maya의 얼렘빅이 데이터를 GeometryScope::kConstantScope로 익스포트하도록 강제
