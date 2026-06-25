@@ -72,9 +72,17 @@ class TopBuilderTest(unittest.TestCase):
         self.assertEqual(sim.parms["framegeneration"].value, 1)
         # Sim must cook as a single sequential work item, not per-frame jobs.
         self.assertEqual(sim.parms["singletask"].value, 1)
+        # char_main has an open penetration issue (frames 1042-1044), so the
+        # ropfetch must cook only the padded partial range, not the full shot.
+        self.assertEqual(sim.parms["range1x"].value, 1032)
+        self.assertEqual(sim.parms["range1y"].value, 1054)
+        self.assertEqual(sim.parms["range1z"].value, 1)
+
+    def test_ropfetch_uses_full_range_without_fix(self):
+        # char_main_hair has no issue, so its sim cooks the full shot range.
+        sim = self.topnet.children["sim_cache_char_main_hair"]
         self.assertEqual(sim.parms["range1x"].value, 1001)
         self.assertEqual(sim.parms["range1y"].value, 1120)
-        self.assertEqual(sim.parms["range1z"].value, 1)
 
     def test_preview_is_pythonscript_not_ropfetch(self):
         # The preview OpenGL ROP is created by run_preview at execution time, so

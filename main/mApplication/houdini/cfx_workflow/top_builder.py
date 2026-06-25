@@ -147,11 +147,21 @@ def _configure_ropfetch(hou, node, plan: WorkflowPlan, task: WorkflowTask, warni
         _set_parm(node, "framegeneration", 1, task.task_id, warnings)
     if node.parm("singletask") is not None:
         _set_parm(node, "singletask", 1, task.task_id, warnings)
+
+    # Honor a partial resim range when the plan asks for one (e.g. a penetration
+    # fix that only needs frames 1032-1054); otherwise cook the full shot range.
+    scope = task.metadata.get("resim_scope")
+    resim_range = task.metadata.get("resim_frame_range")
+    if scope == "partial" and resim_range:
+        frame_lo, frame_hi = int(resim_range[0]), int(resim_range[1])
+    else:
+        frame_lo, frame_hi = shot.frame_start, shot.frame_end
+
     # The frame-range parmTuple is named "range" in H20.5/H21 (individual parms
     # are range1/range2/range3); older builds used "range1". Try both.
     range_parms = node.parmTuple("range") or node.parmTuple("range1")
     if range_parms is not None:
-        for parm, value in zip(range_parms, (shot.frame_start, shot.frame_end, 1)):
+        for parm, value in zip(range_parms, (frame_lo, frame_hi, 1)):
             parm.deleteAllKeyframes()
             parm.set(value)
     else:

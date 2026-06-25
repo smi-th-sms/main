@@ -166,6 +166,35 @@ class ValidateTest(ExecutorTestBase):
         self.assertEqual(result.status, "done")
         self.assertEqual(result.details["report"]["status"], "pass")
 
+    def test_incomplete_flush_only_for_partial_cache(self):
+        from main.mApplication.houdini.cfx_workflow.executors import _incomplete_flush
+        from main.mApplication.houdini.cfx_workflow.validator import validate_shot_caches
+
+        def report_for(frames):
+            tmp = Path(tempfile.mkdtemp(prefix="cfx_flush_"))
+            self.addCleanup(shutil.rmtree, tmp, True)
+            for frame in frames:
+                (tmp / f"a.{frame:04d}.bgeo.sc").write_bytes(b"x" * 5000)
+            shot = ShotConfig.from_dict(
+                {
+                    "show": "s", "sequence": "sq", "shot": "sh",
+                    "frame_start": 1001, "frame_end": 1010,
+                    "assets": [
+                        {"name": "a", "cfx_type": "cloth", "hda": "h", "preset": "p",
+                         "output_cache_path": str(tmp / "a.$F4.bgeo.sc")},
+                    ],
+                    "batch": {"force_resim": True},
+                }
+            )
+            return validate_shot_caches(shot)
+
+        # Some frames present but set incomplete -> looks like an in-flight flush.
+        self.assertTrue(_incomplete_flush(report_for(range(1001, 1006))))
+        # No frames at all -> genuine miss, must not trigger a retry/sleep.
+        self.assertFalse(_incomplete_flush(report_for([])))
+        # Complete cache -> nothing to retry.
+        self.assertFalse(_incomplete_flush(report_for(range(1001, 1011))))
+
 
 class PreviewReviewPublishTest(ExecutorTestBase):
     def test_preview_creates_and_cooks_opengl_rop(self):
