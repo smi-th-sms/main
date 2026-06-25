@@ -343,6 +343,14 @@ run("sim_cache_char_main")       # done — frame range가 partial range로 설�
 
 | 날짜 | 단계 | 증상 | 비고 |
 |------|------|------|------|
-|      |      |      |      |
+| 2026-06-24 | 5-2 | ropfetch가 out-of-process로 cook될 때 untitled hip이면 전 work item 실패: `Failed to transfer file dependency: '.../untitled.hip' does not exist` | PDG cook 전 hip 저장 필요. (pythonscript는 in-process라 영향 없음) |
+| 2026-06-24 | 5-2 | `framegeneration=1`(Frame Range)이 **프레임당 work item**을 생성 → sim이 순차 cook이 아니고, 하류가 이를 상속·곱해 폭증(validate 20개, preview 400개) | `top_builder._configure_ropfetch`에 `singletask=1`("Cook Frames as Single Work Item") 추가로 수정. sim=1, validate=1로 정상화 확인 |
+| 2026-06-24 | 6 | sim cook 실패: `load_input_cache`(alembic SOP)가 입력 abc 미존재 시 빈 geo가 아니라 **하드 에러** → write_cfx_cache까지 전파 | **수정됨**: `_create_input_loader`가 alembic `missingfile`/file `missingframe`을 "No Geometry"(1)로 설정 + 부재 경고. 입력 없이도 sim CookedSuccess, 빈 geo 캐시 20프레임 확인 |
+| 2026-06-24 | 5-1 | `generate_preview` ropfetch의 `roppath`가 비어 cook 시 `Unable to find ROP node ''` 경고 | **수정됨**: PREVIEW를 `_ROPFETCH_STAGES`에서 제외해 pythonscript로 전환(run_preview executor 호출). 재빌드 후 경고 0, work item 1개로 CookedSuccess 확인 |
+| 2026-06-24 | 6 | preview opengl ROP이 `No camera specified for render.`로 실패 → jpg 미생성 (테스트 씬에 카메라 없음) | **수정됨**: `run_preview`가 `_ensure_preview_camera`로 카메라 생성·연결(geo bbox로 프레이밍). 직접/PDG 경로 모두 jpg 20프레임 렌더 확인 |
+| 2026-06-24 | 6 | `run_preview`가 ROP render 에러를 확인하지 않고 무조건 `status=done` 반환 → **거짓 성공** | **수정됨**: execute 후 `rop.errors()` 확인해 에러 시 `failed` 반환 (`_node_errors`) |
+| 2026-06-24 | 6 | placeholder 캐시(~1.5KB)가 `file_size_sanity` **pass** (가이드는 warning 예상) | validator 임계값이 1.5KB보다 낮음. task metadata의 `basic_motion_delta` 체크명도 validator 실제 체크(`file_size_sanity`)와 불일치 |
+| 2026-06-24 | 7 | issue를 `approved`로 바꿔도 sim이 `skipped`가 안 되고 항상 `full` resim | **수정됨**: `workflow._path_exists`가 `$F4` 프레임 토큰을 리터럴로 검사해 캐시를 못 찾던 버그. validator의 `split_frame_pattern`/`collect_frame_files` 재사용으로 수정. open=partial / approved=skipped 확인 + 회귀 테스트 추가 |
+| 2026-06-24 | 7 | `run_fix`가 placeholder null sim에 parm patch 적용 시 0건 + parm별 warning, status `manual` | **의도된 degrade** (HDA 미설치). 실제 HDA면 collision_thickness ×1.5 / substeps +1 적용됨. 로컬 config는 range가 1001–1020이라 partial range도 full과 동일하게 클램프됨(정상) |
 
 > 기록 예시: "Step 5-1 / H20.5에서 ropfetch에 framegeneration parm 없음 → 실제 이름 확인 필요"

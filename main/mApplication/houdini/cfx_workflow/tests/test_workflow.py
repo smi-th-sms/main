@@ -3,6 +3,7 @@
 
 from __future__ import annotations
 
+import shutil
 import tempfile
 import unittest
 from pathlib import Path
@@ -142,6 +143,23 @@ class SimSkipTest(unittest.TestCase):
 
     def test_sim_skipped_when_cache_exists(self):
         plan = build_workflow_plan(self._config_with_cache())
+        sim = next(task for task in plan.tasks if task.task_id == "sim_cache_char_main")
+        self.assertEqual(sim.status, "skipped")
+        self.assertEqual(sim.metadata["resim_scope"], "none")
+
+    def test_sim_skipped_when_frame_sequence_cache_exists(self):
+        # Regression: a cache path with a $F token must resolve to the real
+        # frame files on disk. Checking the literal "...char_main.$F4.bgeo.sc"
+        # path always reports missing, so the sim never skipped.
+        tmp = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, tmp, ignore_errors=True)
+        for frame in (1001, 1002, 1003):
+            Path(tmp, f"char_main.{frame}.bgeo.sc").write_text("x")
+        asset = {
+            "name": "char_main", "cfx_type": "cloth", "hda": "h", "preset": "p",
+            "output_cache_path": str(Path(tmp, "char_main.$F4.bgeo.sc")),
+        }
+        plan = build_workflow_plan(_config(assets=[asset]))
         sim = next(task for task in plan.tasks if task.task_id == "sim_cache_char_main")
         self.assertEqual(sim.status, "skipped")
         self.assertEqual(sim.metadata["resim_scope"], "none")

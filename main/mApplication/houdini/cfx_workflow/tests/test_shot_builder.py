@@ -108,6 +108,24 @@ class ShotBuilderTest(unittest.TestCase):
         self.assertEqual(loader_b.type().name(), "file")
         self.assertEqual(loader_b.parms["file"].value, "E:/in/b.bgeo.sc")
 
+    def test_loader_set_to_emit_empty_geo_when_file_missing(self):
+        # Input cache paths in tests never exist on disk, so the loader must be
+        # told to emit empty geometry ("No Geometry" = 1) rather than error.
+        module = self._install()
+        assets = [
+            {"name": "a", "cfx_type": "cloth", "hda": "h", "preset": "p",
+             "input_cache_path": "E:/in/a.abc"},
+            {"name": "b", "cfx_type": "hair", "hda": "h", "preset": "p",
+             "input_cache_path": "E:/in/b.bgeo.sc"},
+        ]
+        result = build_houdini_scene(_shot(assets=assets))
+        subnet = module.obj.children["cfx_seq010_shot020"]
+        loader_a = subnet.children["cloth_a"].children["load_input_cache"]
+        loader_b = subnet.children["hair_b"].children["load_input_cache"]
+        self.assertEqual(loader_a.parms["missingfile"].value, 1)
+        self.assertEqual(loader_b.parms["missingframe"].value, 1)
+        self.assertTrue(any("input cache not found" in w for w in result["warnings"]))
+
     def test_missing_input_cache_leaves_in_null_unconnected(self):
         module = self._install()
         assets = [{"name": "a", "cfx_type": "cloth", "hda": "h", "preset": "p"}]

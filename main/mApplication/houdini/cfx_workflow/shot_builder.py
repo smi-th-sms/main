@@ -159,6 +159,9 @@ def _create_input_loader(hou, geo, asset: AssetConfig, warnings: list[str]):
     is_alembic = asset.input_cache_path.lower().endswith(".abc")
     type_name = "alembic" if is_alembic else "file"
     parm_name = "fileName" if is_alembic else "file"
+    # Menu parm that controls missing-file behavior; "No Geometry" (index 1)
+    # makes the loader emit empty geometry instead of hard-erroring.
+    missing_parm = "missingfile" if is_alembic else "missingframe"
 
     try:
         node = geo.createNode(type_name, node_name)
@@ -169,6 +172,17 @@ def _create_input_loader(hou, geo, asset: AssetConfig, warnings: list[str]):
         return geo.createNode("null", node_name)
 
     _set_parm(node, parm_name, asset.input_cache_path, asset.name, warnings)
+    # Degrade gracefully if the input cache is absent at cook time: an alembic/
+    # file SOP pointing at a missing file otherwise errors and takes the whole
+    # sim chain down with it.
+    if node.parm(missing_parm) is not None:
+        _set_parm(node, missing_parm, 1, asset.name, warnings)
+    if not os.path.exists(asset.input_cache_path):
+        warnings.append(
+            f"{asset.name}: input cache not found at build time "
+            f"({asset.input_cache_path}); loader set to emit empty geometry if "
+            f"still missing at cook time"
+        )
     return node
 
 
