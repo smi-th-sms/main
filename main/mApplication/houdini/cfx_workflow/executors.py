@@ -218,19 +218,66 @@ def run_sim_cache(shot: ShotConfig, task: WorkflowTask) -> ExecutionResult:
     )
 
 
+# When validate runs right after an out-of-process sim, the freshly written
+# frames can lag in becoming visible to this process. Retry a few times — but
+# only on the "incomplete flush" signature below, never on a genuinely empty
+# cache — so a real failure still fails fast.
+VALIDATE_FLUSH_RETRIES = 3
+VALIDATE_FLUSH_DELAY = 0.5
+
+
+def _incomplete_flush(report) -> bool:
+    """True when caches are partially present (some frames found, set incomplete).
+
+    That is the signature of a sim still flushing files; a genuinely missing
+    cache (``cache_exists`` fails) returns False so we don't sleep on real
+    failures.
+    """
+
+    for asset in report.as_dict()["assets"]:
+        checks = {c["name"]: c["status"] for c in asset["checks"]}
+        if checks.get("cache_exists") == "pass" and (
+            checks.get("frame_range_coverage") == "fail"
+            or checks.get("frame_sequence_continuity") == "fail"
+        ):
+            return True
+    return False
+
+
 def run_validate(shot: ShotConfig, task: WorkflowTask) -> ExecutionResult:
+    import time
+
     from .validator import validate_shot_caches
 
     report = validate_shot_caches(shot)
+    retries = 0
+    while (
+        report.status == "fail"
+        and _incomplete_flush(report)
+        and retries < VALIDATE_FLUSH_RETRIES
+    ):
+        time.sleep(VALIDATE_FLUSH_DELAY)
+        report = validate_shot_caches(shot)
+        retries += 1
+
     payload = report.as_dict()
     if report.status == "fail":
-        return _result(task, "failed", "Cache validation failed", {"report": payload})
+        return _result(
+            task,
+            "failed",
+            "Cache validation failed",
+            {"report": payload, "flush_retries": retries},
+        )
     warnings = (
         ["Validation passed with warnings; inspect the report details"]
         if report.status == "warning"
         else []
     )
-    return _result(task, "done", "Cache validation passed", {"report": payload}, warnings)
+    details = {"report": payload}
+    if retries:
+        warnings = warnings + [f"Cache validated after {retries} flush retr(ies)"]
+        details["flush_retries"] = retries
+    return _result(task, "done", "Cache validation passed", details, warnings)
 
 
 def _node_errors(node) -> list[str]:
