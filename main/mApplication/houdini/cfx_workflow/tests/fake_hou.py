@@ -111,6 +111,9 @@ class FakeNode:
     def layoutChildren(self) -> None:
         pass
 
+    def errors(self) -> list:
+        return []
+
 
 class FakeHipFile:
     def __init__(self, fresh: bool = True):

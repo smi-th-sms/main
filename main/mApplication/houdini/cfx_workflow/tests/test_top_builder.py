@@ -40,9 +40,7 @@ class TopBuilderTest(unittest.TestCase):
     def test_stage_to_node_type_mapping(self):
         for task in self.plan.tasks:
             info = self.result["nodes"][task.task_id]
-            expected = (
-                "ropfetch" if task.stage.value in ("sim_cache", "preview") else "pythonscript"
-            )
+            expected = "ropfetch" if task.stage.value == "sim_cache" else "pythonscript"
             self.assertEqual(info["type"], expected, task.task_id)
 
     def test_dependency_wiring(self):
@@ -72,14 +70,20 @@ class TopBuilderTest(unittest.TestCase):
             "/obj/cfx_seq010_shot020/cloth_char_main/write_cfx_cache",
         )
         self.assertEqual(sim.parms["framegeneration"].value, 1)
+        # Sim must cook as a single sequential work item, not per-frame jobs.
+        self.assertEqual(sim.parms["singletask"].value, 1)
         self.assertEqual(sim.parms["range1x"].value, 1001)
         self.assertEqual(sim.parms["range1y"].value, 1120)
         self.assertEqual(sim.parms["range1z"].value, 1)
 
-    def test_preview_without_rop_target_warns(self):
+    def test_preview_is_pythonscript_not_ropfetch(self):
+        # The preview OpenGL ROP is created by run_preview at execution time, so
+        # PREVIEW is a pythonscript stub (no build-time ROP to fetch, no warning).
+        preview = self.topnet.children["generate_preview"]
+        self.assertEqual(preview.type().name(), "pythonscript")
+        self.assertIn("execute_payload", preview.parms["script"].value)
         warnings = [w for w in self.result["warnings"] if w.startswith("generate_preview:")]
-        self.assertEqual(len(warnings), 1)
-        self.assertIn("manually", warnings[0])
+        self.assertEqual(warnings, [])
 
     def test_pythonscript_stub_payloads_round_trip(self):
         script = self.topnet.children["validate_cache"].parms["script"].value

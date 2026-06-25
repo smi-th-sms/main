@@ -7,10 +7,21 @@ from pathlib import Path
 
 from .review import FixAction, route_issue
 from .schema import AssetConfig, ShotConfig, WorkflowPlan, WorkflowStage, WorkflowTask
+from .validator import collect_frame_files, split_frame_pattern
 
 
 def _path_exists(path: str | None) -> bool:
-    return bool(path and Path(path).exists())
+    if not path:
+        return False
+    # Frame-sequence caches embed a token ($F4/####/%04d) that never matches a
+    # literal file on disk, so a plain ``Path.exists()`` always reports False.
+    # Resolve the token to the actual frame files before deciding.
+    if split_frame_pattern(path) is not None:
+        try:
+            return bool(collect_frame_files(path))
+        except ValueError:
+            return False
+    return Path(path).exists()
 
 
 def _asset_task_id(prefix: str, asset: AssetConfig) -> str:

@@ -9,8 +9,13 @@ from typing import Any
 from .schema import WorkflowPlan, WorkflowStage, WorkflowTask
 
 # Stages that fetch a ROP output get a ropfetch node; everything else gets a
-# pythonscript stub that a real executor can fill in per stage.
-_ROPFETCH_STAGES = {WorkflowStage.SIM_CACHE, WorkflowStage.PREVIEW}
+# pythonscript stub that the matching executor fills in per stage.
+#
+# PREVIEW is intentionally NOT a ropfetch: the preview OpenGL ROP is created by
+# ``run_preview`` at execution time, so there is no ROP to fetch at build time
+# (an empty roppath just warns "Unable to find ROP node ''"). Routing it through
+# pythonscript lets ``run_preview`` create and render the ROP itself.
+_ROPFETCH_STAGES = {WorkflowStage.SIM_CACHE}
 
 
 def build_top_network(plan: WorkflowPlan, parent_path: str = "/obj") -> dict[str, Any]:
@@ -134,16 +139,23 @@ def _configure_ropfetch(hou, node, plan: WorkflowPlan, task: WorkflowTask, warni
             f"{task.task_id}: no ROP target resolved; set 'roppath' on {node.path()} manually"
         )
 
-    # Cook the fetched ROP once over the shot frame range.
+    # Cook the fetched ROP over the shot frame range as a SINGLE work item.
+    # A CFX sim is sequential/stateful, so its frames must cook in one process
+    # (not as independent per-frame jobs). "singletask" also stops downstream
+    # nodes from inheriting and multiplying per-frame work items.
     if node.parm("framegeneration") is not None:
         _set_parm(node, "framegeneration", 1, task.task_id, warnings)
-    range_parms = node.parmTuple("range1")
+    if node.parm("singletask") is not None:
+        _set_parm(node, "singletask", 1, task.task_id, warnings)
+    # The frame-range parmTuple is named "range" in H20.5/H21 (individual parms
+    # are range1/range2/range3); older builds used "range1". Try both.
+    range_parms = node.parmTuple("range") or node.parmTuple("range1")
     if range_parms is not None:
         for parm, value in zip(range_parms, (shot.frame_start, shot.frame_end, 1)):
             parm.deleteAllKeyframes()
             parm.set(value)
     else:
-        warnings.append(f"{task.task_id}: frame range parm 'range1' not found on {node.path()}")
+        warnings.append(f"{task.task_id}: frame range parmTuple 'range'/'range1' not found on {node.path()}")
 
 
 def _configure_pythonscript(node, plan: WorkflowPlan, task: WorkflowTask, warnings: list[str]) -> None:

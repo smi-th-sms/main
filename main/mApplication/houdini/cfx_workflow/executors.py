@@ -233,6 +233,72 @@ def run_validate(shot: ShotConfig, task: WorkflowTask) -> ExecutionResult:
     return _result(task, "done", "Cache validation passed", {"report": payload}, warnings)
 
 
+def _node_errors(node) -> list[str]:
+    """Return a node's cook errors as plain strings (empty if none/unavailable)."""
+
+    try:
+        return [str(err) for err in node.errors()]
+    except Exception:
+        return []
+
+
+def _shot_output_bbox(hou, shot: ShotConfig):
+    """Combined bounding box of the shot's OUT_CFX_CACHE outputs, or None."""
+
+    bbox = None
+    for asset in shot.assets:
+        node = hou.node(f"{_container_path(shot, asset)}/OUT_CFX_CACHE")
+        if node is None:
+            continue
+        geo = node.geometry()
+        if geo is None:
+            continue
+        b = geo.boundingBox()
+        if bbox is None:
+            bbox = b
+        else:
+            bbox.enlargeToContain(b)
+    return bbox
+
+
+def _frame_preview_camera(hou, cam, shot: ShotConfig) -> None:
+    """Place the camera so it frames the shot geometry; sane default otherwise."""
+
+    placement = {"tx": 0.0, "ty": 1.0, "tz": 10.0, "rx": -5.0}
+    try:
+        bbox = _shot_output_bbox(hou, shot)
+        if bbox is not None:
+            center = bbox.center()
+            dist = max(bbox.sizevec()) * 2.5 + 5.0
+            placement = {"tx": center[0], "ty": center[1], "tz": center[2] + dist, "rx": 0.0}
+    except Exception:
+        pass  # fall back to the default placement
+    for name, value in placement.items():
+        parm = cam.parm(name)
+        if parm is not None:
+            parm.set(value)
+
+
+def _ensure_preview_camera(hou, shot: ShotConfig, warnings: list[str]):
+    """Find or create a camera for the preview render (OpenGL needs one)."""
+
+    obj = hou.node("/obj")
+    if obj is None:
+        warnings.append("Could not find /obj; cannot create a preview camera")
+        return None
+    cam_name = f"cfx_preview_cam_{shot.sequence}_{shot.shot}".replace(" ", "_")
+    cam = obj.node(cam_name)
+    if cam is not None:
+        return cam
+    try:
+        cam = obj.createNode("cam", cam_name)
+    except hou.OperationFailed as exc:
+        warnings.append(f"Could not create a preview camera ({exc}); set one on the ROP manually")
+        return None
+    _frame_preview_camera(hou, cam, shot)
+    return cam
+
+
 def run_preview(shot: ShotConfig, task: WorkflowTask) -> ExecutionResult:
     hou = _require_hou()
     out = hou.node("/out")
@@ -254,6 +320,18 @@ def run_preview(shot: ShotConfig, task: WorkflowTask) -> ExecutionResult:
             )
 
     warnings: list[str] = []
+
+    # An OpenGL ROP needs a camera; a headless/batch cook has no viewport to
+    # fall back on (it errors "No camera specified for render"), so make sure
+    # one exists and point the ROP at it.
+    camera = _ensure_preview_camera(hou, shot, warnings)
+    if camera is not None:
+        cam_parm = rop.parm("camera")
+        if cam_parm is None:
+            warnings.append(f"Parameter 'camera' not found on {rop.path()}")
+        else:
+            cam_parm.set(camera.path())
+
     picture = None
     if shot.review_dir:
         picture = f"{shot.review_dir}/{shot.shot_id}.$F4.jpg"
@@ -284,6 +362,18 @@ def run_preview(shot: ShotConfig, task: WorkflowTask) -> ExecutionResult:
             warnings,
         )
     execute.pressButton()
+
+    # Don't report success blindly: a render can fail (e.g. no camera, no
+    # output path) without raising, so check the ROP's cook errors.
+    render_errors = _node_errors(rop)
+    if render_errors:
+        return _result(
+            task,
+            "failed",
+            f"Preview render failed: {render_errors[0]}",
+            {"rop": rop.path(), "picture": picture, "errors": render_errors},
+            warnings,
+        )
     return _result(
         task,
         "done",
