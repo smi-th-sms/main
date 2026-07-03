@@ -1,0 +1,8 @@
+# Python bytecode
+__pycache__/
+*.pyc
+
+# Large local test fixtures (FBX/alembic/geo caches kept out of git)
+tests/*.fbx
+tests/*.abc
+tests/*.bgeo.sc
