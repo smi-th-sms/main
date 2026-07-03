@@ -1,0 +1,40 @@
+{
+  "_note": "Shot config. Lives next to the shot hip (e.g. {shot_work}/cfx_shot.json). References an asset by name; the asset config is auto-discovered at its rules-derived path so the rest-proxy handoff links automatically.",
+  "path_rules": {
+    "root": "Z:/show",
+    "version_padding": 3,
+    "context": {
+      "asset_subpath": "assets/Character",
+      "seq_subpath": "sequences"
+    }
+  },
+  "show": "PUBGOM",
+  "sequence": "seq010",
+  "shot": "shot020",
+  "asset": "Jake",
+  "frame_start": 1001,
+  "frame_end": 1080,
+  "animation_import": "Z:/show/PUBGOM/sequences/seq010/shot020/ANM/pub/fbx/seq010_shot020_Jake.fbx",
+  "_anim_note": "The anim fbx is animation-only (skeleton); the rest skeleton + geo come from the asset caches. Duration = pre-roll/post-roll: start_duration frames simulate before frame_start so cloth settles. The 'fbx' block mirrors the studio FBX node (anim_subnet1): t_pose_start_position aligns the take's start pelvis onto the T-pose (character origin) vs keeping native; position_mult (per-axis 0..1) is root-motion retention (1=full world motion, 0=in place); t_pos + t_pos_offset_* blend the pose toward the T-pose; pelvis_rotate adds pelvis rotation. t_pose_blend ramps t_pos 1->value across the pre-roll so cloth settles from the T-pose.",
+  "start_duration": 10,
+  "end_duration": 0,
+  "fbx": {
+    "root_name": "root",
+    "pelvis_name": "pelvis",
+    "t_pose_start_position": 1.0,
+    "t_pos": 0.0,
+    "position_mult": [1.0, 1.0, 1.0],
+    "pelvis_rotate": [0.0, 0.0, 0.0]
+  },
+  "t_pose_blend": true,
+  "sim_params": { "substeps": 5, "collision_thickness": 0.0225 },
+  "sim_filecache": true,
+  "cloth_alembic": true,
+  "hair_alembic": false,
+  "cache_out": {
+    "cloth_attach_joint": "pelvis",
+    "export_cloth": true,
+    "export_hair": false
+  },
+  "metadata": { "version": "v001" }
+}
