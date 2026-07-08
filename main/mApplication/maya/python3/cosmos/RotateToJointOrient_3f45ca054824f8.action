@@ -1,0 +1,30 @@
+(dp0
+Vid
+p1
+V3f45ca054824f8
+p2
+sVname
+p3
+VRotate To JointOrient
+p4
+sVinfo
+p5
+Vrotation to jointOrient and zero rotate
+p6
+sVtags
+p7
+Vscript
+p8
+sVicon
+p9
+V
+p10
+sVcommand
+p11
+Vimport sys\u000atool_path = r"E:\u005cscript\u005cpythonWorkSpace\u005cmain\u005cmApplication\u005cmaya\u005cpython3"\u000aif tool_path not in sys.path:\u000a    sys.path.insert(0, tool_path)\u000a\u000aimport rotate_to_joint_orient\u000aimport importlib\u000aimportlib.reload(rotate_to_joint_orient)\u000a\u000arotate_to_joint_orient.run(zero_rotate=True)\u000a
+p12
+sVsyntax
+p13
+Vpython
+p14
+s.

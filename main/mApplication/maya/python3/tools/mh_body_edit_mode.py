@@ -535,7 +535,8 @@ def export_dna_from_scene(
 
     updated = skipped = 0
     for i in range(count):
-        maya_name = namespace + ":" + reader.getJointName(i)
+        joint_name = reader.getJointName(i)
+        maya_name = (namespace + ":" + joint_name) if namespace else joint_name
         if not cmds.objExists(maya_name):
             skipped += 1
             continue
@@ -677,7 +678,7 @@ def _rebind_skin(sc_name, info):
     return True
 
 
-def bake_rotate_to_joint_orient(namespace=DEFAULT_NAMESPACE):
+def bake_rotate_to_joint_orient(namespace=DEFAULT_NAMESPACE, joints=None):
     """
     모든 joint 의 rotate 값을 jointOrient 에 합산하고 rotate 를 (0,0,0) 으로 만듭니다.
     worldMatrix 는 변경되지 않습니다.
@@ -686,9 +687,17 @@ def bake_rotate_to_joint_orient(namespace=DEFAULT_NAMESPACE):
     → new_JO = R_matrix * JO_matrix  를 XYZ euler 로 분해하여 jointOrient 에 설정.
 
     RL4 reconnect 전에 호출해야 합니다 (RL4 가 rotate 를 드라이빙하므로).
+
+    Parameters
+    ----------
+    joints : list[str] or None
+        지정하면 이 목록만 처리합니다 (namespace 와일드카드 대신 명시적 대상 지정).
+        네임스페이스가 없는 스켈레톤처럼 namespace="" 로는 대상을 좁힐 수 없는
+        경우에 사용하세요.
     """
-    prefix = (namespace + ":") if namespace else ""
-    joints = cmds.ls(prefix + "*", type="joint", long=True) or []
+    if joints is None:
+        prefix = (namespace + ":") if namespace else ""
+        joints = cmds.ls(prefix + "*", type="joint", long=True) or []
 
     baked = 0
     skipped = 0
