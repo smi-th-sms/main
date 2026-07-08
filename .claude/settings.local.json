@@ -77,7 +77,10 @@
       "Bash(tasklist)",
       "Bash(GIT_SEQUENCE_EDITOR=\"sed -i '1s/^pick/edit/'\" git rebase *)",
       "Bash(git commit *)",
-      "Bash(FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch --force --index-filter \"git rm -r --cached --ignore-unmatch .venv-kimodo310\" --prune-empty -- 86221c07..HEAD)"
+      "Bash(FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch --force --index-filter \"git rm -r --cached --ignore-unmatch .venv-kimodo310\" --prune-empty -- 86221c07..HEAD)",
+      "Bash(git rev-list *)",
+      "Bash(git checkout *)",
+      "Bash(echo \"---exit=$?---\")"
     ]
   },
   "enableAllProjectMcpServers": true,
