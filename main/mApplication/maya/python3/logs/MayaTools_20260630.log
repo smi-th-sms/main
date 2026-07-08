@@ -1,0 +1,8 @@
+2026-06-30 11:46:11 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-06-30 11:46:34 - MayaTools.CNTManager3 - ERROR - [CNTManager3] A 리스트가 비어 있습니다
+2026-06-30 11:46:38 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-06-30 11:46:38 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 1896 items to A list
+2026-06-30 11:46:39 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-06-30 11:46:39 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-06-30 11:46:39 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 1896/1896 오브젝트 처리됨
+2026-06-30 11:46:43 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed

@@ -56,6 +56,22 @@ _WEAPON_COLOR_R = 13  # red
 _SETTINGS_SUFFIX = "_Settings"
 _SETTINGS_OS_SUFFIX = "_Settings_OS"
 
+# Feature 1 – IK Follow: Settings ctrl로 proxy하지 않고 IKArm_*/PoleArm_* 자체에서
+# world:arm:chest:pelvis enum + parentConstraint(Static/Follow/Chest/Pelvis) 스페이스
+# 스위치로 직접 관리한다. (AS가 생성하는 followsystem 관련 타겟 노드를 그대로 재사용)
+_FOLLOW_ATTR = "follow"
+_FOLLOW_ENUM_NAMES = "world:arm:chest:pelvis"
+_FOLLOW_TARGETS = ["IKArm_L", "IKArm_R", "PoleArm_L", "PoleArm_R"]
+_FOLLOWSYSTEM_GRP = "followsystem"
+# chest: MH DeformationSystem joint(spine_05)가 최종 우선이지만, Feature 7(constraint
+# to joints)을 아직 안 거친 리그는 없을 수 있어 AS 쪽 ChestExtra_M 으로 폴백한다
+# (_CONSTRAINT_DEFAULT_MAPPING 의 "ChestExtra_M" -> "spine_05" 매핑과 동일 대응).
+_FOLLOW_DRIVER_CANDIDATES = {
+    "chest": ["spine_05", "ChestExtra_M"],
+    "pelvis": ["RootX_M"],
+}
+_RDT_BUILT_ATTR = "rdt_built"          # 툴이 새로 만든 노드 마킹 (revert 시 구분용)
+
 # Feature 7 – Constraint to Joints: AS→MH 기본 매핑 (MetaHuman 기준)
 _CONSTRAINT_DEFAULT_MAPPING = {
     "Root":          "pelvis",
@@ -113,6 +129,21 @@ _MH_NS_HINTS = {"pelvis", "spine_01", "thigh_r", "thigh_l"}
 
 def _ns_prefix(namespace):
     return (namespace + ":") if namespace else ""
+
+
+def _resolve_ns_node(ns, base):
+    """
+    ns+base 노드가 있으면 그것을 반환. 없고 base(namespace 없이)가 존재하면 그것을
+    반환 – 리그 일부만 namespace 가 붙은 경우(예: rig_ready:Fingers_L 은 있지만
+    IKArm_L 은 namespace 없이 루트에 있는 경우) fallback 처리.
+    둘 다 없으면 ns+base 를 그대로 반환한다(호출부의 objExists 체크/경고 메세지용).
+    """
+    ns_node = ns + base
+    if cmds.objExists(ns_node):
+        return ns_node
+    if ns and cmds.objExists(base):
+        return base
+    return ns_node
 
 
 def _scene_namespaces():
@@ -233,6 +264,229 @@ def _safe_delete(node):
         cmds.delete(node)
 
 
+def _follow_offset_node(base):
+    """IKArm_L -> IKOffsetArm_L, PoleArm_L -> PoleOffsetArm_L (namespace 유지)."""
+    ns, _, short = base.rpartition(":")
+    ns = (ns + ":") if ns else ""
+    if short.startswith("IK"):
+        return ns + "IKOffset" + short[len("IK"):]
+    if short.startswith("Pole"):
+        return ns + "PoleOffset" + short[len("Pole"):]
+    return None
+
+
+def _follow_targets(base):
+    """base 기준 follow 스페이스 스위치용 4-way(Static/Follow/Chest/Pelvis) 타겟 반환."""
+    offset = _follow_offset_node(base)
+    if not offset:
+        return None
+    ns, _, short = base.rpartition(":")
+    ns = (ns + ":") if ns else ""
+    side = short[-2:]  # "_L" / "_R"
+    if short.startswith("IK"):
+        chest, pelvis = ns + "followIKHandChest" + side, ns + "followIKHandPelvis" + side
+    else:
+        chest, pelvis = ns + "followPoleChest" + side, ns + "followPolePelvis" + side
+    return {
+        "offset": offset,
+        "static": offset + "Static",
+        "follow": offset + "Follow",
+        "chest": chest,
+        "pelvis": pelvis,
+        "ns": ns,
+    }
+
+
+def _mark_built(node):
+    """revert 시 '툴이 새로 만든 노드'인지 구분하기 위한 마킹."""
+    if not cmds.attributeQuery(_RDT_BUILT_ATTR, node=node, exists=True):
+        cmds.addAttr(node, longName=_RDT_BUILT_ATTR, attributeType="bool", defaultValue=True)
+        cmds.setAttr(node + "." + _RDT_BUILT_ATTR, lock=True)
+
+
+def _is_tool_built(node):
+    return cmds.objExists(node) and cmds.attributeQuery(_RDT_BUILT_ATTR, node=node, exists=True)
+
+
+def _find_driver_node(ns, cand):
+    """
+    follow 드라이버 노드를 찾는다.
+    1) ns+cand (IK ctrl과 같은 namespace)
+    2) cand (namespace 없음)
+    3) 씬 전체에서 "*:cand" 로 유일하게 매칭되는 노드 (IK ctrl은 namespace가 없는데
+       MH 스켈레톤 등 드라이버만 다른 namespace 에 있는 경우 – 예: rig_ready:spine_05)
+    여러 개 매칭되면 모호하므로 스킵하고 None 반환.
+    """
+    for candidate in (ns + cand, cand):
+        if cmds.objExists(candidate):
+            return candidate
+    matches = cmds.ls("*:" + cand, long=True) or []
+    if len(matches) == 1:
+        return matches[0]
+    if len(matches) > 1:
+        cmds.warning(
+            "rig_develop_tool: ambiguous ik-follow driver '{}' - multiple matches: {}".format(
+                cand, matches))
+    return None
+
+
+def _ensure_followsystem_group(ns=""):
+    """
+    followsystem 그룹을 반환. 없으면 MotionSystem과 같은 부모 밑에 새로 생성 후 마킹.
+    MotionSystem 자체가 없으면(AS 리그 구조가 아니면) None.
+    """
+    grp_name = ns + _FOLLOWSYSTEM_GRP
+    if cmds.objExists(grp_name):
+        return grp_name
+    ms = cmds.ls(ns + "MotionSystem", long=True)
+    if not ms:
+        return None
+    parent = cmds.listRelatives(ms[0], parent=True, fullPath=True)
+    grp = cmds.group(empty=True, name=grp_name)
+    if parent:
+        grp = cmds.parent(grp, parent[0])[0]
+    _mark_built(grp)
+    return grp
+
+
+def _build_follow_target(leaf_name, driver, offset_node, followsystem_grp):
+    """
+    followsystem 하위에 <leaf_name>_grp > <leaf_name> 구조를 새로 생성 후 마킹한다.
+    _grp 는 offset_node 의 현재 월드 트랜스폼으로 스냅한 뒤 driver 에
+    parentConstraint + scaleConstraint(maintainOffset)로 연결한다.
+    (Floyd 레퍼런스: followIKHandChest_L_grp/followPolePelvis_R_grp 등과 동일 구조)
+    """
+    if cmds.objExists(leaf_name):
+        return leaf_name
+    if not cmds.objExists(driver):
+        cmds.warning("rig_develop_tool: ik-follow driver not found – " + driver)
+        return None
+
+    grp = cmds.group(empty=True, name=leaf_name + "_grp", parent=followsystem_grp)
+    cmds.matchTransform(grp, offset_node, position=True, rotation=True, scale=False)
+    cmds.parentConstraint(driver, grp, maintainOffset=True)
+    cmds.scaleConstraint(driver, grp, maintainOffset=True)
+    _mark_built(grp)
+    return cmds.group(empty=True, name=leaf_name, parent=grp)
+
+
+def _ensure_ik_follow_setup(base):
+    """
+    IKArm_*/PoleArm_* 의 follow 를 world:arm:chest:pelvis enum 으로 맞추고,
+    Offset 노드의 parentConstraint(Static/Follow/Chest/Pelvis) + drivenKey 로
+    스페이스 스위치를 구성/검증한다.
+
+    이미 올바르게 구성되어 있는 리그(레퍼런스 캐릭터 등)는 건드리지 않고 스킵한다.
+    Static/Follow 등 AS 코어 구조가 없는 리그는 경고 후 스킵한다(새로 만들지 않음).
+    Chest/Pelvis follow 타겟(followsystem 하위)이 없는 리그는 spine_05 / RootX_M 을
+    드라이버로 새로 생성한다.
+    """
+    if not cmds.objExists(base):
+        return False
+
+    info = _follow_targets(base)
+    if info is None:
+        cmds.warning("rig_develop_tool: unsupported ik-follow base – " + base)
+        return False
+
+    core_required = [info["offset"], info["static"], info["follow"]]
+    missing_core = [n for n in core_required if not cmds.objExists(n)]
+    if missing_core:
+        cmds.warning(
+            "rig_develop_tool: ik-follow setup skipped for {} - missing core nodes: {}".format(
+                base, missing_core))
+        return False
+
+    # --- Chest/Pelvis follow 타겟이 없으면 새로 생성 ---
+    ns = info["ns"]
+    for key in ("chest", "pelvis"):
+        leaf = info[key]
+        if cmds.objExists(leaf):
+            continue
+
+        driver = None
+        for cand in _FOLLOW_DRIVER_CANDIDATES[key]:
+            driver = _find_driver_node(ns, cand)
+            if driver:
+                break
+        if driver is None:
+            cmds.warning(
+                "rig_develop_tool: ik-follow setup skipped for {} - no {} driver found "
+                "(tried: {})".format(base, key, _FOLLOW_DRIVER_CANDIDATES[key]))
+            return False
+
+        followsystem_grp = _ensure_followsystem_group(ns)
+        if not followsystem_grp:
+            cmds.warning(
+                "rig_develop_tool: ik-follow setup skipped for {} - "
+                "MotionSystem not found, cannot build followsystem group.".format(base))
+            return False
+        if not _build_follow_target(leaf, driver, info["offset"], followsystem_grp):
+            return False
+        print("rig_develop_tool: ik-follow target built – {} (driver: {})".format(leaf, driver))
+
+    targets = [info["static"], info["follow"], info["chest"], info["pelvis"]]
+    attr_plug = base + "." + _FOLLOW_ATTR
+
+    attr_ok = (
+        cmds.attributeQuery(_FOLLOW_ATTR, node=base, exists=True)
+        and cmds.getAttr(attr_plug, type=True) == "enum"
+        and (cmds.attributeQuery(_FOLLOW_ATTR, node=base, listEnum=True) or [""])[0]
+            == _FOLLOW_ENUM_NAMES
+    )
+
+    existing_pc = cmds.listRelatives(info["offset"], type="parentConstraint") or []
+    pc = existing_pc[0] if existing_pc else None
+    pc_ok = False
+    weight_aliases = []
+    if attr_ok and pc:
+        pc_targets = cmds.parentConstraint(pc, q=True, targetList=True) or []
+        if set(pc_targets) == set(targets):
+            weight_aliases = cmds.parentConstraint(pc, q=True, weightAliasList=True) or []
+            pc_ok = bool(weight_aliases) and all(
+                cmds.listConnections(pc + "." + a, s=True, d=False) for a in weight_aliases)
+
+    settings_node = base + _SETTINGS_SUFFIX
+    settings_has_follow = (
+        cmds.objExists(settings_node)
+        and cmds.attributeQuery(_FOLLOW_ATTR, node=settings_node, exists=True)
+    )
+
+    if attr_ok and pc_ok and not settings_has_follow:
+        print("rig_develop_tool: ik-follow already set up – " + base)
+        return True
+
+    # --- Settings ctrl에 남아있는 예전 follow proxy 정리 (더 이상 여기로 연결하지 않음) ---
+    if settings_has_follow:
+        cmds.deleteAttr(settings_node, attribute=_FOLLOW_ATTR)
+
+    # --- follow attr: world:arm:chest:pelvis enum 으로 통일 ---
+    if not attr_ok:
+        if cmds.attributeQuery(_FOLLOW_ATTR, node=base, exists=True):
+            cmds.deleteAttr(base, attribute=_FOLLOW_ATTR)
+        cmds.addAttr(base, longName=_FOLLOW_ATTR, attributeType="enum",
+                     enumName=_FOLLOW_ENUM_NAMES, keyable=True, defaultValue=0)
+        cmds.setAttr(attr_plug, 0)
+    cmds.setAttr(attr_plug, lock=False, keyable=True)
+
+    # --- parentConstraint 확인/생성 ---
+    if not pc:
+        pc = cmds.parentConstraint(targets, info["offset"], maintainOffset=True)[0]
+        weight_aliases = cmds.parentConstraint(pc, q=True, weightAliasList=True) or []
+
+    # --- drivenKey: follow == idx 일 때만 해당 타겟 weight = 1 ---
+    for idx, alias in enumerate(weight_aliases):
+        plug = pc + "." + alias
+        for val in range(len(targets)):
+            cmds.setDrivenKeyframe(
+                plug, currentDriver=attr_plug, driverValue=val,
+                value=1.0 if val == idx else 0.0,
+                inTangentType="linear", outTangentType="linear")
+
+    print("rig_develop_tool: ik-follow setup built – " + base)
+    return True
+
+
 # ===========================================================================
 # Feature 1 – IK Settings Controller
 # ===========================================================================
@@ -261,7 +515,7 @@ def build_ik_settings_ctrls(namespace="", ik_targets=None, ctrl_size=3.0):
     created = []
 
     for base in ik_targets:
-        ik_ctrl = ns + base
+        ik_ctrl = _resolve_ns_node(ns, base)
         if not cmds.objExists(ik_ctrl):
             cmds.warning("rig_develop_tool: IK ctrl not found – " + ik_ctrl)
             continue
@@ -269,14 +523,19 @@ def build_ik_settings_ctrls(namespace="", ik_targets=None, ctrl_size=3.0):
         side = "L" if base.endswith("_L") else "R"
         color = _COLOR_L if side == "L" else _COLOR_R
 
-        settings_name = base + _SETTINGS_SUFFIX
-        os_name = base + _SETTINGS_OS_SUFFIX
+        # ik_ctrl 이 실제로 존재하는 namespace 기준으로 생성 (ns 인자와 다를 수 있음 -
+        # 리그 일부만 namespace 가 붙은 경우 대비, _resolve_ns_node 참고)
+        used_ns = ns if ik_ctrl == ns + base else ""
+        settings_name = used_ns + base + _SETTINGS_SUFFIX
+        os_name = used_ns + base + _SETTINGS_OS_SUFFIX
 
         # --- Rebuild: 기존 offset group 삭제 (자식 포함 정리) ---
-        _safe_delete(ns + os_name)
+        _safe_delete(os_name)
 
         # --- custom attrs 수집 (삭제 전에) ---
-        custom_attrs = _get_custom_attrs(ik_ctrl)
+        # follow는 Settings ctrl로 proxy하지 않고 ik_ctrl 자체의 스페이스 스위치로
+        # 관리한다 (아래 _ensure_ik_follow_setup 참고).
+        custom_attrs = [a for a in _get_custom_attrs(ik_ctrl) if a != _FOLLOW_ATTR]
         if not custom_attrs:
             cmds.warning("rig_develop_tool: no custom attrs on " + ik_ctrl)
             continue
@@ -332,6 +591,13 @@ def build_ik_settings_ctrls(namespace="", ik_targets=None, ctrl_size=3.0):
 
         print("rig_develop_tool: built settings ctrl – " + settings_name)
         created.append(ctrl)
+
+    # --- IK Follow: IKArm_*/PoleArm_* 는 별도로 world:arm:chest:pelvis 스페이스
+    # 스위치를 보장한다 (Settings ctrl 대상 목록(ik_targets)과 무관하게 항상 체크) ---
+    for base in _FOLLOW_TARGETS:
+        target = _resolve_ns_node(ns, base)
+        if cmds.objExists(target):
+            _ensure_ik_follow_setup(target)
 
     return created
 
@@ -1105,7 +1371,7 @@ def revert_ik_settings_ctrls(namespace=""):
     """
     ns = _ns_prefix(namespace)
     for base in _IK_TARGETS:
-        ik_ctrl = ns + base
+        ik_ctrl = _resolve_ns_node(ns, base)
         if cmds.objExists(ik_ctrl):
             user_attrs = cmds.listAttr(ik_ctrl, userDefined=True) or []
             for a in user_attrs:
@@ -1125,9 +1391,67 @@ def revert_ik_settings_ctrls(namespace=""):
                 except Exception:
                     pass
 
-        os_node = ns + base + _SETTINGS_OS_SUFFIX
+        used_ns = ns if ik_ctrl == ns + base else ""
+        os_node = used_ns + base + _SETTINGS_OS_SUFFIX
         _safe_delete(os_node)
         print("rig_develop_tool: revert IK settings – " + base)
+
+    # IKArm_*/PoleArm_* follow 스페이스 스위치도 함께 원복 (build_ik_settings_ctrls 가
+    # 같은 버튼에서 함께 구성하므로 revert 도 대칭으로 함께 처리한다)
+    revert_ik_follow_setup(namespace=namespace)
+
+
+def revert_ik_follow_setup(namespace=""):
+    """
+    _ensure_ik_follow_setup() 이 구성한 것을 원상 복구.
+    - IKArm_*/PoleArm_* offset 노드의 follow parentConstraint 삭제
+    - follow attribute 삭제
+    - 툴이 새로 만든(rdt_built 마킹된) Chest/Pelvis follow 타겟만 삭제
+      (레퍼런스 캐릭터 등에 원래 있던 네이티브 followsystem 타겟은 건드리지 않음)
+    - 툴이 새로 만든 followsystem 그룹이 비면 함께 삭제
+    """
+    ns = _ns_prefix(namespace)
+    touched_grp_names = set()
+
+    for base in _FOLLOW_TARGETS:
+        target = _resolve_ns_node(ns, base)
+        if not cmds.objExists(target):
+            continue
+
+        info = _follow_targets(target)
+        if info is None:
+            continue
+
+        # --- follow 스위치용 parentConstraint 삭제 (타겟 4개가 정확히 일치할 때만) ---
+        expected = {info["static"], info["follow"], info["chest"], info["pelvis"]}
+        for pc in (cmds.listRelatives(info["offset"], type="parentConstraint") or []):
+            pc_targets = set(cmds.parentConstraint(pc, q=True, targetList=True) or [])
+            if pc_targets == expected:
+                cmds.delete(pc)
+
+        # --- follow attribute 삭제 ---
+        if cmds.attributeQuery(_FOLLOW_ATTR, node=target, exists=True):
+            try:
+                cmds.setAttr(target + "." + _FOLLOW_ATTR, lock=False)
+            except Exception:
+                pass
+            cmds.deleteAttr(target, attribute=_FOLLOW_ATTR)
+
+        # --- 툴이 새로 만든 Chest/Pelvis 타겟만 정리 (레퍼런스 네이티브 타겟은 보존) ---
+        for key in ("chest", "pelvis"):
+            grp = info[key] + "_grp"
+            if _is_tool_built(grp):
+                touched_grp_names.add(cmds.listRelatives(grp, parent=True, fullPath=False)[0])
+                _safe_delete(grp)  # cascade: leaf + constraint 포함
+                print("rig_develop_tool: ik-follow target removed – " + info[key])
+
+        print("rig_develop_tool: ik-follow setup reverted – " + target)
+
+    # --- 툴이 새로 만든 followsystem 그룹이 비었으면 삭제 ---
+    for grp_name in touched_grp_names:
+        if _is_tool_built(grp_name) and not (cmds.listRelatives(grp_name, children=True) or []):
+            _safe_delete(grp_name)
+            print("rig_develop_tool: followsystem group removed (empty, tool-built) – " + grp_name)
 
 
 def revert_weapon_offsets(namespace=""):
@@ -2037,7 +2361,14 @@ class _UI(object):
                         "IK Settings 컨트롤러를 생성합니다.\n\n"
                         "DeformationSystem 하위의 각 IKSettings 노드에\n"
                         "NURBS 커브 컨트롤러를 연결합니다.\n\n"
-                        "Revert : 생성된 컨트롤러를 삭제하고 원래 상태로 복구합니다."))
+                        "follow는 Settings ctrl로 옮기지 않고 IKArm_*/PoleArm_*\n"
+                        "자체에서 world:arm:chest:pelvis enum + 스페이스 스위치로\n"
+                        "자동 보장/복구됩니다. Chest/Pelvis follow 타겟이 없으면\n"
+                        "followsystem 하위에 spine_05 / RootX_M 기준으로 새로 생성합니다.\n\n"
+                        "Revert : 생성된 컨트롤러를 삭제하고 원래 상태로 복구합니다.\n"
+                        "follow 스페이스 스위치(attribute/parentConstraint)도 함께\n"
+                        "원복되며, 툴이 새로 만든 Chest/Pelvis 타겟만 삭제합니다\n"
+                        "(레퍼런스 캐릭터의 네이티브 followsystem 타겟은 보존)."))
         cmds.setParent("..")  # rowLayout
         cmds.setParent("..")  # columnLayout
         cmds.setParent("..")  # frameLayout
