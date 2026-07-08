@@ -80,7 +80,10 @@
       "Bash(FILTER_BRANCH_SQUELCH_WARNING=1 git filter-branch --force --index-filter \"git rm -r --cached --ignore-unmatch .venv-kimodo310\" --prune-empty -- 86221c07..HEAD)",
       "Bash(git rev-list *)",
       "Bash(git checkout *)",
-      "Bash(echo \"---exit=$?---\")"
+      "Bash(echo \"---exit=$?---\")",
+      "Bash(rm -rf .git/refs/original)",
+      "Bash(git reflog *)",
+      "Bash(git gc *)"
     ]
   },
   "enableAllProjectMcpServers": true,
