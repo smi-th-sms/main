@@ -5,7 +5,8 @@ body_rl4Embedded / head_rl4Embedded 의 joint input/output 연결을
 지정한 네임스페이스의 동일 이름 조인트로 재연결하는 UI 툴입니다.
 
 실제 연결 로직은 rl4_namespace_retarget 모듈(collect_joint_links /
-validate_retarget / retarget_rl4_joints)을 그대로 사용합니다.
+validate_retarget / retarget_rl4_joints / verify_transform_match /
+bake_offset_parent_matrix_for_namespace)을 그대로 사용합니다.
 
 사용법:
     # 첫 실행
@@ -20,8 +21,16 @@ UI 사용 순서:
     1) 대상 네임스페이스 입력 (예: Floyd_Rigging_main_v001:) 후
        [네임스페이스 확인] 으로 존재 / joint 개수 확인
     2) Body / Head 섹션에서 [검증 (Dry Run)] 으로 missing/locked/occupied 확인
+       + world 기준 transform 일치 여부(offsetParentMatrix 포함) 확인
     3) 문제 없으면 [실행] (Body, Head 각각 독립 실행 가능) 또는
        [Body + Head 모두 실행]
+
+offsetParentMatrix Bake (선택):
+    대상 네임스페이스의 조인트가 offsetParentMatrix 에 transform 을 숨겨두고
+    channel box 는 0/identity 로만 보이는 경우(예: 일부 게임 리그), 그 값을
+    translate/rotate/scale 로 꺼내 놓고 offsetParentMatrix 를 초기화합니다.
+    world 위치/방향은 그대로 유지되며, 이후 channel box 값만으로 다른
+    스켈레톤과 transform 을 비교/매칭하기 쉬워집니다.
 """
 
 import os
@@ -51,6 +60,7 @@ class RL4RetargetTool:
         self.namespace_field = None
         self.ns_status_text = None
         self.report_field = None
+        self.bake_force_checkbox = None
 
     # ------------------------------------------------------------------
     # UI
@@ -65,7 +75,13 @@ class RL4RetargetTool:
             widthHeight=(480, 580),
             sizeable=True,
         )
+        self.build_tab_ui(window)
+        cmds.showWindow(window)
 
+    def build_tab_ui(self, parent=None):
+        """탭 또는 독립 윈도우에 UI 를 빌드. rig_tool_hub 통합용."""
+        scroll = cmds.scrollLayout(childResizable=True, parent=parent) if parent \
+            else cmds.scrollLayout(childResizable=True)
         cmds.columnLayout(adjustableColumn=True, rowSpacing=5, columnAttach=("both", 15))
 
         cmds.separator(height=15, style="none")
@@ -169,6 +185,41 @@ class RL4RetargetTool:
             height=30,
         )
 
+        cmds.separator(height=8, style="none")
+
+        # ── offsetParentMatrix Bake ───────────────────────────────
+        cmds.frameLayout(
+            label="offsetParentMatrix Bake (대상 네임스페이스)",
+            collapsable=True,
+            collapse=True,
+            marginWidth=5,
+            marginHeight=5,
+        )
+        cmds.columnLayout(adjustableColumn=True, rowSpacing=4)
+        cmds.text(
+            label=(
+                "offsetParentMatrix 에 transform 값이 들어있고 channel box(translate/\n"
+                "rotate/scale)가 제로화된 조인트를 찾아 그 값을 채널로 옮기고\n"
+                "offsetParentMatrix 는 identity 로 초기화합니다. world 위치/방향은\n"
+                "그대로 유지됩니다 (Body/Head rl4 에 연결된 조인트 기준으로 대상 판단)."
+            ),
+            align="left",
+            font="smallPlainLabelFont",
+        )
+        self.bake_force_checkbox = cmds.checkBox(
+            label="이미 값이 있는 채널도 강제 정규화 (force)", value=False
+        )
+        cmds.button(
+            label="Body + Head 조인트 offsetParentMatrix Bake",
+            height=28,
+            backgroundColor=(0.5, 0.35, 0.5),
+            command=lambda *_: self.on_bake_offset_parent_matrix(
+                cmds.checkBox(self.bake_force_checkbox, query=True, value=True)
+            ),
+        )
+        cmds.setParent("..")
+        cmds.setParent("..")
+
         cmds.separator(height=10, style="none")
 
         cmds.text(label="리포트", align="left", font="plainLabelFont")
@@ -176,7 +227,8 @@ class RL4RetargetTool:
 
         cmds.separator(height=15, style="none")
 
-        cmds.showWindow(window)
+        cmds.setParent("..")  # columnLayout -> scroll
+        return scroll
 
     # ------------------------------------------------------------------
     # 네임스페이스 확인
@@ -282,7 +334,48 @@ class RL4RetargetTool:
                 return
 
         report = rl4rt.retarget_rl4_joints(node, bare + ":", dry_run=dry_run)
-        self._set_report(self._format_report(node, report, dry_run))
+        text = self._format_report(node, report, dry_run)
+
+        if dry_run:
+            transform_report = rl4rt.verify_transform_match(node, bare + ":")
+            text += "\n\n" + self._format_transform_report(transform_report)
+
+        self._set_report(text)
+
+    def on_bake_offset_parent_matrix(self, force):
+        ns = self._get_namespace()
+        bare = self._require_namespace(ns)
+        if bare is None:
+            return
+
+        confirm = cmds.confirmDialog(
+            title="offsetParentMatrix Bake 확인",
+            message=(
+                "'{}:' 네임스페이스의 조인트 중 offsetParentMatrix 에 transform 값이\n"
+                "들어있고 channel box 가 제로화된 조인트를 찾아, 그 값을 translate/\n"
+                "rotate/scale 로 옮기고 offsetParentMatrix 를 identity 로 초기화합니다.\n\n"
+                "world 상의 위치/방향은 변하지 않습니다.{}\n\n"
+                "레퍼런스 조인트라면 reference edit 으로 기록됩니다. 계속할까요?"
+            ).format(
+                bare,
+                "\n(force 모드: 이미 값이 있는 채널도 강제로 정규화합니다)" if force else "",
+            ),
+            button=["실행", "취소"],
+            defaultButton="취소",
+            cancelButton="취소",
+            dismissString="취소",
+        )
+        if confirm != "실행":
+            return
+
+        blocks = []
+        for which, node in RL4_NODES.items():
+            if not cmds.objExists(node):
+                blocks.append("=== {} ===\n{} 노드가 씬에 없어 건너뜀.".format(node, node))
+                continue
+            result = rl4rt.bake_offset_parent_matrix_for_namespace(node, bare + ":", force=force)
+            blocks.append(self._format_bake_report(node, result))
+        self._set_report("\n\n".join(blocks))
 
     def on_run_both(self, dry_run=False):
         ns = self._get_namespace()
@@ -308,8 +401,64 @@ class RL4RetargetTool:
                 blocks.append("=== {} ===\n{} 노드가 씬에 없어 건너뜀.".format(node, node))
                 continue
             report = rl4rt.retarget_rl4_joints(node, bare + ":", dry_run=dry_run)
-            blocks.append(self._format_report(node, report, dry_run))
+            text = self._format_report(node, report, dry_run)
+            if dry_run:
+                transform_report = rl4rt.verify_transform_match(node, bare + ":")
+                text += "\n" + self._format_transform_report(transform_report)
+            blocks.append(text)
         self._set_report("\n\n".join(blocks))
+
+    @staticmethod
+    def _format_transform_report(report):
+        lines = [
+            "--- Transform 검증 (world 기준, offsetParentMatrix 포함) ---",
+            "checked   : {}".format(report["checked"]),
+            "matched   : {}".format(len(report["matched"])),
+            "mismatched: {}".format(len(report["mismatched"])),
+        ]
+        if report["mismatched"]:
+            lines.append("MISMATCHED ({}):".format(len(report["mismatched"])))
+            for short, pos_diff, angle_diff in report["mismatched"][:15]:
+                lines.append("   - {}  pos_diff={:.3f}cm  angle_diff={:.3f}deg".format(
+                    short, pos_diff, angle_diff))
+        if report["missing_target"]:
+            lines.append("target 네임스페이스에 없음 ({}): {}".format(
+                len(report["missing_target"]), ", ".join(report["missing_target"][:15])
+            ))
+        if not report["mismatched"] and not report["missing_target"]:
+            lines.append("-> world 기준 전체 일치")
+        return "\n".join(lines)
+
+    @staticmethod
+    def _format_bake_report(node, result):
+        lines = [
+            "=== {} : offsetParentMatrix Bake ===".format(node),
+            "baked                  : {}".format(len(result["baked"])),
+            "skipped (identity)     : {}".format(len(result["skipped_identity"])),
+            "skipped (not zeroed)   : {}".format(len(result["skipped_not_zeroed"])),
+            "skipped (locked)       : {}".format(len(result["skipped_locked"])),
+            "reverted by constraint : {}".format(len(result.get("reverted_by_constraint", []))),
+            "failed                 : {}".format(len(result.get("failed", []))),
+        ]
+        if result["baked"]:
+            lines.append("baked joints ({}): {}".format(
+                len(result["baked"]), ", ".join(result["baked"][:15])
+            ))
+        if result["skipped_not_zeroed"]:
+            lines.append("channel box 가 이미 값이 있어 건너뜀 (force 로 강행 가능, {}): {}".format(
+                len(result["skipped_not_zeroed"]), ", ".join(result["skipped_not_zeroed"][:15])
+            ))
+        if result.get("reverted_by_constraint"):
+            lines.append("REVERTED BY CONSTRAINT - 재연결 후 constraint 가 값을 되돌림 ({}):".format(
+                len(result["reverted_by_constraint"])
+            ))
+            for n, reason in result["reverted_by_constraint"][:15]:
+                lines.append("   - {}: {}".format(n, reason))
+        if result.get("failed"):
+            lines.append("FAILED - 재시도에도 반영 안 됨 ({}):".format(len(result["failed"])))
+            for n, reason in result["failed"][:15]:
+                lines.append("   - {}: {}".format(n, reason))
+        return "\n".join(lines)
 
     @staticmethod
     def _format_report(node, report, dry_run):

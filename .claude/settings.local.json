@@ -83,7 +83,9 @@
       "Bash(echo \"---exit=$?---\")",
       "Bash(rm -rf .git/refs/original)",
       "Bash(git reflog *)",
-      "Bash(git gc *)"
+      "Bash(git gc *)",
+      "Bash(git push *)",
+      "Bash(.venv-kimodo310/Scripts/python.exe --version)"
     ]
   },
   "enableAllProjectMcpServers": true,

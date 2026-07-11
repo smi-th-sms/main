@@ -247,64 +247,102 @@ def build_asset_setup(cfg: AssetSetupConfig, parent: str = "/obj") -> dict[str, 
         raise ValueError(f"parent node not found: {parent}")
 
     geo = _child(root, f"{cfg.asset}_asset_setup", "geo")
-    imp = _child(geo, "fbx_import", "kinefx::fbxcharacterimport")
     warnings: list[str] = []
-    if cfg.fbx.character_import:
-        imp.parm("fbxfile").set(cfg.fbx.character_import)
-    else:
-        warnings.append("cfg.fbx.character_import is empty; fbx_import has no file")
+
+    # FBX import lives in its own subnet whose parameters ARE the source of truth
+    # (character/hair import, joint names, hair scale). Config seeds them only on
+    # first creation; user edits on the subnet persist across rebuilds.
+    fbx_existed = geo.node("FBX") is not None
+    fbx = _child(geo, "FBX", "subnet")
+    _fbx_subnet_params(fbx, cfg, seed=not fbx_existed)
+
+    imp = _child(fbx, "fbx_import", "kinefx::fbxcharacterimport")
+    imp.parm("fbxfile").setExpression('chs("../character_import")')
+    if not cfg.fbx.character_import and not fbx_existed:
+        warnings.append("character_import is empty; set it on the FBX subnet")
 
     # fbxcharacterimport outputs: 0=Rest Geometry (skin mesh), 1=Capture Pose
     # (skeleton), 2=Animated Pose (== full FBX node graph: path/name/fbx_node_type).
-    node_graph = _child(geo, "NODE_GRAPH", "null")
+    node_graph = _child(fbx, "node_graph", "null")
     node_graph.setInput(0, imp, 2)
-    skin_mesh = _child(geo, "skin_mesh", "null")
+    skin_mesh = _child(fbx, "skin_mesh", "null")
     skin_mesh.setInput(0, imp, 0)
-
-    add_geo_path = _child(geo, "add_geo_path", "attribwrangle")
-    add_geo_path.parm("class").set(1)  # run over primitives
+    add_geo_path = _child(fbx, "add_geo_path", "attribwrangle")
+    add_geo_path.parm("class").set(1)  # primitives
     add_geo_path.parm("snippet").set(GEO_PATH_VEX)
     add_geo_path.setInput(0, skin_mesh, 0)
     add_geo_path.setInput(1, node_graph, 0)
 
-    rest_mesh = _child(geo, "REST_MESH", "null")
-    rest_mesh.setInput(0, add_geo_path, 0)
-    rest_skel = _child(geo, "REST_SKEL", "null")
-    rest_skel.setInput(0, imp, 1)
+    # hair guide import (studio Proxy/geo_hair_template01 head): alembic -> unpack
+    # -> scale (Maya cm -> character m) -> hair guide.
+    hair_abc = _child(fbx, "hair_import_abc", "alembic")
+    hair_abc.parm("fileName").setExpression('chs("../hair_import")')
+    if hair_abc.parm("addpath"):
+        hair_abc.parm("addpath").set(1)
+    hair_unpack = _child(fbx, "hair_unpack", "unpack")
+    hair_unpack.setInput(0, hair_abc, 0)
+    hair_xform = _child(fbx, "hair_xform", "xform")
+    hair_xform.parm("scale").setExpression('ch("../hair_scale")')
+    hair_xform.setInput(0, hair_unpack, 0)
+
+    # subnet outputs: 0=rest mesh, 1=capture skeleton, 2=node graph, 3=hair guide
+    for idx, src in ((0, add_geo_path), (1, imp), (2, node_graph), (3, hair_xform)):
+        out = _child(fbx, "output%d" % idx, "output")
+        out.parm("outputidx").set(idx)
+        out.setInput(0, src, 1 if idx == 1 else 0)
+    fbx.layoutChildren()
+
+    # container-level named nulls wired to the FBX subnet outputs (downstream
+    # Corrective/Collision/Proxy still reference these by name, unchanged).
+    rest_mesh = _child(geo, "REST_MESH", "null"); rest_mesh.setInput(0, fbx, 0)
+    rest_skel = _child(geo, "REST_SKEL", "null"); rest_skel.setInput(0, fbx, 1)
+    ngraph = _child(geo, "NODE_GRAPH", "null"); ngraph.setInput(0, fbx, 2)
+    hair_guide = _child(geo, "HAIR_GUIDE", "null"); hair_guide.setInput(0, fbx, 3)
     rest_mesh.setDisplayFlag(True)
 
-    # Hair guide alembic import (asset stage). Reconstructs the studio
-    # Proxy/geo_hair_template01 import head: alembic (addpath=on -> `path`) ->
-    # unpack -> HAIR_GUIDE. Head-follow / pin / rigid grouping is Proxy-stage.
-    result = {
-        "container": geo.path(),
-        "fbx_import": imp.path(),
-        "node_graph": node_graph.path(),
-        "rest_mesh": rest_mesh.path(),
-        "rest_skel": rest_skel.path(),
-        "warnings": warnings,
-    }
-    if cfg.fbx.hair_import:
-        hair_abc = _child(geo, "hair_import_abc", "alembic")
-        hair_abc.parm("fileName").set(cfg.fbx.hair_import)
-        if hair_abc.parm("addpath"):
-            hair_abc.parm("addpath").set(1)  # carry the abc hierarchy `path`
-        hair_unpack = _child(geo, "hair_unpack", "unpack")
-        hair_unpack.setInput(0, hair_abc, 0)
-        # align the guide (Maya cm) to the character (meters) — studio transform1
-        hair_xform = _child(geo, "hair_xform", "xform")
-        hair_xform.parm("scale").set(cfg.hair_scale)
-        hair_xform.setInput(0, hair_unpack, 0)
-        hair_guide = _child(geo, "HAIR_GUIDE", "null")
-        hair_guide.setInput(0, hair_xform, 0)
-        result["hair_guide"] = hair_guide.path()
-    else:
-        result.setdefault("warnings", []).append(
-            "cfg.fbx.hair_import is empty; no hair guide imported"
-        )
+    # retire the old flat FBX nodes from the pre-subnet layout
+    for stale in ("fbx_import", "skin_mesh", "add_geo_path", "hair_import_abc",
+                  "hair_unpack", "hair_xform"):
+        n = geo.node(stale)
+        if n is not None:
+            n.destroy()
 
     geo.layoutChildren()
-    return result
+    return {
+        "container": geo.path(), "fbx_subnet": fbx.path(),
+        "rest_mesh": rest_mesh.path(), "rest_skel": rest_skel.path(),
+        "node_graph": ngraph.path(), "hair_guide": hair_guide.path(),
+        "warnings": warnings,
+    }
+
+
+def _fbx_subnet_params(fbx, cfg: AssetSetupConfig, seed: bool) -> None:
+    """Add the FBX-stage parameters to the FBX subnet (idempotent). ``seed``
+    (first build only) fills them from config so later user edits persist."""
+
+    hou = _require_hou()
+    file_t = hou.stringParmType.FileReference
+    g = fbx.parmTemplateGroup()
+    specs = [
+        hou.StringParmTemplate("character_import", "Character FBX", 1, string_type=file_t),
+        hou.StringParmTemplate("hair_import", "Hair Guide", 1, string_type=file_t),
+        hou.StringParmTemplate("root_name", "Root Joint", 1, default_value=("root",)),
+        hou.StringParmTemplate("pelvis_name", "Pelvis Joint", 1, default_value=("pelvis",)),
+        hou.FloatParmTemplate("hair_scale", "Hair Scale", 1, default_value=(0.01,)),
+    ]
+    changed = False
+    for pt in specs:
+        if g.find(pt.name()) is None:
+            g.append(pt)
+            changed = True
+    if changed:
+        fbx.setParmTemplateGroup(g)
+    if seed:
+        fbx.parm("character_import").set(cfg.fbx.character_import or "")
+        fbx.parm("hair_import").set(cfg.fbx.hair_import or "")
+        fbx.parm("root_name").set(cfg.fbx.root_name or "root")
+        fbx.parm("pelvis_name").set(cfg.fbx.pelvis_name or "pelvis")
+        fbx.parm("hair_scale").set(cfg.hair_scale)
 
 
 PROXY_PATH_VEX = 's@proxy_path = "{proxy_path}";   // tag the part proxy for Deform pairing\n'
@@ -911,3 +949,57 @@ def build_rest_cache(cfg: AssetSetupConfig, parent: str = "/obj",
                        "written": bool(execute)})
     geo.layoutChildren()
     return {"caches": caches, "warnings": warnings}
+
+
+def build_asset_sim_test(cfg: AssetSetupConfig, parent: str = "/obj",
+                         frames: tuple[int, int] = (1, 48),
+                         execute: bool = False,
+                         cache_path: str | None = None) -> dict[str, Any]:
+    """Stage 2.x — quick asset-level test sim to validate the cloth setup.
+
+    Before committing to shots, drape the rest proxy under gravity (no
+    animation) so the per-part vellum constraints + collision can be eyeballed:
+    the packed ``OUT_CONSTRAINT`` is unpacked and solved against
+    ``OUT_COLLISION``; pinned parts should hold, unpinned parts fall/drape.
+    Output ``OUT_ASSET_SIMTEST``. ``execute`` cooks the range; ``cache_path``
+    (local!) additionally writes it to disk.
+    """
+
+    geo = _asset_geo(cfg, parent)
+    con = geo.node("OUT_CONSTRAINT")
+    if con is None:
+        raise ValueError("OUT_CONSTRAINT missing; run build_constraint first")
+    coll = geo.node("OUT_COLLISION")
+
+    unpack = _child(geo, "simtest_unpack", "vellumunpack")
+    unpack.setInput(0, con, 0)
+    solver = _child(geo, "simtest_solve", "vellumsolver")
+    solver.setInput(0, unpack, 0)      # Vellum Geometry
+    solver.setInput(1, unpack, 1)      # Constraint Geometry
+    if coll is not None:
+        solver.setInput(2, coll, 0)    # Collision Geometry
+    if solver.parm("startframe"):
+        solver.parm("startframe").deleteAllKeyframes()
+        solver.parm("startframe").set(frames[0])
+    if cfg.constraint.get("substeps") is not None and solver.parm("substeps"):
+        solver.parm("substeps").set(int(cfg.constraint["substeps"]))
+    post = _child(geo, "simtest_post", "vellumpostprocess")
+    post.setInput(0, solver, 0)
+    out = _child(geo, "OUT_ASSET_SIMTEST", "null")
+    out.setInput(0, post, 0)
+    out.setDisplayFlag(True)
+
+    written = False
+    if execute and cache_path:
+        fc = _child(geo, "simtest_cache", "filecache::2.0")
+        fc.parm("filemethod").set(1)
+        fc.parm("file").set(cache_path)
+        fc.parm("trange").set(1)
+        fc.parm("f1").deleteAllKeyframes(); fc.parm("f1").set(frames[0])
+        fc.parm("f2").deleteAllKeyframes(); fc.parm("f2").set(frames[1])
+        fc.setInput(0, out, 0)
+        if fc.parm("execute"):
+            fc.parm("execute").pressButton()
+            written = True
+    geo.layoutChildren()
+    return {"out_sim_test": out.path(), "frames": list(frames), "written": written}

@@ -272,6 +272,71 @@ def _collect_sc_info():
     return info
 
 
+def _read_dna_joint_names(dna_path):
+    """dna_path 의 전체 joint 이름 목록을 순서대로 반환 (PyDNA 보일러플레이트 공용화)."""
+    for p in [
+        MH_LIB_ROOT + "/PyDNA/9.4.7/platform-windows/.sanitizers-off/.json-0/" + MH_PY_VER + "/lib",
+        MH_LIB_ROOT + "/PyDNACalib2/3.2.4/platform-windows/.sanitizers-off/" + MH_PY_VER + "/lib",
+    ]:
+        if p not in sys.path:
+            sys.path.insert(0, p)
+
+    import dna
+    import dnacalib2
+
+    stream     = dna.FileStream(dna_path, dna.FileStream.AccessMode_Read, dna.FileStream.OpenMode_Binary)
+    bin_reader = dna.BinaryStreamReader(stream, dna.DataLayer_All)
+    bin_reader.read()
+    reader     = dnacalib2.DNACalibDNAReader(bin_reader)
+    return [reader.getJointName(i) for i in range(reader.getJointCount())]
+
+
+def _discover_related_skinclusters(dna_path, namespace="", exclude_sc=None):
+    """
+    dna_path 의 joint 목록을 influence 로 사용하는 모든 skinCluster 를 씬에서 찾아
+    {sc_name: {"mesh": mesh_name, "influences": [...]}} 형태로 반환합니다.
+
+    body_lod{0..3}_mesh 처럼 고정된 mesh/LOD 이름 패턴을 가정하는 _collect_sc_info()
+    와 달리, 실제 influence 교집합으로 판단하므로 head(head/teeth/eyeLeft/eyeRight/
+    eyelashes/eyeshell/cartilage/saliva 등 mesh family·LOD 개수가 제각각인 domain)
+    처럼 고정 패턴이 없는 경우에도 그대로 적용할 수 있습니다.
+
+    body.dna 와 head.dna 는 clavicle/upperarm 등 경계 조인트를 공유하기 때문에,
+    이 교집합 기준만으로는 head.dna 대상 탐색 시 body_lod*_mesh_skinCluster 까지
+    같이 잡힙니다. exclude_sc 로 이미 다른 domain(예: body) 에서 처리한
+    skinCluster 이름 집합을 넘기면 결과에서 제외합니다.
+
+    Parameters
+    ----------
+    exclude_sc : set[str] | None
+        예: mh_body_edit_mode._collect_sc_info().keys() 로 얻은 body 쪽
+        skinCluster 이름 집합을 넘기면, head 전용 탐색에서 그 skinCluster 들은
+        제외됩니다 (이미 다른 domain 워크플로우가 처리하므로 중복 unbind/rebind 방지).
+    """
+    joint_names = set(_read_dna_joint_names(dna_path))
+    if namespace:
+        ns = namespace.rstrip(":") + ":"
+        joint_names = {ns + n for n in joint_names}
+
+    exclude_sc = set(exclude_sc) if exclude_sc else set()
+
+    info = {}
+    for sc in cmds.ls(type="skinCluster") or []:
+        if ":" in sc:
+            # 다른 네임스페이스(레퍼런스)의 skinCluster 는 대상에서 제외
+            continue
+        if sc in exclude_sc:
+            continue
+        influences = set(cmds.skinCluster(sc, query=True, influence=True) or [])
+        if influences & joint_names:
+            geo = cmds.skinCluster(sc, query=True, geometry=True) or []
+            info[sc] = {
+                "mesh"      : geo[0] if geo else None,
+                "influences": sorted(influences),
+            }
+    return info
+
+
 def _get_sc_influences(sc_name):
     """
     sc 의 matrix 연결에서 influence joint 목록을 반환합니다.
@@ -291,16 +356,29 @@ def _get_sc_influences(sc_name):
 #  1. Enter Edit Mode
 # ══════════════════════════════════════════════════════════════
 
-def enter_edit_mode(rl4_node=DEFAULT_RL4_NODE, force=False):
+def enter_edit_mode(rl4_node=DEFAULT_RL4_NODE, dna_path=None, exclude_sc=None, force=False):
     """
     joint 편집 준비 단계.
 
-    1) body_lod*_mesh_skinCluster 정보 저장 → envelope = 0  (mesh shape 고정)
+    1) skinCluster 정보 저장 → envelope = 0  (mesh shape 고정)
     2) rl4 output connections 전체 저장 → disconnect
     3) secondary joints parent 저장 → world unparent
 
     Parameters
     ----------
+    rl4_node : str
+        예: "body_rl4Embedded" 또는 "head_rl4Embedded".
+    dna_path : str | None
+        None(기본값) — body 전용 고정 패턴(_collect_sc_info: body_lod{0..3}_mesh)으로
+        skinCluster 를 수집합니다 (기존 동작과 동일, body 에서 그대로 사용).
+        경로 지정 시 — 해당 DNA 의 joint 목록을 influence 로 갖는 모든 skinCluster 를
+        씬에서 동적으로 찾습니다 (_discover_related_skinclusters). head.dna 처럼
+        mesh/LOD 이름이 고정 패턴이 아닌 domain 에 사용하세요.
+    exclude_sc : set[str] | None
+        dna_path 지정 시에만 사용. body.dna 와 head.dna 는 clavicle/upperarm 등
+        경계 조인트를 공유하므로, head 용으로 호출할 때 body 쪽에서 이미 처리한
+        skinCluster 이름 집합(예: mhem._collect_sc_info().keys())을 넘기면
+        중복으로 잡히지 않습니다.
     force : bool
         True 이면 active 상태 체크를 무시하고 강제 실행합니다.
         이전 실행이 중단되어 _state 가 꼬인 경우에 사용하세요.
@@ -315,7 +393,10 @@ def enter_edit_mode(rl4_node=DEFAULT_RL4_NODE, force=False):
     _state["rl4_node"] = rl4_node
 
     # ── 1) skinCluster envelope = 0 ─────────────────────────────
-    sc_info = _collect_sc_info()
+    sc_info = (
+        _discover_related_skinclusters(dna_path, exclude_sc=exclude_sc)
+        if dna_path else _collect_sc_info()
+    )
     _state["sc_info"] = sc_info
 
     cmds.undoInfo(openChunk=True, chunkName="MHEdit_envelopeOff")

@@ -24,10 +24,19 @@ def _version(block: dict[str, Any]) -> str:
     return str(block.get("metadata", {}).get("version", "v001"))
 
 
+def _fill(result: dict[str, Any], key: str, value: str) -> None:
+    """Set a resolved path only when the field is missing OR falsy (None/"") —
+    unlike ``setdefault``, an explicit null (as ``as_dict`` emits) is filled,
+    while a real explicit path is kept."""
+
+    if not result.get(key):
+        result[key] = value
+
+
 def resolve_asset_paths(
     data: dict[str, Any], rules: PipelinePathRules
 ) -> dict[str, Any]:
-    """Fill an asset block's missing path fields from ``rules``."""
+    """Fill an asset block's missing/empty path fields from ``rules``."""
 
     show = str(data["show"])
     asset = str(data["asset"])
@@ -35,17 +44,15 @@ def resolve_asset_paths(
     ctx = dict(show=show, asset=asset, version=version)
 
     result = dict(data)
-    result.setdefault("character_fbx_dir", rules.resolve("character_fbx_dir", **ctx))
-    result.setdefault("hair_guide_dir", rules.resolve("hair_guide_dir", **ctx))
-    result.setdefault("asset_work", rules.resolve("asset_work", **ctx))
-    result.setdefault("proxy_cache_path", rules.resolve("asset_proxy_cache", **ctx))
-    result.setdefault("hair_cache_path", rules.resolve("asset_hair_cache", **ctx))
-    result.setdefault("collision_cache_path", rules.resolve("asset_collision_cache", **ctx))
-    result.setdefault("corrective_cache_path", rules.resolve("asset_corrective_cache", **ctx))
-    result.setdefault("skel_cache_path", rules.resolve("asset_skel_cache", **ctx))
-    result.setdefault(
-        "constraint_cache_path", rules.resolve("asset_constraint_cache", **ctx)
-    )
+    _fill(result, "character_fbx_dir", rules.resolve("character_fbx_dir", **ctx))
+    _fill(result, "hair_guide_dir", rules.resolve("hair_guide_dir", **ctx))
+    _fill(result, "asset_work", rules.resolve("asset_work", **ctx))
+    _fill(result, "proxy_cache_path", rules.resolve("asset_proxy_cache", **ctx))
+    _fill(result, "hair_cache_path", rules.resolve("asset_hair_cache", **ctx))
+    _fill(result, "collision_cache_path", rules.resolve("asset_collision_cache", **ctx))
+    _fill(result, "corrective_cache_path", rules.resolve("asset_corrective_cache", **ctx))
+    _fill(result, "skel_cache_path", rules.resolve("asset_skel_cache", **ctx))
+    _fill(result, "constraint_cache_path", rules.resolve("asset_constraint_cache", **ctx))
     return result
 
 
@@ -62,20 +69,20 @@ def resolve_shot_paths(
     ctx = dict(show=show, sequence=sequence, shot=shot, asset=asset, version=version)
 
     result = dict(data)
-    result.setdefault("shot_work", rules.resolve("shot_work", **ctx))
-    result.setdefault("shot_anim_dir", rules.resolve("shot_anim_dir", **ctx))
-    result.setdefault("sim_cache_path", rules.resolve("shot_sim_cache", **ctx))
-    result.setdefault("cloth_abc_path", rules.resolve("shot_cloth_abc", **ctx))
-    result.setdefault("hair_abc_path", rules.resolve("shot_hair_abc", **ctx))
+    _fill(result, "shot_work", rules.resolve("shot_work", **ctx))
+    _fill(result, "shot_anim_dir", rules.resolve("shot_anim_dir", **ctx))
+    _fill(result, "sim_cache_path", rules.resolve("shot_sim_cache", **ctx))
+    _fill(result, "cloth_abc_path", rules.resolve("shot_cloth_abc", **ctx))
+    _fill(result, "hair_abc_path", rules.resolve("shot_hair_abc", **ctx))
     # The Asset->Shot handoff: shot reads the asset's static rest caches.
     # Uses the asset's own version if provided, else the shot's version.
     actx = dict(show=show, asset=asset, version=version)
-    result.setdefault("asset_proxy_cache", rules.resolve("asset_proxy_cache", **actx))
-    result.setdefault("asset_hair_cache", rules.resolve("asset_hair_cache", **actx))
-    result.setdefault("asset_collision_cache", rules.resolve("asset_collision_cache", **actx))
-    result.setdefault("asset_corrective_cache", rules.resolve("asset_corrective_cache", **actx))
-    result.setdefault("asset_skel_cache", rules.resolve("asset_skel_cache", **actx))
-    result.setdefault("asset_constraint_cache", rules.resolve("asset_constraint_cache", **actx))
+    _fill(result, "asset_proxy_cache", rules.resolve("asset_proxy_cache", **actx))
+    _fill(result, "asset_hair_cache", rules.resolve("asset_hair_cache", **actx))
+    _fill(result, "asset_collision_cache", rules.resolve("asset_collision_cache", **actx))
+    _fill(result, "asset_corrective_cache", rules.resolve("asset_corrective_cache", **actx))
+    _fill(result, "asset_skel_cache", rules.resolve("asset_skel_cache", **actx))
+    _fill(result, "asset_constraint_cache", rules.resolve("asset_constraint_cache", **actx))
     return result
 
 
