@@ -1,7 +1,8 @@
 """
 Rig Tool Hub
 ============
-AS Fit Tool + MH Fit Tool + Rig Develop Tool 통합 탭 런처.
+AS Fit Tool + MH Fit Tool + Rig Develop Tool + RL4 Namespace Retarget +
+MH Match Reference 통합 탭 런처.
 
 Usage:
     import importlib
@@ -28,10 +29,14 @@ def show():
     import mh_fit_tool
     import rig_develop_tool
     import ctrl_creator_tool
+    import rl4_namespace_retarget_tool
+    import mh_body_match_reference_tool
     importlib.reload(ctrl_creator_tool)
     importlib.reload(as_fit_tool)
     importlib.reload(mh_fit_tool)
     importlib.reload(rig_develop_tool)
+    importlib.reload(rl4_namespace_retarget_tool)
+    importlib.reload(mh_body_match_reference_tool)
 
     if cmds.window(_WIN_ID, exists=True):
         cmds.deleteUI(_WIN_ID)
@@ -43,11 +48,15 @@ def show():
     fit_scroll    = as_fit_tool.build_tab_ui(tabs)
     mh_scroll     = mh_fit_tool.build_tab_ui(tabs)
     dev_scroll    = rig_develop_tool._UI().build_tab_ui(tabs)
+    rl4_scroll    = rl4_namespace_retarget_tool.RL4RetargetTool().build_tab_ui(tabs)
+    mhmr_scroll   = mh_body_match_reference_tool.MHMatchReferenceTool().build_tab_ui(tabs)
 
     cmds.tabLayout(tabs, edit=True, tabLabel=[
-        (fit_scroll, "AS Fit"),
-        (mh_scroll,  "MH Fit"),
-        (dev_scroll, "Rig Develop"),
+        (fit_scroll,  "AS Fit"),
+        (mh_scroll,   "MH Fit"),
+        (dev_scroll,  "Rig Develop"),
+        (rl4_scroll,  "RL4 Retarget"),
+        (mhmr_scroll, "MH Match Ref"),
     ])
 
     cmds.showWindow(win)

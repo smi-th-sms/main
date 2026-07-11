@@ -36,7 +36,10 @@ body_rl4Embedded / head_rl4Embedded 등 embeddedNodeRL4 노드에 연결된
     )
 """
 
+import math
+
 import maya.cmds as cmds
+import maya.api.OpenMaya as om2
 
 
 def _short_name(node):
@@ -363,3 +366,404 @@ def retarget_multiple(rl4_nodes, target_namespace, dry_run=True, force=False):
             node, target_namespace, dry_run=dry_run, force=force
         )
     return results
+
+
+# ══════════════════════════════════════════════════════════════
+#  Transform 검증  (offsetParentMatrix 를 포함해 world 기준으로 비교)
+# ══════════════════════════════════════════════════════════════
+
+def _joint_nodes_from_links(rl4_node):
+    """rl4_node 의 input/output joint 연결에 관련된 모든 joint 노드 이름 집합."""
+    links = collect_joint_links(rl4_node)
+    nodes = set()
+    for feed_plug, _ in links["input"]:
+        nodes.add(feed_plug.split(".")[0])
+    for _, dst_plug in links["output"]:
+        nodes.add(dst_plug.split(".")[0])
+    return nodes
+
+
+def _world_quaternion(node):
+    m = om2.MMatrix(cmds.getAttr(node + ".worldMatrix[0]"))
+    return om2.MTransformationMatrix(m).rotation(asQuaternion=True)
+
+
+def _angle_between_quaternions(q1, q2):
+    dot = abs(q1.x * q2.x + q1.y * q2.y + q1.z * q2.z + q1.w * q2.w)
+    dot = max(-1.0, min(1.0, dot))
+    return math.degrees(2.0 * math.acos(dot))
+
+
+def verify_transform_match(rl4_node, target_namespace, tolerance=0.01, angle_tolerance=0.1):
+    """
+    rl4_node 에 연결된 조인트들과 target_namespace 의 동일 이름 조인트가
+    world 상에서 실질적으로 같은 위치/방향에 있는지 검증합니다.
+
+    worldMatrix 를 그대로 비교하므로 offsetParentMatrix 로 표현된 transform 도
+    자동으로 올바르게 반영됩니다 — channel box 의 translate/rotate 값만 비교하면
+    offsetParentMatrix 를 쓰는 조인트(예: 일부 게임 리그)에서 오탐(false positive)이
+    발생하므로 world 비교가 필수입니다.
+
+    Parameters
+    ----------
+    rl4_node        : str    예: "body_rl4Embedded"
+    target_namespace: str    예: "Floyd:" (콜론 생략 가능)
+    tolerance       : float  위치 허용 오차 (cm)
+    angle_tolerance : float  방향 허용 오차 (degree)
+
+    Returns
+    -------
+    dict: {"checked": int,
+           "matched"       : [(short_name, pos_diff, angle_diff), ...],
+           "mismatched"    : [(short_name, pos_diff, angle_diff), ...],
+           "missing_target": [short_name, ...]}
+    """
+    ns = _normalize_namespace(target_namespace)
+    current_nodes = sorted(_joint_nodes_from_links(rl4_node))
+
+    matched, mismatched, missing = [], [], []
+    for node in current_nodes:
+        short  = _short_name(node)
+        target = ns + short
+        if not cmds.objExists(target):
+            missing.append(short)
+            continue
+
+        p1 = cmds.xform(node,   query=True, worldSpace=True, translation=True)
+        p2 = cmds.xform(target, query=True, worldSpace=True, translation=True)
+        pos_diff = sum((a - b) ** 2 for a, b in zip(p1, p2)) ** 0.5
+        angle_diff = _angle_between_quaternions(_world_quaternion(node), _world_quaternion(target))
+
+        entry = (short, pos_diff, angle_diff)
+        if pos_diff <= tolerance and angle_diff <= angle_tolerance:
+            matched.append(entry)
+        else:
+            mismatched.append(entry)
+
+    print("[RL4Retarget] verify_transform_match: checked={} matched={} mismatched={} missing={}".format(
+        len(current_nodes), len(matched), len(mismatched), len(missing)))
+    if mismatched:
+        print("[RL4Retarget]   MISMATCHED ({}):".format(len(mismatched)))
+        for short, pos_diff, angle_diff in mismatched[:20]:
+            print("     - {}  pos_diff={:.3f}  angle_diff={:.3f}".format(short, pos_diff, angle_diff))
+    if missing:
+        print("[RL4Retarget]   target 없음 ({}): {}".format(len(missing), ", ".join(missing[:20])))
+
+    return {
+        "checked": len(current_nodes),
+        "matched": matched,
+        "mismatched": mismatched,
+        "missing_target": missing,
+    }
+
+
+# ══════════════════════════════════════════════════════════════
+#  offsetParentMatrix Bake  (숨겨진 transform 을 channel box 로 노출)
+# ══════════════════════════════════════════════════════════════
+
+_IDENTITY_MATRIX = [
+    1.0, 0.0, 0.0, 0.0,
+    0.0, 1.0, 0.0, 0.0,
+    0.0, 0.0, 1.0, 0.0,
+    0.0, 0.0, 0.0, 1.0,
+]
+
+
+def _is_identity_matrix(values, tolerance=1e-6):
+    return all(abs(a - b) <= tolerance for a, b in zip(values, _IDENTITY_MATRIX))
+
+
+def _is_zeroed_transform(node, tolerance=1e-6):
+    """translate=(0,0,0), rotate=(0,0,0), scale=(1,1,1) 인지 (channel box 상 '제로화' 상태)."""
+    t = cmds.getAttr(node + ".translate")[0]
+    r = cmds.getAttr(node + ".rotate")[0]
+    s = cmds.getAttr(node + ".scale")[0]
+    return (
+        all(abs(v) <= tolerance for v in t)
+        and all(abs(v) <= tolerance for v in r)
+        and all(abs(v - 1.0) <= tolerance for v in s)
+    )
+
+
+def _locked_or_connected(node, attrs):
+    """attrs 중 하나라도 locked 이거나 incoming connection 이 있으면 True."""
+    for attr in attrs:
+        full = node + attr
+        if cmds.getAttr(full, lock=True):
+            return True
+        if cmds.listConnections(full, source=True, destination=False):
+            return True
+    return False
+
+
+_CONSTRAINT_TYPES = (
+    "parentConstraint", "pointConstraint", "orientConstraint",
+    "scaleConstraint", "aimConstraint",
+)
+
+_BAKE_ATTRS = (".translate", ".rotate", ".scale", ".offsetParentMatrix")
+
+
+def _is_locked(node, attrs):
+    return any(cmds.getAttr(node + attr, lock=True) for attr in attrs)
+
+
+def _find_constraint_drive_connections(node, attrs=_BAKE_ATTRS):
+    """attrs 를 구동하는 constraint 노드의 출력 연결을 (src_plug, dst_plug) 목록으로 반환."""
+    result = []
+    for attr in attrs:
+        full = node + attr
+        srcs = cmds.listConnections(full, source=True, destination=False, plugs=True) or []
+        for src in srcs:
+            src_node = src.split(".")[0]
+            if cmds.nodeType(src_node) in _CONSTRAINT_TYPES:
+                result.append((src, full))
+    return result
+
+
+def _has_non_constraint_connection(node, attrs=_BAKE_ATTRS):
+    """attrs 에 constraint 가 아닌 다른 노드로부터의 incoming connection 이 있으면 True."""
+    for attr in attrs:
+        full = node + attr
+        srcs = cmds.listConnections(full, source=True, destination=False, plugs=True) or []
+        for src in srcs:
+            src_node = src.split(".")[0]
+            if cmds.nodeType(src_node) not in _CONSTRAINT_TYPES:
+                return True
+    return False
+
+
+def _disconnect_all(connections):
+    for src, dst in connections:
+        try:
+            if cmds.isConnected(src, dst):
+                cmds.disconnectAttr(src, dst)
+        except Exception as e:
+            print("[RL4Retarget] WARN disconnect {} -> {}: {}".format(src, dst, e))
+
+
+def _reconnect_all(connections):
+    for src, dst in connections:
+        try:
+            if not cmds.isConnected(src, dst):
+                cmds.connectAttr(src, dst, force=True)
+        except Exception as e:
+            print("[RL4Retarget] WARN reconnect {} -> {}: {}".format(src, dst, e))
+
+
+def _values_close(a, b, tolerance):
+    return all(abs(x - y) <= tolerance for x, y in zip(a, b))
+
+
+def _bake_one(node, force, tolerance, handle_constraints=True):
+    """
+    단일 node 에 offsetParentMatrix bake 를 1회 시도하고 즉시 재조회하여
+    실제로 반영됐는지 검증합니다 (Maya 가 대량의 연속 setAttr 상황에서 간헐적으로
+    쓰기를 누락하는 경우가 관찰되어, "설정했다"와 "실제로 반영됐다"를 분리 확인).
+
+    handle_constraints=True 이면, translate/rotate/scale/offsetParentMatrix 를
+    구동하는 constraint 가 있을 경우 잠시 disconnect 하고 setAttr 한 뒤 다시
+    connect 합니다. 단, constraint 는 자신의 target 을 기준으로 값을 다시
+    계산해서 밀어넣으므로, 재연결 직후 값이 baked 값과 달라지면(=constraint 가
+    되돌려놓으면) "reverted_by_constraint" 로 별도 보고합니다 — 이 경우 해당
+    채널은 baked 라고 볼 수 없습니다.
+
+    Returns
+    -------
+    ("baked", None) | ("verify_failed", detail) | ("reverted_by_constraint", detail)
+    | ("error", message)
+    """
+    opm_values = cmds.getAttr(node + ".offsetParentMatrix")
+
+    if force:
+        full = om2.MMatrix(cmds.getAttr(node + ".matrix")) * om2.MMatrix(opm_values)
+    else:
+        full = om2.MMatrix(opm_values)
+
+    tm = om2.MTransformationMatrix(full)
+    t  = tm.translation(om2.MSpace.kTransform)
+    ro = cmds.getAttr(node + ".rotateOrder")
+    rot = tm.rotation(asQuaternion=False)
+    rot.reorderIt(ro)
+    scale = tm.scale(om2.MSpace.kTransform)
+
+    target_translate = (t.x, t.y, t.z)
+    target_rotate    = (math.degrees(rot.x), math.degrees(rot.y), math.degrees(rot.z))
+    target_scale     = tuple(scale)
+
+    constraint_conns = _find_constraint_drive_connections(node) if handle_constraints else []
+
+    try:
+        if constraint_conns:
+            _disconnect_all(constraint_conns)
+        cmds.setAttr(node + ".offsetParentMatrix", *_IDENTITY_MATRIX, type="matrix")
+        cmds.setAttr(node + ".translate", *target_translate, type="double3")
+        cmds.setAttr(node + ".rotate", *target_rotate, type="double3")
+        cmds.setAttr(node + ".scale", *target_scale, type="double3")
+    except Exception as e:
+        if constraint_conns:
+            _reconnect_all(constraint_conns)
+        return ("error", str(e))
+
+    ok_before_reconnect = (
+        _is_identity_matrix(cmds.getAttr(node + ".offsetParentMatrix"), 1e-5)
+        and _values_close(cmds.getAttr(node + ".translate")[0], target_translate, 1e-4)
+        and _values_close(cmds.getAttr(node + ".rotate")[0], target_rotate, 1e-3)
+        and _values_close(cmds.getAttr(node + ".scale")[0], target_scale, 1e-4)
+    )
+
+    if constraint_conns:
+        _reconnect_all(constraint_conns)
+        ok_after_reconnect = (
+            _values_close(cmds.getAttr(node + ".translate")[0], target_translate, 1e-4)
+            and _values_close(cmds.getAttr(node + ".rotate")[0], target_rotate, 1e-3)
+            and _values_close(cmds.getAttr(node + ".scale")[0], target_scale, 1e-4)
+        )
+        if not ok_after_reconnect:
+            return (
+                "reverted_by_constraint",
+                "constraint 재연결 후 값이 되돌아감 (constraint 가 자신의 target 기준으로 "
+                "채널을 다시 구동함 — 이 채널은 disconnect 상태를 유지해야 baked 값이 보존됨)",
+            )
+
+    if not ok_before_reconnect:
+        return ("verify_failed", "setAttr 후 재조회 값이 기대값과 다름")
+    return ("baked", None)
+
+
+def bake_offset_parent_matrix(nodes, tolerance=1e-6, force=False, max_retries=2, handle_constraints=True):
+    """
+    offsetParentMatrix 에 transform 값이 들어있는데 channel box(translate/rotate/scale)가
+    제로화(identity)되어 있는 노드에 대해:
+
+        1) offsetParentMatrix 를 translate / rotate(자신의 rotateOrder 기준) / scale 로 분해
+        2) (constraint 로 구동되는 채널이 있으면) constraint 출력을 잠시 disconnect
+        3) offsetParentMatrix 를 identity 로 초기화, 분해한 값을 채널에 설정
+        4) constraint 를 다시 connect
+        5) 즉시 재조회하여 실제로 반영됐는지 검증 — 특히 constraint 가 있던 채널은
+           재연결 후 값이 유지되는지 별도로 확인 (검증 실패 시 최대 max_retries 회 재시도)
+
+    world 위치·방향은 그대로 유지되면서, offsetParentMatrix 안에 숨어 있던 값이
+    channel box 에 그대로 드러나게 됩니다 (이후 다른 스켈레톤과 채널 값만으로
+    비교/매칭하기 쉬워짐).
+
+    주의: constraint 가 구동하는 채널은, constraint 가 자신의 target 을 기준으로
+    값을 다시 계산해 밀어넣기 때문에 재연결 직후 baked 값이 유실될 수 있습니다.
+    이 경우 "reverted_by_constraint" 로 별도 보고되며 "baked" 에 포함되지 않습니다
+    (재시도해도 결과가 같으므로 재시도하지 않습니다 — constraint 를 영구적으로
+    끄거나 offset 을 갱신해야 해결됩니다).
+
+    Parameters
+    ----------
+    nodes              : list[str]
+    tolerance          : float  identity / zero 판정 허용 오차
+    force              : bool   False(기본값) — channel box 가 이미 0/identity 가 아니면
+                                 건드리지 않고 skipped_not_zeroed 에 기록합니다 (안전).
+                                 True  — 현재 channel box 값(translate/rotate/scale)까지
+                                 포함한 .matrix 를 offsetParentMatrix 와 합성하여 baked
+                                 값을 만듭니다 (constraint 로 구동되는 채널처럼 이미
+                                 값이 있는 노드도 처리하려면 보통 True 가 필요합니다).
+    max_retries        : int   setAttr 후 재조회 검증이 실패했을 때 재시도할 횟수.
+    handle_constraints : bool  True(기본값) — constraint 가 구동하는 채널을 disconnect
+                                 → set → reconnect 로 처리. False 면 constraint 연결이
+                                 있는 노드는 skipped_locked 로 건너뜁니다.
+
+    Returns
+    -------
+    dict: {"baked": [...], "skipped_identity": [...], "skipped_not_zeroed": [...],
+           "skipped_locked": [...], "reverted_by_constraint": [(node, reason), ...],
+           "failed": [(node, reason), ...]}
+    """
+    baked                   = []
+    skipped_identity        = []
+    skipped_not_zeroed      = []
+    skipped_locked          = []
+    reverted_by_constraint  = []
+    failed                  = []
+
+    cmds.undoInfo(openChunk=True, chunkName="BakeOffsetParentMatrix")
+    try:
+        for node in nodes:
+            if not cmds.objExists(node):
+                continue
+
+            opm_values = cmds.getAttr(node + ".offsetParentMatrix")
+            if _is_identity_matrix(opm_values, tolerance):
+                skipped_identity.append(node)
+                continue
+
+            if not force and not _is_zeroed_transform(node, tolerance):
+                skipped_not_zeroed.append(node)
+                continue
+
+            if _is_locked(node, _BAKE_ATTRS):
+                skipped_locked.append(node)
+                continue
+
+            if _has_non_constraint_connection(node, _BAKE_ATTRS):
+                skipped_locked.append(node)
+                continue
+
+            if not handle_constraints and _find_constraint_drive_connections(node):
+                skipped_locked.append(node)
+                continue
+
+            status, detail = _bake_one(node, force, tolerance, handle_constraints=handle_constraints)
+            attempt = 0
+            while status == "verify_failed" and attempt < max_retries:
+                attempt += 1
+                status, detail = _bake_one(node, force, tolerance, handle_constraints=handle_constraints)
+
+            if status == "baked":
+                baked.append(node)
+            elif status == "reverted_by_constraint":
+                reverted_by_constraint.append((node, detail))
+            else:
+                failed.append((node, detail))
+    finally:
+        cmds.undoInfo(closeChunk=True)
+
+    print("[RL4Retarget] bake_offset_parent_matrix: baked={} skipped_identity={} skipped_not_zeroed={} "
+          "skipped_locked={} reverted_by_constraint={} failed={}".format(
+              len(baked), len(skipped_identity), len(skipped_not_zeroed), len(skipped_locked),
+              len(reverted_by_constraint), len(failed)))
+    if skipped_not_zeroed:
+        print("[RL4Retarget]   channel box 가 이미 0/identity 가 아니어서 건너뜀 ({}, force=True 로 강행 가능):".format(
+            len(skipped_not_zeroed)))
+        for n in skipped_not_zeroed[:20]:
+            print("     -", n)
+    if skipped_locked:
+        print("[RL4Retarget]   locked/connected(constraint 아님) 라서 건너뜀 ({}):".format(len(skipped_locked)))
+        for n in skipped_locked[:20]:
+            print("     -", n)
+    if reverted_by_constraint:
+        print("[RL4Retarget]   REVERTED BY CONSTRAINT - 재연결 후 값이 되돌아감 ({}):".format(
+            len(reverted_by_constraint)))
+        for n, reason in reverted_by_constraint[:20]:
+            print("     - {}: {}".format(n, reason))
+    if failed:
+        print("[RL4Retarget]   FAILED - setAttr 이 반영되지 않음 ({}):".format(len(failed)))
+        for n, reason in failed[:20]:
+            print("     - {}: {}".format(n, reason))
+
+    return {
+        "baked": baked,
+        "skipped_identity": skipped_identity,
+        "skipped_not_zeroed": skipped_not_zeroed,
+        "skipped_locked": skipped_locked,
+        "reverted_by_constraint": reverted_by_constraint,
+        "failed": failed,
+    }
+
+
+def bake_offset_parent_matrix_for_namespace(rl4_node, target_namespace, tolerance=1e-6, force=False):
+    """
+    rl4_node 에 연결된 조인트들의 target_namespace 대응 조인트들을 대상으로
+    bake_offset_parent_matrix() 를 실행하는 편의 함수.
+    """
+    ns = _normalize_namespace(target_namespace)
+    current_nodes = _joint_nodes_from_links(rl4_node)
+    target_nodes = sorted({
+        ns + _short_name(n) for n in current_nodes if cmds.objExists(ns + _short_name(n))
+    })
+    return bake_offset_parent_matrix(target_nodes, tolerance=tolerance, force=force)

@@ -34,6 +34,12 @@ _EYE_DRIVER_NODE = "LOC_C_eyeDriver"
 
 _RL4_NODE = "head_rl4Embedded"
 
+# (driver, target) – target 을 driver 위치로 pointConstraint(maintainOffset) 연결
+_EYE_LOOKDIR_POINT_CONSTRAINTS = [
+    ("skeleton1:FACIAL_L_Eye", "L_lookDirStartHandle"),
+    ("skeleton1:FACIAL_R_Eye", "R_lookDirStartHandle"),
+]
+
 
 def _reconnect_matrices():
     for driver, dst_plug in _MATRIX_CONNECTIONS:
@@ -91,10 +97,29 @@ def _enable_rl4_node():
     print("fix_skeleton1: set {} = 0".format(plug))
 
 
+def _rebuild_eye_lookdir_point_constraints():
+    for driver, target in _EYE_LOOKDIR_POINT_CONSTRAINTS:
+        constraint_name = target + "_pointConstraint1"
+        if cmds.objExists(constraint_name):
+            print("fix_skeleton1: skip - " + constraint_name + " already exists")
+            continue
+        if not cmds.objExists(driver) or not cmds.objExists(target):
+            cmds.warning(
+                "fix_skeleton1: skip point constraint - missing {} or {}".format(
+                    driver, target))
+            continue
+
+        cmds.pointConstraint(driver, target,
+                             maintainOffset=True, weight=1,
+                             name=constraint_name)
+        print("fix_skeleton1: created " + constraint_name)
+
+
 def run():
     _reconnect_matrices()
     _rebuild_eye_driver_constraint()
     _enable_rl4_node()
+    _rebuild_eye_lookdir_point_constraints()
     print("fix_skeleton1: done.")
 
 

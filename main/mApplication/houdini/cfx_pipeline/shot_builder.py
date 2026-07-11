@@ -104,6 +104,25 @@ if (i >= 0) {
 #           - (anim_pelvis(f) - anim_start_pelvis) * (1 - position_mult)   [motion]
 # T_pose_start_position=1 lands the start pelvis on the T-pose (character
 # origin); position_mult (per-axis 0..1) keeps that fraction of the root motion.
+# Root ROTATION retention (reconstructs anim_subnet1/attribwrangle10). Detail
+# wrangle: in0 = current aligned skel, in1 = same at the start frame. Stores the
+# euler (deg) of the INVERSE of the current pelvis orientation ("rotate", used to
+# cancel the current rotation) and the START pelvis orientation ("trotate", used
+# to re-apply the start rotation). Two rigposes then freeze the pelvis at the
+# start orientation, and a skeletonblend (weight1 = rotate_mul) blends that
+# frozen pose against the full-rotation pose: rotate_mul=1 full world rotation,
+# 0 holds the start facing.
+ROT_DELTA_VEX = """string pn = "{pelvis}";
+int a = findattribval(0, "point", "name", pn);
+int b = findattribval(1, "point", "name", pn);
+if (a >= 0 && b >= 0) {{
+    matrix3 m = point(0, "transform", a);   // current pelvis orientation
+    matrix3 t = point(1, "transform", b);   // start pelvis orientation
+    setdetailattrib(0, "rotate", degrees(quaterniontoeuler(quaternion(invert(m)), 0)));
+    setdetailattrib(0, "trotate", degrees(quaterniontoeuler(quaternion(t), 0)));
+}}
+"""
+
 ANIM_ALIGN_VEX = """string pn = "{pelvis}";
 float enable = {tpose_start};
 vector mult = set({mx}, {my}, {mz});
@@ -318,6 +337,45 @@ def build_shot_anim(shot: ShotSimConfig, parent: str = "/obj") -> dict[str, Any]
     align.setInput(1, ts_start, 0)
     align.setInput(2, tofs, 0)
 
+    # root ROTATION retention (rotate_mult) — anim_subnet1 attribwrangle10 +
+    # rigpose1/6 + skeletonblend4. Freeze the pelvis at its start orientation,
+    # then blend that against the full-rotation pose by rotate_mult (1 = full
+    # world rotation, 0 = hold the start facing). Rotation lives on `transform`,
+    # untouched by the translation align above, so `align` carries it through.
+    rmul = float(fbx.rotate_mult)
+    rot_ts = _child(geo, "anim_rot_ts", "timeshift")
+    rot_ts.parm("frame").deleteAllKeyframes()
+    rot_ts.parm("frame").set(fs)
+    rot_ts.setInput(0, align, 0)
+    rdelta = _child(geo, "anim_rotdelta", "attribwrangle")
+    rdelta.parm("class").set(0)  # detail
+    rdelta.parm("snippet").set(ROT_DELTA_VEX.format(pelvis=fbx.pelvis_name))
+    rdelta.setInput(0, align, 0)
+    rdelta.setInput(1, rot_ts, 0)
+    rremove = _child(geo, "anim_rot_remove", "kinefx::rigpose")  # cancel current rot
+    rremove.parm("transformations").set(1)  # one pose entry -> group0/r0x appear
+    rremove.parm("group0").set(f"@name={fbx.pelvis_name}")
+    for i, ax in enumerate("xyz"):
+        if rremove.parm("r0" + ax):
+            rremove.parm("r0" + ax).setExpression('detail(0,"rotate",%d)' % i)
+    rremove.setInput(0, rdelta, 0)
+    rstart = _child(geo, "anim_rot_start", "kinefx::rigpose")  # re-apply start rot
+    rstart.parm("transformations").set(1)
+    rstart.parm("group0").set(f"@name={fbx.pelvis_name}")
+    for i, ax in enumerate("xyz"):
+        if rstart.parm("r0" + ax):
+            rstart.parm("r0" + ax).setExpression('detail(0,"trotate",%d)' % i)
+    rstart.setInput(0, rremove, 0)
+    rblend = _child(geo, "anim_rot_blend", "kinefx::skeletonblend::3.0")
+    rblend.parm("nblends").set(2)
+    rblend.parm("weight0").set(0)
+    if rblend.parm("matchattrib"):
+        rblend.parm("matchattrib").set(1)
+    rblend.setInput(0, rstart, 0)   # rotation frozen at start (weight1 = 0)
+    rblend.setInput(1, align, 0)    # full rotation           (weight1 = 1)
+    rblend.parm("weight1").deleteAllKeyframes()
+    rblend.parm("weight1").set(rmul)
+
     # blend the pose between the T-pose and the animation (studio skeletonblend:
     # in0 = T-pose base, in1 = animation, weight1 = amount of ANIM). weight1=1 is
     # full animation, 0 is full T-pose. Static value = 1 - t_pos; when
@@ -330,7 +388,7 @@ def build_shot_anim(shot: ShotSimConfig, parent: str = "/obj") -> dict[str, Any]
     if tblend.parm("matchattrib"):
         tblend.parm("matchattrib").set(1)
     tblend.setInput(0, tofs, 0)      # T-pose base (weight1 = 0)
-    tblend.setInput(1, align, 0)     # animation   (weight1 = 1)
+    tblend.setInput(1, rblend, 0)    # animation (rotate_mult applied) (weight1 = 1)
     anim_amt = 1.0 - tp
     tblend.parm("weight1").deleteAllKeyframes()
     if shot.t_pose_blend and shot.start_duration > 0:
@@ -361,7 +419,7 @@ def build_shot_anim(shot: ShotSimConfig, parent: str = "/obj") -> dict[str, Any]
     anim_skel.setDisplayFlag(True)
     geo.layoutChildren()
     return {"anim_skel": anim_skel.path(), "t_pose_start_position": fbx.t_pose_start_position,
-            "position_mult": list(fbx.position_mult), "t_pos": tp,
+            "position_mult": list(fbx.position_mult), "rotate_mult": rmul, "t_pos": tp,
             "t_pose_blend": shot.t_pose_blend}
 
 

@@ -72,13 +72,16 @@ _FOLLOW_DRIVER_CANDIDATES = {
 }
 _RDT_BUILT_ATTR = "rdt_built"          # 툴이 새로 만든 노드 마킹 (revert 시 구분용)
 
+# Feature 8 – cleanup_root_joint: root 조인트의 원래 parent 기록 (revert 시 복원용)
+_ROOT_ORIG_PARENT_ATTR = "rdtOrigParent"
+
 # Feature 7 – Constraint to Joints: AS→MH 기본 매핑 (MetaHuman 기준)
 _CONSTRAINT_DEFAULT_MAPPING = {
     "Root":          "pelvis",
     "Spine1":        "spine_02",
     "Spine2":        "spine_03",
-    "Chest_M":       "spine_04",
-    "ChestExtra_M":  "spine_05",
+    "Chest":         "spine_04",
+    "ChestExtra":    "spine_05",
     "Neck0":         "neck_01",
     "Neck1":         "neck_02",
     "Head":          "head",
@@ -110,6 +113,10 @@ _CONSTRAINT_DEFAULT_MAPPING = {
     "Ankle":         "foot",
     "Toes":          "ball",
 }
+
+# Feature 7 – 타겟 조인트 TRS lock 상태 마킹 (revert 시 원래 lock 상태로 복원)
+_TRS_ATTRS = ["tx", "ty", "tz", "rx", "ry", "rz", "sx", "sy", "sz"]
+_LOCK_MARKER_ATTR = "rdtLockedTRS"
 
 _COMMON_SIDE_PAIRS = [
     ("_r", "_l"), ("_R", "_L"),
@@ -469,7 +476,13 @@ def _ensure_ik_follow_setup(base):
         cmds.setAttr(attr_plug, 0)
     cmds.setAttr(attr_plug, lock=False, keyable=True)
 
-    # --- parentConstraint 확인/생성 ---
+    # --- parentConstraint 확인/생성 (타겟이 기대(4개)와 다르면 삭제 후 재생성) ---
+    if pc:
+        pc_targets = cmds.parentConstraint(pc, q=True, targetList=True) or []
+        if set(pc_targets) != set(targets):
+            cmds.delete(pc)
+            pc = None
+
     if not pc:
         pc = cmds.parentConstraint(targets, info["offset"], maintainOffset=True)[0]
         weight_aliases = cmds.parentConstraint(pc, q=True, weightAliasList=True) or []
@@ -625,7 +638,9 @@ def build_weapon_offset(namespace="", side="L", size=8.0):
     color = _WEAPON_COLOR_L if side == "L" else _WEAPON_COLOR_R
 
     if not cmds.objExists(fingers):
-        cmds.warning("rig_develop_tool: {} not found.".format(fingers))
+        cmds.warning(
+            "rig_develop_tool: {} not found - skip weapon offset for side {} "
+            "(this rig has no Fingers hand ctrl).".format(fingers, side))
         return None
 
     os_name = side + "_weapon_offset_OS"
@@ -659,12 +674,19 @@ def build_weapon_offset(namespace="", side="L", size=8.0):
 
 
 def build_weapon_offsets(namespace="", size=8.0):
-    """L/R 양쪽 weapon_offset 생성."""
+    """L/R 양쪽 weapon_offset 생성. Fingers_L/R 이 없는 쪽은 스킵."""
     results = []
+    skipped = []
     for side in ("L", "R"):
         c = build_weapon_offset(namespace=namespace, side=side, size=size)
         if c:
             results.append(c)
+        else:
+            skipped.append(side)
+
+    if skipped:
+        print("rig_develop_tool: weapon offset skipped for side(s) {} "
+              "(Fingers_L/R not found).".format(", ".join(skipped)))
     return results
 
 
@@ -1275,7 +1297,17 @@ def constraint_to_joints(ns_as="", ns_mh="",
         if existing_cons:
             cmds.delete(existing_cons)
 
-        for attr in ["tx", "ty", "tz", "rx", "ry", "rz", "sx", "sy", "sz"]:
+        # 원래 lock 되어 있던 채널을 기록해둔다 (최초 1회만 – 이미 마킹돼 있으면
+        # 이전 build 가 unlock 해둔 상태를 원본으로 오인해 덮어쓰지 않도록 스킵)
+        if not cmds.attributeQuery(_LOCK_MARKER_ATTR, node=target, exists=True):
+            locked_now = [a for a in _TRS_ATTRS
+                         if cmds.getAttr(target + "." + a, lock=True)]
+            cmds.addAttr(target, longName=_LOCK_MARKER_ATTR, dataType="string")
+            cmds.setAttr(target + "." + _LOCK_MARKER_ATTR,
+                        ",".join(locked_now), type="string")
+            cmds.setAttr(target + "." + _LOCK_MARKER_ATTR, lock=True)
+
+        for attr in _TRS_ATTRS:
             try:
                 cmds.setAttr(target + "." + attr, lock=False)
             except Exception:
@@ -1354,6 +1386,21 @@ def revert_constraint_to_joints(ns_as="", ns_mh="",
                 pass
             print("rig_develop_tool: constraint 제거 – " + target)
             count += 1
+
+        # 원래 lock 되어 있던 채널 복원 + 마커 삭제
+        if cmds.attributeQuery(_LOCK_MARKER_ATTR, node=target, exists=True):
+            marker_plug = target + "." + _LOCK_MARKER_ATTR
+            locked_attrs = cmds.getAttr(marker_plug) or ""
+            for a in locked_attrs.split(","):
+                a = a.strip()
+                if a:
+                    try:
+                        cmds.setAttr(target + "." + a, lock=True)
+                    except Exception:
+                        pass
+            cmds.setAttr(marker_plug, lock=False)
+            cmds.deleteAttr(marker_plug)
+            print("rig_develop_tool: lock 상태 복원 – " + target)
 
     print("rig_develop_tool: Constraint Revert 완료 ({} 조인트)".format(count))
     return count
@@ -1592,8 +1639,13 @@ def revert_ikspine_handle(namespace=""):
         con = ns + cname
         if cmds.objExists(con):
             for ax in ("X", "Y", "Z"):
-                cmds.setAttr(
-                    con + ".target[0].targetOffsetRotate" + ax, 0)
+                plug = con + ".target[0].targetOffsetRotate" + ax
+                locked = cmds.getAttr(plug, lock=True)
+                if locked:
+                    cmds.setAttr(plug, lock=False)
+                cmds.setAttr(plug, 0)
+                if locked:
+                    cmds.setAttr(plug, lock=True)
             print("rig_develop_tool: revert targetOffsetRotate -> 0 : " + cname)
 
 
@@ -1646,6 +1698,12 @@ def revert_shape_and_controlset(namespace=""):
             else:
                 cmds.delete(sh)
                 print("rig_develop_tool: revert shape (deleted) – " + ctrl_base)
+
+    # CV 회전 원복 (build_shape_and_controlset 이 적용한 방향과 반대로) –
+    # 이 컨트롤러들은 _CTRL_PRESET_MAP 에 없어 위 shape 교체/삭제로 커버되지 않고,
+    # CV 자체가 직접 회전되어 있어 별도로 되돌려야 함.
+    for ctrl_base, axis, degrees in _CV_ROTATE_MAP:
+        _rotate_shape_cvs(ns + ctrl_base, axis, -degrees)
 
 
 def revert_all(namespace=""):
@@ -1832,8 +1890,14 @@ def cleanup_root_joint(namespace=""):
         cmds.warning("rig_develop_tool: 'root' joint not found.")
         return
 
-    # world 로 unparent
-    if cmds.listRelatives(root_jnt, parent=True):
+    # world 로 unparent (원래 parent 기록 – revert 시 복원용, 최초 1회만)
+    cur_parent = (cmds.listRelatives(root_jnt, parent=True, fullPath=False) or [""])[0]
+    if not cmds.attributeQuery(_ROOT_ORIG_PARENT_ATTR, node=root_jnt, exists=True):
+        cmds.addAttr(root_jnt, longName=_ROOT_ORIG_PARENT_ATTR, dataType="string")
+        cmds.setAttr(root_jnt + "." + _ROOT_ORIG_PARENT_ATTR, cur_parent, type="string")
+        cmds.setAttr(root_jnt + "." + _ROOT_ORIG_PARENT_ATTR, lock=True)
+
+    if cur_parent:
         cmds.parent(root_jnt, world=True)
         print("rig_develop_tool: root joint → world")
     else:
@@ -1895,27 +1959,32 @@ def cleanup_create_animation_sets():
     created = []
 
     if not cmds.objExists("Sets"):
-        cmds.sets(name="Sets", empty=True)
+        s = cmds.sets(name="Sets", empty=True)
+        _mark_built(s)
         created.append("Sets")
 
     if not cmds.objExists("AniFBXSet"):
         ani_fbx = cmds.sets(name="AniFBXSet", empty=True)
         cmds.sets(ani_fbx, add="Sets")
+        _mark_built(ani_fbx)
         created.append("AniFBXSet")
 
     if not cmds.objExists("AssetFBX_Set"):
         asset_fbx = cmds.sets(name="AssetFBX_Set", empty=True)
         cmds.sets(asset_fbx, add="Sets")
+        _mark_built(asset_fbx)
         created.append("AssetFBX_Set")
 
     if not cmds.objExists("AniOutSet"):
         ani_out = cmds.sets(name="AniOutSet", empty=True)
         cmds.sets(ani_out, add="AniFBXSet")
+        _mark_built(ani_out)
         created.append("AniOutSet")
 
     if not cmds.objExists("AnimControlSet"):
         anim_ctrl = cmds.sets(name="AnimControlSet", empty=True)
         cmds.sets(anim_ctrl, add="Sets")
+        _mark_built(anim_ctrl)
         created.append("AnimControlSet")
 
     if created:
@@ -1942,9 +2011,12 @@ def cleanup_tag_controllers(namespace=""):
             continue
         try:
             if cmds.controller(member, q=True, isController=True):
-                continue  # 이미 태깅됨
-            cmds.controller(member)
+                continue  # 이미 태깅됨 (우리가 만든 게 아닐 수 있으므로 건드리지 않음)
+            new_tags = cmds.controller(member) or []
             tagged.append(member)
+            for tag in new_tags:
+                if cmds.objExists(tag):
+                    _mark_built(tag)
         except Exception as e:
             cmds.warning("rig_develop_tool: Tag As Controller 실패 – {}: {}".format(
                 member, str(e)))
@@ -1956,7 +2028,10 @@ def cleanup_tag_controllers(namespace=""):
 
 
 def revert_cleanup_tag_controllers(namespace=""):
-    """cleanup_tag_controllers 원상 복구 – Controller Tag 노드 삭제."""
+    """
+    cleanup_tag_controllers 원상 복구 – 이 툴이 새로 태깅한(rdt_built 마킹된)
+    Controller Tag 노드만 삭제. AS 등이 이미 태깅해둔 것은 건드리지 않음.
+    """
     ns = _ns_prefix(namespace)
     set_name = ns + _CONTROL_SET_NAME
     if not cmds.objExists(set_name):
@@ -1971,6 +2046,8 @@ def revert_cleanup_tag_controllers(namespace=""):
         tag_nodes = cmds.listConnections(
             member + ".message", type="controller") or []
         for tag in tag_nodes:
+            if not _is_tool_built(tag):
+                continue
             try:
                 cmds.delete(tag)
                 removed += 1
@@ -2205,6 +2282,21 @@ def revert_cleanup_root_joint(namespace=""):
         cmds.warning("rig_develop_tool: 'root' joint not found.")
         return
 
+    # 원래 parent 복원 (Main 유무와 무관하게 항상 처리)
+    if cmds.attributeQuery(_ROOT_ORIG_PARENT_ATTR, node=root_jnt, exists=True):
+        orig_parent = cmds.getAttr(root_jnt + "." + _ROOT_ORIG_PARENT_ATTR) or ""
+        cmds.setAttr(root_jnt + "." + _ROOT_ORIG_PARENT_ATTR, lock=False)
+        cmds.deleteAttr(root_jnt + "." + _ROOT_ORIG_PARENT_ATTR)
+        if orig_parent and cmds.objExists(orig_parent):
+            cmds.parent(root_jnt, orig_parent)
+            print("rig_develop_tool: root joint → {}".format(orig_parent))
+        elif not orig_parent:
+            print("rig_develop_tool: root joint 원래 world level 이었음 – 유지")
+        else:
+            cmds.warning(
+                "rig_develop_tool: 원래 parent '{}' 를 찾을 수 없어 world 유지".format(
+                    orig_parent))
+
     main_ctrl = ns + "Main"
     if not cmds.objExists(main_ctrl):
         cmds.warning("rig_develop_tool: 'Main' controller not found.")
@@ -2234,29 +2326,20 @@ def revert_cleanup_animation_sets():
     """
     cleanup_create_animation_sets 원상 복구.
 
-    - AniOutSet / AnimControlSet / AssetFBX_Set / AniFBXSet 은 삭제
-    - Sets 는 AdvancedSkeleton 빌드 시 생성되는 경우가 있으므로
-      AllSet 이 존재하면 AS 원본으로 간주하여 삭제하지 않고 유지
+    이 툴이 새로 만든(rdt_built 마킹된) Set 만 삭제한다. 동일 이름의 Set 이
+    이 툴 실행 전부터 존재했다면(AS 원본 등) 마킹이 없으므로 건드리지 않는다.
     """
-    # 우리가 추가한 자식 Sets 먼저 삭제
-    for set_name in ("AniOutSet", "AnimControlSet", "AssetFBX_Set", "AniFBXSet"):
-        if cmds.objExists(set_name):
-            try:
-                cmds.delete(set_name)
-                print("rig_develop_tool: {} 삭제".format(set_name))
-            except Exception as e:
-                cmds.warning("rig_develop_tool: {} 삭제 실패 – {}".format(set_name, str(e)))
-
-    # Sets: AllSet 이 존재하면 AS 원본이므로 유지
-    if cmds.objExists("Sets"):
-        if cmds.objExists("AllSet"):
-            print("rig_develop_tool: AllSet 감지 – Sets 는 AdvancedSkeleton 원본이므로 유지")
-        else:
-            try:
-                cmds.delete("Sets")
-                print("rig_develop_tool: Sets 삭제")
-            except Exception as e:
-                cmds.warning("rig_develop_tool: Sets 삭제 실패 – " + str(e))
+    for set_name in ("AniOutSet", "AnimControlSet", "AssetFBX_Set", "AniFBXSet", "Sets"):
+        if not cmds.objExists(set_name):
+            continue
+        if not _is_tool_built(set_name):
+            print("rig_develop_tool: {} 는 이 툴이 만든 게 아니므로 유지".format(set_name))
+            continue
+        try:
+            cmds.delete(set_name)
+            print("rig_develop_tool: {} 삭제".format(set_name))
+        except Exception as e:
+            cmds.warning("rig_develop_tool: {} 삭제 실패 – {}".format(set_name, str(e)))
 
     print("rig_develop_tool: animation sets revert 완료")
 
@@ -2652,11 +2735,13 @@ class _UI(object):
                         "   body_grp/head_grp → geo_grp\n"
                         "   Group → rig_grp\n"
                         "   Ch Name outliner 색상 노란색 설정\n"
-                        "④ Lights 그룹 제거\n"
+                        "④ Lights 그룹 제거  (비가역 – Revert로 복구되지 않음)\n"
                         "⑤ Animation Sets 계층 생성\n"
                         "⑥ ControlSet 멤버 전체 Tag As Controller 등록\n\n"
                         "Revert : 구조를 빌드 이전 상태로 복구합니다.\n"
-                        "         Controller Tag 노드도 함께 제거됩니다."))
+                        "         (①③⑤⑥ 원복 / ②는 재생성 / ④ Lights는 복구 불가)\n"
+                        "         이 툴이 직접 만든 Tag/Set/조인트 부모 이동만\n"
+                        "         원복하며, 기존에 있던 것은 건드리지 않습니다."))
         cmds.setParent("..")
 
         cmds.setParent("..")  # columnLayout
