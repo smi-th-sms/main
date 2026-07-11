@@ -560,8 +560,53 @@ def _build_null_bind_joints(name, nulls):
     return bind_jnts
 
 
-def build_tentacle_rig(mesh='pSphere1', name='tentacle', axis='y', num_ctrls=7, num_ik_ctrls=2, num_nulls=13):
-    """촉수 오토리그 전체 빌드.
+def build_tentacle_base_curve(mesh='pSphere1', name='tentacle', axis='y', num_nulls=13):
+    """1단계: base_CRV까지만 생성한다.
+
+    direction(축)과 CV 위치를 씬에서 직접 검토(필요하면 CV를 손으로 조정)한
+    뒤, build_tentacle_rig_continue()로 이어서 나머지 파이프라인을 빌드한다.
+    다음 단계에 필요한 mesh/axis/num_nulls는 rig_GRP에 attribute로 저장해
+    두어서, continue 단계는 이 값들을 몰라도(같은 name만 알면) 이어서
+    실행할 수 있다.
+
+    Arguments:
+        mesh (str): 촉수 형상 스탠드인
+        name (str): 리그 네이밍 프리픽스
+        axis (str): base curve가 오브젝트 중심을 지나며 뻗어나갈 축 ('x'/'y'/'z').
+            기본값 'y'. None을 주면 bounding box에서 가장 긴 축을 자동 감지.
+        num_nulls (int): base curve 위 motionPath null(=base_CRV CV) 개수
+
+    Returns:
+        dict: base_curve, rig_grp, axis 등
+    """
+    if cmds.objExists('{}_rig_GRP'.format(name)):
+        cmds.delete('{}_rig_GRP'.format(name))
+
+    base, tip, axis = _get_axis_endpoints(mesh, axis)
+    g = _build_groups(name)
+    base_crv, base_shape = _build_base_curve(name, mesh, axis, base, tip, num_nulls, g['crv'])
+
+    cmds.addAttr(g['rig'], ln='sourceMesh', dt='string')
+    cmds.setAttr(g['rig']+'.sourceMesh', mesh, type='string')
+    cmds.addAttr(g['rig'], ln='rigAxis', dt='string')
+    cmds.setAttr(g['rig']+'.rigAxis', axis, type='string')
+    cmds.addAttr(g['rig'], ln='numNulls', at='long')
+    cmds.setAttr(g['rig']+'.numNulls', num_nulls)
+
+    print('=' * 60)
+    print('Tentacle base curve 완료: {}'.format(name))
+    print('  mesh    : {}'.format(mesh))
+    print('  axis    : {}'.format(axis))
+    print('  CV 개수 : {}'.format(num_nulls))
+    print('  -> curve의 direction/CV 위치를 검토한 뒤 build_tentacle_rig_continue()로')
+    print('     이어서 빌드하세요.')
+    print('=' * 60)
+    return {'rig_grp': g['rig'], 'base_curve': base_crv, 'axis': axis, 'base': base, 'tip': tip}
+
+
+def build_tentacle_rig_continue(name='tentacle', num_ctrls=7, num_ik_ctrls=2):
+    """2단계: build_tentacle_base_curve()로 만든 base_CRV를 기준으로 나머지
+    파이프라인(null/IK/FK/skin/twist/bind joint)을 이어서 빌드한다.
 
     FK/IK 블렌드(스위치)는 없다 -- FK 조인트가 base_CRV에 직접 skinCluster로
     바인드되어 항상 최종 모양을 구동하고, IK는 ik_CRV를 변형시켜 splineIK
@@ -569,26 +614,38 @@ def build_tentacle_rig(mesh='pSphere1', name='tentacle', axis='y', num_ctrls=7, 
     real DAG 하이라키를 통해 결과적으로 base_CRV에 반영된다.
 
     Arguments:
-        mesh (str): 촉수 형상 스탠드인
-        name (str): 리그 네이밍 프리픽스
-        axis (str): base curve가 오브젝트 중심을 지나며 뻗어나갈 축 ('x'/'y'/'z').
-            기본값 'y'. None을 주면 bounding box에서 가장 긴 축을 자동 감지.
+        name (str): build_tentacle_base_curve()에서 쓴 것과 같은 리그 이름
         num_ctrls (int): FK 컨트롤 개수 = splineIK joint 개수 (정확히 1:1로 매칭되어
             위치/회전이 항상 일치한다)
         num_ik_ctrls (int): IK 컨트롤 개수 (FK와 독립적으로 조절 가능). Advanced
             Twist는 항상 시작/끝 IK 컨트롤의 회전을 참조한다.
-        num_nulls (int): base curve 위 motionPath null(=base_CRV CV) 개수
 
     Returns:
         dict: 주요 결과 노드 모음
     """
-    if cmds.objExists('{}_rig_GRP'.format(name)):
-        cmds.delete('{}_rig_GRP'.format(name))
+    rig_grp = '{}_rig_GRP'.format(name)
+    base_crv = '{}_base_CRV'.format(name)
+    if not cmds.objExists(rig_grp) or not cmds.objExists(base_crv):
+        raise RuntimeError(
+            '"{}" base curve가 없습니다. 먼저 build_tentacle_base_curve(name="{}")를 실행하세요.'.format(
+                name, name))
 
-    base, tip, axis = _get_axis_endpoints(mesh, axis)
-    g = _build_groups(name)
+    axis = cmds.getAttr(rig_grp+'.rigAxis')
+    num_nulls = cmds.getAttr(rig_grp+'.numNulls')
 
-    base_crv, base_shape = _build_base_curve(name, mesh, axis, base, tip, num_nulls, g['crv'])
+    g = {
+        'rig': rig_grp,
+        'crv': '{}_CRV_GRP'.format(name),
+        'ctl': '{}_CTL_GRP'.format(name),
+        'fk_ctl': '{}_FK_CTL_GRP'.format(name),
+        'ik_ctl': '{}_IK_CTL_GRP'.format(name),
+        'null': '{}_NULL_GRP'.format(name),
+        'jnt': '{}_JNT_GRP'.format(name),
+        'sys': '{}_SYS_GRP'.format(name),
+    }
+    base_shape = cmds.listRelatives(base_crv, shapes=True, ni=True, fullPath=True)[0]
+    base = cmds.pointPosition(base_crv+'.cv[0]', world=True)
+
     up_loc = _build_up_vector(name, g['sys'], axis, base)
     mps, nulls = _build_mp_nulls(name, num_nulls, base_shape, g['null'])
 
@@ -636,6 +693,15 @@ def build_tentacle_rig(mesh='pSphere1', name='tentacle', axis='y', num_ctrls=7, 
     print('  ikSpline jnts  : {}'.format(len(ik_jnts)))
     print('=' * 60)
     return result
+
+
+def build_tentacle_rig(mesh='pSphere1', name='tentacle', axis='y', num_ctrls=7, num_ik_ctrls=2, num_nulls=13):
+    """촉수 오토리그를 검토 단계 없이 한 번에 전체 빌드(build_tentacle_base_curve
+    + build_tentacle_rig_continue를 그냥 이어서 호출하는 편의 함수). curve의
+    direction/CV 위치를 중간에 검토하고 싶으면 두 함수를 따로 호출하세요.
+    """
+    build_tentacle_base_curve(mesh=mesh, name=name, axis=axis, num_nulls=num_nulls)
+    return build_tentacle_rig_continue(name=name, num_ctrls=num_ctrls, num_ik_ctrls=num_ik_ctrls)
 
 
 if __name__ == '__main__':

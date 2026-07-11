@@ -2,10 +2,13 @@
 """============================================================================
 촉수(Tentacle) Auto-Rig UI
 
-tentacle_autorig.build_tentacle_rig()를 감싸는 빌드 UI. 오브젝트, 리그 이름,
-축, FK/IK 컨트롤 개수, null 개수를 입력받아 Build 버튼 하나로 전체
-파이프라인(curve -> null -> IK -> splineIK -> FK -> skin -> null twist)을
-실행한다.
+tentacle_autorig의 2단계 빌드 함수를 감싸는 UI.
+
+    1단계: base_CRV만 생성 -- 씬에서 direction/CV 위치를 검토(필요하면 CV를
+           직접 조정)한 뒤 2단계로 넘어간다.
+    2단계: 1단계에서 만든 base_CRV를 기준으로 나머지 전체 파이프라인
+           (null -> IK -> splineIK -> FK -> skin -> null twist -> bind joint)을
+           빌드한다.
 
 Usage:
     from python3.rigging import tentacle_autorig_ui
@@ -37,16 +40,17 @@ class TentacleAutoRigUI(object):
         self._mesh_field = None
         self._name_field = None
         self._axis_menu = None
+        self._num_nulls_field = None
         self._num_ctrls_field = None
         self._num_ik_ctrls_field = None
-        self._num_nulls_field = None
+        self._step2_button = None
         self._status_field = None
 
     def create_ui(self):
         if cmds.window(self.window_name, exists=True):
             cmds.deleteUI(self.window_name)
         win = cmds.window(self.window_name, title='Tentacle Auto-Rig',
-                           widthHeight=(380, 460), sizeable=True)
+                           widthHeight=(380, 560), sizeable=True)
         cmds.columnLayout(adjustableColumn=True, rowSpacing=6, columnAttach=('both', 8), parent=win)
         self.build_tab_ui()
         cmds.showWindow(win)
@@ -68,7 +72,8 @@ class TentacleAutoRigUI(object):
         cmds.setParent('..')
         cmds.setParent('..')
 
-        cmds.frameLayout(label='리그 설정', collapsable=True, collapse=False, marginWidth=5, marginHeight=5)
+        cmds.frameLayout(label='1단계 -- Base Curve 생성', collapsable=True, collapse=False,
+                          marginWidth=5, marginHeight=5)
         cmds.columnLayout(adjustableColumn=True, rowSpacing=4)
 
         cmds.rowLayout(numberOfColumns=2, adjustableColumn=2, columnWidth2=(120, 200))
@@ -86,6 +91,25 @@ class TentacleAutoRigUI(object):
         cmds.setParent('..')
 
         cmds.rowLayout(numberOfColumns=2, adjustableColumn=2, columnWidth2=(120, 200))
+        cmds.text(label='Null 개수 (=CV 개수)', align='left')
+        self._num_nulls_field = cmds.intField(value=13, minValue=2, maxValue=200)
+        cmds.setParent('..')
+
+        cmds.setParent('..')  # columnLayout
+
+        cmds.separator(height=6, style='in')
+        cmds.button(label='1. Curve 생성', height=32, backgroundColor=[0.25, 0.45, 0.3],
+                    c=lambda *_: self._on_build_curve())
+        cmds.text(label='-> 생성 후 씬에서 curve의 방향과 CV 위치를 검토하세요.',
+                  align='left', font='smallPlainLabelFont')
+
+        cmds.setParent('..')  # frameLayout
+
+        cmds.frameLayout(label='2단계 -- 나머지 리그 빌드', collapsable=True, collapse=False,
+                          marginWidth=5, marginHeight=5)
+        cmds.columnLayout(adjustableColumn=True, rowSpacing=4)
+
+        cmds.rowLayout(numberOfColumns=2, adjustableColumn=2, columnWidth2=(120, 200))
         cmds.text(label='FK/IK 조인트 개수', align='left')
         self._num_ctrls_field = cmds.intField(value=7, minValue=2, maxValue=50)
         cmds.setParent('..')
@@ -95,18 +119,16 @@ class TentacleAutoRigUI(object):
         self._num_ik_ctrls_field = cmds.intField(value=2, minValue=2, maxValue=50)
         cmds.setParent('..')
 
-        cmds.rowLayout(numberOfColumns=2, adjustableColumn=2, columnWidth2=(120, 200))
-        cmds.text(label='Null 개수', align='left')
-        self._num_nulls_field = cmds.intField(value=13, minValue=2, maxValue=200)
-        cmds.setParent('..')
-
         cmds.setParent('..')  # columnLayout
+
+        cmds.separator(height=6, style='in')
+        self._step2_button = cmds.button(label='2. 나머지 리그 빌드', height=32,
+                                          backgroundColor=[0.2, 0.35, 0.5],
+                                          c=lambda *_: self._on_build_rest())
+
         cmds.setParent('..')  # frameLayout
 
         cmds.separator(height=8, style='in')
-        cmds.button(label='Build Tentacle Rig', height=34, backgroundColor=[0.2, 0.35, 0.5],
-                    c=lambda *_: self._on_build())
-
         self._status_field = cmds.scrollField(editable=False, wordWrap=True, height=110,
                                                font='smallPlainLabelFont', text='')
 
@@ -115,13 +137,11 @@ class TentacleAutoRigUI(object):
         if mesh:
             cmds.textField(self._mesh_field, e=True, text=mesh)
 
-    def _on_build(self):
+    def _on_build_curve(self):
         mesh = cmds.textField(self._mesh_field, q=True, text=True).strip()
         name = cmds.textField(self._name_field, q=True, text=True).strip()
         axis_label = cmds.optionMenu(self._axis_menu, q=True, value=True)
         axis = None if axis_label.startswith('Auto') else axis_label
-        num_ctrls = cmds.intField(self._num_ctrls_field, q=True, value=True)
-        num_ik_ctrls = cmds.intField(self._num_ik_ctrls_field, q=True, value=True)
         num_nulls = cmds.intField(self._num_nulls_field, q=True, value=True)
 
         if not mesh or not cmds.objExists(mesh):
@@ -133,13 +153,41 @@ class TentacleAutoRigUI(object):
 
         try:
             importlib.reload(rig)
-            result = rig.build_tentacle_rig(mesh=mesh, name=name, axis=axis,
-                                             num_ctrls=num_ctrls, num_ik_ctrls=num_ik_ctrls,
-                                             num_nulls=num_nulls)
+            result = rig.build_tentacle_base_curve(mesh=mesh, name=name, axis=axis, num_nulls=num_nulls)
         except Exception as exc:
-            cmds.warning('tentacle_autorig_ui: 빌드 실패 -- {}'.format(exc))
+            cmds.warning('tentacle_autorig_ui: curve 생성 실패 -- {}'.format(exc))
             print(traceback.format_exc())
-            self._set_status('빌드 실패: {}\n(자세한 내용은 Script Editor 확인)'.format(exc))
+            self._set_status('curve 생성 실패: {}\n(자세한 내용은 Script Editor 확인)'.format(exc))
+            return
+
+        cmds.select(result['base_curve'])
+        cmds.viewFit(result['base_curve'])
+
+        msg = (
+            '1단계 완료: {name}_base_CRV\n'
+            '  axis    : {axis}\n'
+            '  CV 개수 : {num_cv}\n\n'
+            '씬에서 curve의 방향/CV 위치를 검토한 뒤 "2. 나머지 리그 빌드"를 누르세요.'
+        ).format(name=name, axis=result['axis'], num_cv=num_nulls)
+        self._set_status(msg)
+
+    def _on_build_rest(self):
+        name = cmds.textField(self._name_field, q=True, text=True).strip()
+        num_ctrls = cmds.intField(self._num_ctrls_field, q=True, value=True)
+        num_ik_ctrls = cmds.intField(self._num_ik_ctrls_field, q=True, value=True)
+
+        if not name:
+            self._set_status('리그 이름을 입력하세요.')
+            return
+
+        try:
+            importlib.reload(rig)
+            result = rig.build_tentacle_rig_continue(name=name, num_ctrls=num_ctrls,
+                                                       num_ik_ctrls=num_ik_ctrls)
+        except Exception as exc:
+            cmds.warning('tentacle_autorig_ui: 리그 빌드 실패 -- {}'.format(exc))
+            print(traceback.format_exc())
+            self._set_status('리그 빌드 실패: {}\n(자세한 내용은 Script Editor 확인)'.format(exc))
             return
 
         msg = (
