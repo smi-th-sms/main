@@ -1,0 +1,30 @@
+(dp0
+Vid
+p1
+V3f601ed50ec2a8
+p2
+sVname
+p3
+VreNamer
+p4
+sVinfo
+p5
+VreNamer tool
+p6
+sVtags
+p7
+Vtools
+p8
+sVicon
+p9
+V
+p10
+sVcommand
+p11
+V# Maya 2024 uses PySide2. This module is in python2.tools.\u000afrom importlib import reload\u000afrom python2.tools import reNamer\u000areload(reNamer)
+p12
+sVsyntax
+p13
+Vpython
+p14
+s.
