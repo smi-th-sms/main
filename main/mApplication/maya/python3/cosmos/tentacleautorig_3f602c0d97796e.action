@@ -1,0 +1,30 @@
+(dp0
+Vid
+p1
+V3f602c0d97796e
+p2
+sVname
+p3
+Vtentacle_autorig
+p4
+sVinfo
+p5
+Vtentacle_autorig tool
+p6
+sVtags
+p7
+Vtools
+p8
+sVicon
+p9
+V
+p10
+sVcommand
+p11
+Vfrom python3.rigging import tentacle_autorig_ui\u000aimport importlib\u000aimportlib.reload(tentacle_autorig_ui)\u000atentacle_autorig_ui.show()
+p12
+sVsyntax
+p13
+Vpython
+p14
+s.
