@@ -246,7 +246,10 @@ def _make_ctrl(n, radius, pos, rot=None, normal=(0, 1, 0)):
 def _build_ik_curve(name, crv_grp, base_crv):
     """base_CRV를 복사해서 IK 구동용 curve를 만든다."""
     ik_crv = cmds.duplicate(base_crv, n='{}_ik_CRV'.format(name))[0]
-    cmds.parent(ik_crv, crv_grp)
+    current_parent = cmds.listRelatives(ik_crv, parent=True, fullPath=True) or []
+    target_parent = cmds.ls(crv_grp, long=True)[0]
+    if not current_parent or current_parent[0] != target_parent:
+        cmds.parent(ik_crv, crv_grp)
     return ik_crv
 
 
