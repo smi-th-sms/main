@@ -376,13 +376,36 @@ def _asset_geo(cfg: AssetSetupConfig, parent: str):
     return geo
 
 
+def _stage_subnet(geo, name: str, *src_nodes):
+    """Get-or-create a stage subnet in the container, wiring its external inputs
+    from the given upstream container nodes. Internal nodes read the inputs via
+    ``sub.indirectInputs()[i]``; a final ``output`` node exposes the result to
+    the container. Keeps each stage tidy (see the FBX subnet pattern)."""
+
+    sub = _child(geo, name, "subnet")
+    for i, s in enumerate(src_nodes):
+        if s is not None:
+            sub.setInput(i, s, 0)
+    return sub
+
+
+def _stage_output(sub, src, idx: int = 0):
+    """Wire an ``output`` node (index ``idx``) inside a stage subnet to ``src``."""
+
+    out = _child(sub, "output%d" % idx, "output")
+    if out.parm("outputidx"):
+        out.parm("outputidx").set(idx)
+    out.setInput(0, src, 0)
+    return out
+
+
 def build_corrective(cfg: AssetSetupConfig, parent: str = "/obj") -> dict[str, Any]:
     """Stage 2.3a — Corrective: split BODY vs CLOTH, gate cloth for manual edit.
 
-    Reconstructs the studio Corrective: ``connectivity`` (class) -> ``split`` by
-    ``collision_pattern`` (out0 = BODY = skin/head, out1 = cloth) -> ``edit``
-    (empty manual-gate SOP the artist fills with corrective point tweaks) ->
-    merge -> OUT_CORRECTIVE.
+    Built inside a ``CORRECTIVE`` subnet (input = REST_MESH, output ->
+    OUT_CORRECTIVE): ``connectivity`` tags a per-piece ``@class`` (so downstream
+    stages can reference it) -> ``split`` by ``collision_pattern`` (out0 = BODY =
+    skin/head, out1 = cloth) -> ``edit`` (empty manual gate) -> merge -> output.
     """
 
     geo = _asset_geo(cfg, parent)
@@ -390,29 +413,68 @@ def build_corrective(cfg: AssetSetupConfig, parent: str = "/obj") -> dict[str, A
     if src is None:
         raise ValueError("REST_MESH missing; run build_asset_setup first")
 
-    # Split BODY/CLOTH directly by geo_path pattern. (The studio ran a
-    # connectivity `class` pass here, but that's a costly full-mesh op only
-    # needed for per-piece work downstream; add it in Proxy per-part instead.)
-    split = _child(geo, "cor_split", "split")
+    sub = _stage_subnet(geo, "CORRECTIVE", src)
+    inp = sub.indirectInputs()[0]
+    # Tag a per-connected-piece @class up front so every downstream stage that
+    # reads OUT_CORRECTIVE can reference it. Primitive connectivity (connecttype=1).
+    conn = _child(sub, "connectivity1", "connectivity")
+    if conn.parm("connecttype"):
+        conn.parm("connecttype").set(1)
+    conn.setInput(0, inp)
+    # Split BODY/CLOTH directly by geo_path pattern.
+    split = _child(sub, "cor_split", "split")
     split.parm("group").set(cfg.collision_pattern)  # out0 in-group, out1 out-group
-    split.setInput(0, src, 0)
-
-    body = _child(geo, "BODY", "null")
+    split.setInput(0, conn, 0)
+    body = _child(sub, "BODY", "null")
     body.setInput(0, split, 0)
-    edit = _child(geo, "cor_edit", "edit")  # manual corrective gate (starts empty)
+    edit = _child(sub, "cor_edit", "edit")  # manual corrective gate (starts empty)
     edit.setInput(0, split, 1)
-    cloth = _child(geo, "CLOTH", "null")
+    cloth = _child(sub, "CLOTH", "null")
     cloth.setInput(0, edit, 0)
-
-    merge = _child(geo, "cor_merge", "merge")
+    merge = _child(sub, "cor_merge", "merge")
     merge.setInput(0, body, 0)
     merge.setInput(1, cloth, 0)
+    _stage_output(sub, merge)
+    sub.layoutChildren()
+
     out = _child(geo, "OUT_CORRECTIVE", "null")
-    out.setInput(0, merge, 0)
+    out.setInput(0, sub, 0)
     out.setDisplayFlag(True)
+    # retire the old flat corrective nodes from the pre-subnet layout
+    for stale in ("cor_split", "BODY", "cor_edit", "CLOTH", "cor_merge"):
+        n = geo.node(stale)
+        if n is not None:
+            n.destroy()
     geo.layoutChildren()
-    return {"body": body.path(), "cloth": cloth.path(), "edit": edit.path(),
+    return {"corrective_subnet": sub.path(), "edit": edit.path(),
             "out_corrective": out.path()}
+
+
+def _collision_params(sub, cfg: AssetSetupConfig, seed: bool) -> None:
+    """Add the collision authoring params (body pattern + voxel ratio) to the
+    COLLISION subnet — the collision source of truth. ``seed`` (first build)
+    fills them from config so later edits on the subnet persist."""
+
+    hou = _require_hou()
+    g = sub.parmTemplateGroup()
+    changed = False
+    if g.find("collision_pattern") is None:
+        g.append(hou.StringParmTemplate(
+            "collision_pattern", "Collision Body Pattern", 1,
+            default_value=("@geo_path=*body* @geo_path=*head*",)))
+        changed = True
+    if g.find("voxel_ratio") is None:
+        g.append(hou.FloatParmTemplate("voxel_ratio", "Collision Voxel Ratio", 1,
+                                       default_value=(0.005,)))
+        changed = True
+    if changed:
+        sub.setParmTemplateGroup(g)
+    if seed:
+        sub.parm("collision_pattern").set(
+            cfg.collision_pattern or "@geo_path=*body* @geo_path=*head*")
+        vr = cfg.collision.get("voxel_ratio")
+        if vr is not None:
+            sub.parm("voxel_ratio").set(float(vr))
 
 
 def build_collision(cfg: AssetSetupConfig, parent: str = "/obj") -> dict[str, Any]:
@@ -430,11 +492,20 @@ def build_collision(cfg: AssetSetupConfig, parent: str = "/obj") -> dict[str, An
     if src is None:
         raise ValueError("OUT_CORRECTIVE missing; run build_corrective first")
 
-    col = cfg.collision
-    blast = _child(geo, "col_blast", "blast")
-    blast.parm("group").set(cfg.collision_pattern)
+    sub = _stage_subnet(geo, "COLLISION", src)
+    # collision authoring params live on the COLLISION subnet (source of truth);
+    # config only seeds them the first time the subnet is created.
+    had_params = sub.parm("collision_pattern") is not None
+    _collision_params(sub, cfg, seed=not had_params)
+    inp = sub.indirectInputs()[0]
+    col = dict(cfg.collision)
+    col["voxel_ratio"] = sub.evalParm("voxel_ratio")   # subnet param wins
+    blast = _child(sub, "col_blast", "blast")
+    # live-reference the subnet's body pattern so editing it updates immediately
+    blast.parm("group").setExpression('chs("../collision_pattern")',
+                                      _require_hou().exprLanguage.Hscript)
     blast.parm("negate").set(1)  # keep only the pattern (body/head)
-    blast.setInput(0, src, 0)
+    blast.setInput(0, inp)
 
     # Proportional sizing off the body bbox so a value tuned on one character
     # carries to any other scale. `voxel_size` (absolute) overrides the ratio.
@@ -449,17 +520,14 @@ def build_collision(cfg: AssetSetupConfig, parent: str = "/obj") -> dict[str, An
     vdb_src = blast
     if col.get("contact_check", True):  # mask-corrective on by default (safe when unpainted)
         mask = col.get("contact_mask", "check_point")
-        # dedicated paint node: the artist paints the `mask` float attribute
-        # (0 everywhere until painted => nothing pushed). Reused on rebuild so
-        # the painted values stick.
-        col_mask = _child(geo, "col_mask", "attribpaint")
+        col_mask = _child(sub, "col_mask", "attribpaint")
         col_mask.parm("numattribs").set(1)
         col_mask.parm("attribname1").set(mask)
         col_mask.setInput(0, blast, 0)
-        nrm = _child(geo, "col_normal", "normal")
+        nrm = _child(sub, "col_normal", "normal")
         nrm.parm("type").set(0)  # point normals (needed for @N)
         nrm.setInput(0, col_mask, 0)
-        contact = _child(geo, "col_contact", "attribwrangle")
+        contact = _child(sub, "col_contact", "attribwrangle")
         contact.parm("class").set(2)  # points (0=detail,1=prim,2=point)
         gap = float(col.get("contact_gap", diag * 0.0025))
         if col.get("contact_mode", "interaction") == "blanket":
@@ -473,63 +541,239 @@ def build_collision(cfg: AssetSetupConfig, parent: str = "/obj") -> dict[str, An
         contact.parm("snippet").set(snippet)
         contact.setInput(0, nrm, 0)
         vdb_src = contact
-
-        # weight-driven smooth: smooth the surface proportional to the painted
-        # mask weight (`{mask}` as smooth::2.0 weight attribute) so the pushed
-        # contact zones get a soft, falloff-controlled relaxation.
         if col.get("contact_smooth", True):
-            csm = _child(geo, "col_contact_smooth", "smooth::2.0")
+            csm = _child(sub, "col_contact_smooth", "smooth::2.0")
             csm.parm("strength").set(float(col.get("contact_smooth_strength", 5.0)))
             csm.parm("useweightattribute").set(1)
             csm.parm("weightattribute").set(mask)
             csm.setInput(0, contact, 0)
             vdb_src = csm
-    else:  # keep the network clean when disabled
+    else:  # keep the subnet clean when disabled
         for stale in ("col_contact_smooth", "col_contact", "col_normal", "col_mask"):
-            n = geo.node(stale)
+            n = sub.node(stale)
             if n is not None:
                 n.destroy()
 
-    vdb = _child(geo, "col_vdbfrompolygons", "vdbfrompolygons")
+    vdb = _child(sub, "col_vdbfrompolygons", "vdbfrompolygons")
     vdb.parm("voxelsize").set(voxel)
     vdb.setInput(0, vdb_src, 0)
-    convert = _child(geo, "col_convertvdb", "convertvdb")
+    convert = _child(sub, "col_convertvdb", "convertvdb")
     convert.parm("conversion").set("poly")  # SDF VDB -> watertight polygons
     convert.setInput(0, vdb, 0)
-    smooth = _child(geo, "col_smooth", "smooth::2.0")
+    smooth = _child(sub, "col_smooth", "smooth::2.0")
     smooth.setInput(0, convert, 0)
 
-    # NOTE: the anti-penetration push-apart (peak inflate + SDF self-intersection
-    # resolve) operates on the ANIMATED collision per-frame — the studio runs it
-    # after a pointdeform to the current frame — so it belongs to the shot stage
-    # (Stage 3), not here. The asset stage produces only the clean REST collision
-    # surface (cached). PUSH_APART_VEX is kept for the shot builder to reuse.
-    # Clean up any push nodes left by earlier asset-stage builds.
+    # push-apart is a SHOT-stage per-frame op (see PUSH_APART_VEX); asset builds
+    # only the clean REST surface. Clean up any push nodes from earlier builds.
     for stale in ("col_peak", "col_push_vdb", "col_push",
                   "col_push_expand", "col_push_smooth"):
-        n = geo.node(stale)
+        n = sub.node(stale)
         if n is not None:
             n.destroy()
-    upstream = smooth
 
-    grp = _child(geo, "col_group", "groupcreate")
+    grp = _child(sub, "col_group", "groupcreate")
     grp.parm("grouptype").set(0)  # 0 = primitive
     grp.parm("groupname").set(f"{cfg.asset}_collision")
     grp.parm("basegroup").set("*")  # include all prims in the named group
-    grp.setInput(0, upstream, 0)
+    grp.setInput(0, smooth, 0)
 
     scale = float(cfg.collision.get("scale", 1.0))
-    xf = _child(geo, "col_transform", "xform")
+    xf = _child(sub, "col_transform", "xform")
     if xf.parm("scale"):
         xf.parm("scale").set(scale)
     xf.setInput(0, grp, 0)
+    _stage_output(sub, xf)
+    sub.layoutChildren()
 
     col_out = _child(geo, "OUT_COLLISION", "null")
-    col_out.setInput(0, xf, 0)
+    col_out.setInput(0, sub, 0)
+    # retire the old flat collision nodes from the pre-subnet layout
+    for stale in ("col_blast", "col_mask", "col_normal", "col_contact",
+                  "col_contact_smooth", "col_vdbfrompolygons", "col_convertvdb",
+                  "col_smooth", "col_group", "col_transform"):
+        n = geo.node(stale)
+        if n is not None:
+            n.destroy()
     geo.layoutChildren()
-    return {"blast": blast.path(), "out_collision": col_out.path(),
+    return {"collision_subnet": sub.path(), "out_collision": col_out.path(),
             "voxel_size": round(voxel, 5), "bbox_diag": round(diag, 4),
             "contact_check": col.get("contact_check", True), "scale": scale}
+
+
+def _proxy_parts_multiparm(sub, cfg: AssetSetupConfig, seed: bool) -> None:
+    """Add the Cloth/Hair Parts multiparm to the PROXY subnet (the parts source
+    of truth). ``seed`` (first build) fills it from config so later user edits on
+    the subnet persist. ``part_cloth`` classifies cloth (on) vs hair (off)."""
+
+    hou = _require_hou()
+    g = sub.parmTemplateGroup()
+    if g.find("parts") is None:
+        folder = hou.FolderParmTemplate("parts", "Cloth / Hair Parts",
+                                        folder_type=hou.folderType.MultiparmBlock)
+        folder.addParmTemplate(hou.StringParmTemplate("part_name_#", "Part Name", 1))
+        folder.addParmTemplate(hou.StringParmTemplate("part_geo_#", "Geo Path (@geo_path)", 1))
+        folder.addParmTemplate(hou.ToggleParmTemplate("part_cloth_#", "Cloth (off = Hair)",
+                                                      default_value=True))
+        g.append(folder)
+        sub.setParmTemplateGroup(g)
+    if seed:
+        sub.parm("parts").set(len(cfg.proxy_parts))
+        for i, p in enumerate(cfg.proxy_parts, start=1):
+            sub.parm("part_name_%d" % i).set(p.name)
+            sub.parm("part_geo_%d" % i).set(p.geo_path[0] if p.geo_path else "")
+            sub.parm("part_cloth_%d" % i).set(int(p.cloth))
+
+
+def _parts_from_node(node) -> list:
+    """Read a Parts multiparm (``part_name_#``/``part_geo_#``/``part_cloth_#``)
+    into a list of :class:`ProxyPart`."""
+
+    from .schema import ProxyPart
+    n = node.parm("parts").eval() if node.parm("parts") else 0
+    parts = []
+    for i in range(1, n + 1):
+        nm = node.evalParm("part_name_%d" % i)
+        if not nm:
+            continue
+        geo = node.evalParm("part_geo_%d" % i)
+        parts.append(ProxyPart(name=nm, geo_path=[geo] if geo else [],
+                               cloth=bool(node.evalParm("part_cloth_%d" % i))))
+    return parts
+
+
+def _tag_proxy_path_in_copy(node, proxy_path: str) -> None:
+    """Ensure a ``proxypath`` wrangle inside a cloth_ref copy tags ``@proxy_path``
+    (just before its output null) so downstream stages pair parts as before."""
+
+    out_null = node.node("parts_proxy_OUTPUT")
+    if out_null is None:
+        return
+    tag = node.node("proxypath")
+    if tag is None:
+        upstream = out_null.inputs()[0] if out_null.inputs() else None
+        tag = node.createNode("attribwrangle", "proxypath")
+        tag.parm("class").set(1)  # primitives
+        if upstream is not None:
+            tag.setInput(0, upstream, 0)
+        out_null.setInput(0, tag, 0)
+    tag.parm("snippet").set(PROXY_PATH_VEX.format(proxy_path=proxy_path))
+
+
+def _ensure_cloth_ref(sub):
+    """Ensure a default ``cloth_ref`` template exists inside the PROXY subnet so
+    Generate Structure always has a recipe to instance. The artist edits it (and
+    may add per-part sub-group blasts); returns the existing one if present.
+
+    Default recipe: ``parts_name`` (blast — the per-part isolation node) ->
+    ``remesh1`` -> ``normal1`` -> ``parts_proxy_OUTPUT`` (null) -> ``output0``."""
+
+    ref = sub.node("cloth_ref")
+    if ref is not None:
+        return ref
+    ref = sub.createNode("subnet", "cloth_ref")
+    for d in list(ref.children()):   # start from a clean subnet
+        d.destroy()
+    ref.setInput(0, sub.indirectInputs()[0])  # activate the subnet's indirect input
+    pn = ref.createNode("blast", "parts_name")
+    pn.parm("group").set("@name=parts_name")  # placeholder; _instance overrides
+    pn.parm("negate").set(1)
+    pn.setInput(0, ref.indirectInputs()[0])
+    rm = ref.createNode("remesh::2.0", "remesh1")
+    if rm.parm("targetsize"):
+        rm.parm("targetsize").set(0.05)
+    if rm.parm("hardenuvseams"):
+        rm.parm("hardenuvseams").set(1)
+    rm.setInput(0, pn, 0)
+    nm = ref.createNode("normal", "normal1")
+    nm.setInput(0, rm, 0)
+    out_null = ref.createNode("null", "parts_proxy_OUTPUT")
+    out_null.setInput(0, nm, 0)
+    o0 = ref.createNode("output", "output0")
+    o0.setInput(0, out_null, 0)
+    ref.layoutChildren()
+    return ref
+
+
+def _copy_recipe_into_subnet(ref, dest) -> None:
+    """Copy a template subnet's CHILDREN into a fresh subnet and reconnect any
+    connection that referenced the template's indirect inputs to ``dest``'s.
+
+    A wholesale ``copyNodesTo([ref])`` of a collapsed subnet keeps its broken
+    output routing (output 0 passes the input straight through). Copying the
+    children into a fresh subnet routes output 0 to the ``output`` node
+    correctly — but the internal indirect-input wiring must be redone by hand."""
+
+    hou = _require_hou()
+    ref_ind = list(ref.indirectInputs())
+    conns = []  # (child_name, input_idx, indirect_idx)
+    for c in ref.children():
+        for conn in c.inputConnections():
+            item = conn.inputItem()
+            if item in ref_ind:
+                conns.append((c.name(), conn.inputIndex(), ref_ind.index(item)))
+    hou.copyNodesTo(list(ref.children()), dest)
+    dest_ind = list(dest.indirectInputs())
+    for cname, iidx, indidx in conns:
+        cn = dest.node(cname)
+        if cn is not None and indidx < len(dest_ind):
+            cn.setInput(iidx, dest_ind[indidx])
+
+
+def _instance_cloth_ref(sub, parts, merge) -> list:
+    """Auto-generate the cloth proxy structure by instancing the user's
+    ``cloth_ref`` template once per cloth part. Each copy (``cloth_{part}``)
+    isolates the part via its ``parts_name`` blast (``@name=``), drops the
+    template's empty ``parts_blast01/02`` placeholders (the worker adds per-part
+    sub-group blasts by hand if needed), takes the part's remesh size, tags
+    ``@proxy_path``, and feeds ``proxy_merge``.
+
+    Copies are rebuilt fresh each call. A wholesale copy of ``cloth_ref``
+    (a collapsed subnet) keeps its broken output routing — its output 0 passes
+    the input straight through — so instead each copy is a NEW subnet with the
+    template's *children* copied in, which routes output 0 to ``output0``
+    correctly. The template itself is left untouched."""
+
+    ref = _ensure_cloth_ref(sub)  # default template if the artist hasn't made one
+    inp = sub.indirectInputs()[0]
+    for c in list(sub.children()):  # rebuild all copies fresh
+        if c.name().startswith("cloth_") and c.name() != "cloth_ref":
+            c.destroy()
+    made = []
+    for idx, part in enumerate(parts):
+        nm = "cloth_%s" % part.name
+        node = sub.createNode("subnet", nm)      # fresh subnet (clean output)
+        _copy_recipe_into_subnet(ref, node)       # copy recipe + reconnect input
+        node.setInput(0, inp)
+
+        sel = part.geo_path[0].rsplit("/", 1)[-1] if part.geo_path else part.name
+        blast = node.node("parts_name")
+        if blast is not None:
+            # exact @name match (unquoted — Houdini treats quotes literally here)
+            blast.parm("group").set("@name=%s" % sel)
+            blast.parm("negate").set(1)  # keep ONLY this part (isolate the garment)
+        # drop the empty placeholder sub-group blasts; wire remesh straight off
+        # the isolated part (the worker re-adds sub-group blasts by hand if wanted)
+        remesh = node.node("remesh1")
+        if remesh is not None and blast is not None:
+            remesh.setInput(0, blast, 0)
+        for extra in ("parts_blast01", "parts_blast02"):
+            n2 = node.node(extra)
+            if n2 is not None:
+                n2.destroy()
+        if remesh is not None and part.parameters.get("remesh_size") is not None:
+            remesh.parm("targetsize").set(float(part.parameters["remesh_size"]))
+        _tag_proxy_path_in_copy(node, part.proxy_path or part.name)
+        # wire the subnet output to the end of the chain
+        out0 = node.node("output0")
+        end = node.node("parts_proxy_OUTPUT")
+        if out0 is not None and end is not None:
+            out0.setInput(0, end, 0)
+            end.setDisplayFlag(True)
+            end.setRenderFlag(True)
+        node.layoutChildren()      # tidy the copy's internal chain
+        merge.setInput(idx, node, 0)
+        made.append(nm)
+    return made
 
 
 def build_proxy(cfg: AssetSetupConfig, parent: str = "/obj") -> dict[str, Any]:
@@ -550,7 +794,39 @@ def build_proxy(cfg: AssetSetupConfig, parent: str = "/obj") -> dict[str, Any]:
     if src is None:
         raise ValueError("OUT_CORRECTIVE missing; run build_corrective first")
 
-    parts = cfg.cloth_parts
+    sub = _stage_subnet(geo, "PROXY", src)
+    # Parts are authored on the PROXY subnet (source of truth); config only seeds
+    # the multiparm the first time it is created so later user edits persist.
+    had_parts = sub.parm("parts") is not None
+    _proxy_parts_multiparm(sub, cfg, seed=not had_parts)
+    inp = sub.indirectInputs()[0]
+    all_parts = _parts_from_node(sub)
+    parts = [p for p in all_parts if p.cloth]
+
+    # Auto-generate the structure by instancing the ``cloth_ref`` template per
+    # cloth part (a default template is created if the artist hasn't made one).
+    ref = _ensure_cloth_ref(sub)
+    if ref is not None:
+        cloth = [p for p in parts if p.geo_path]
+        merge = _child(sub, "proxy_merge", "merge")
+        made = _instance_cloth_ref(sub, cloth, merge)
+        _stage_output(sub, merge)
+        for c in list(sub.children()):  # drop any leftover flat px_* chain
+            nm = c.name()
+            if nm.startswith("px_") or (nm.startswith("OUT_") and nm.endswith("_PROXY")):
+                c.destroy()
+        sub.layoutChildren()
+        out_proxy = _child(geo, "OUT_PROXY", "null")
+        out_proxy.setInput(0, sub, 0)
+        out_proxy.setDisplayFlag(True)
+        geo.layoutChildren()
+        return {
+            "proxy_subnet": sub.path(), "out_proxy": out_proxy.path(),
+            "mode": "cloth_ref", "generated": made,
+            "warnings": [f"part '{p.name}' has no geo_path; skipped"
+                         for p in parts if not p.geo_path],
+        }
+
     outs: list = []
     warnings: list[str] = []
     for part in parts:
@@ -558,35 +834,47 @@ def build_proxy(cfg: AssetSetupConfig, parent: str = "/obj") -> dict[str, Any]:
             warnings.append(f"part '{part.name}' has no geo_path; skipped")
             continue
         pfx = f"px_{part.name}"
-        blast = _child(geo, f"{pfx}_blast", "blast")
+        blast = _child(sub, f"{pfx}_blast", "blast")
         blast.parm("group").set(part.geo_group())  # @geo_path=... (may be several)
         blast.parm("negate").set(1)  # keep only this part's geo
-        blast.setInput(0, src, 0)
+        blast.setInput(0, inp)
 
-        remesh = _child(geo, f"{pfx}_remesh", "remesh::2.0")
+        remesh = _child(sub, f"{pfx}_remesh", "remesh::2.0")
         remesh.parm("targetsize").set(float(part.parameters.get("remesh_size", 0.01)))
         if remesh.parm("iterations"):
             remesh.parm("iterations").set(2)
         remesh.setInput(0, blast, 0)
 
-        tag = _child(geo, f"{pfx}_proxypath", "attribwrangle")
+        tag = _child(sub, f"{pfx}_proxypath", "attribwrangle")
         tag.parm("class").set(1)  # primitives
         tag.parm("snippet").set(PROXY_PATH_VEX.format(proxy_path=part.proxy_path or part.name))
         tag.setInput(0, remesh, 0)
 
-        out = _child(geo, f"OUT_{part.name}_PROXY", "null")
+        out = _child(sub, f"OUT_{part.name}_PROXY", "null")
         out.setInput(0, tag, 0)
         outs.append(out)
 
-    proxy_merge = _child(geo, "proxy_merge", "merge")
+    proxy_merge = _child(sub, "proxy_merge", "merge")
     for i, o in enumerate(outs):
         proxy_merge.setInput(i, o, 0)
+    _stage_output(sub, proxy_merge)
+    sub.layoutChildren()
+
     out_proxy = _child(geo, "OUT_PROXY", "null")
-    out_proxy.setInput(0, proxy_merge, 0)
+    out_proxy.setInput(0, sub, 0)
     out_proxy.setDisplayFlag(True)
+    # retire the old flat cloth-proxy nodes from the pre-subnet layout
+    stale = ["proxy_merge"]
+    for p in parts:
+        stale += [f"px_{p.name}_blast", f"px_{p.name}_remesh",
+                  f"px_{p.name}_proxypath", f"OUT_{p.name}_PROXY"]
+    for nm in stale:
+        n = geo.node(nm)
+        if n is not None:
+            n.destroy()
     geo.layoutChildren()
     return {
-        "out_proxy": out_proxy.path(),
+        "proxy_subnet": sub.path(), "out_proxy": out_proxy.path(),
         "parts": [{"name": p.name, "out": f"OUT_{p.name}_PROXY"} for p in parts if p.geo_path],
         "warnings": warnings,
     }
@@ -606,54 +894,85 @@ def build_hair_proxy(cfg: AssetSetupConfig, parent: str = "/obj") -> dict[str, A
     guide = geo.node("HAIR_GUIDE")
     if guide is None:
         return {"skipped": "no HAIR_GUIDE (cfg.fbx.hair_import empty)"}
-    hair_parts = [p for p in cfg.proxy_parts if not p.cloth]
+    # hair parts come from the PROXY subnet's Parts multiparm (parts source of
+    # truth); fall back to config if the PROXY stage hasn't been built yet.
+    proxy_sub = geo.node("PROXY")
+    src_parts = _parts_from_node(proxy_sub) if proxy_sub is not None else cfg.proxy_parts
+    hair_parts = [p for p in src_parts if not p.cloth]
     if not hair_parts:
         return {"skipped": "no hair parts (all proxy_parts are cloth)"}
 
-    # scalp reference = the head geo from the rest mesh (root-finding target)
-    scalp = _child(geo, "hair_scalp", "blast")
+    # HAIR subnet: input0 = HAIR_GUIDE, input1 = REST_MESH (scalp source)
+    sub = _stage_subnet(geo, "HAIR", guide, geo.node("REST_MESH"))
+    guide_in = sub.indirectInputs()[0]
+    scalp = _child(sub, "hair_scalp", "blast")
     scalp.parm("group").set(cfg.collision.get("hair_scalp_pattern", "@geo_path=*head*"))
     scalp.parm("negate").set(1)  # keep only the head
-    scalp.setInput(0, geo.node("REST_MESH"), 0)
+    scalp.setInput(0, sub.indirectInputs()[1])
 
     outs: list = []
     for part in hair_parts:
         pfx = f"hx_{part.name}"
-        src = guide
+        src = guide_in
         if part.geo_path:  # optional: isolate a subset of the guide
-            b = _child(geo, f"{pfx}_blast", "blast")
+            b = _child(sub, f"{pfx}_blast", "blast")
             b.parm("group").set(part.geo_group())
             b.parm("negate").set(1)
-            b.setInput(0, guide, 0)
+            b.setInput(0, guide_in)
             src = b
 
-        resample = _child(geo, f"{pfx}_resample", "resample")
+        resample = _child(sub, f"{pfx}_resample", "resample")
         resample.parm("dolength").set(1)
         resample.parm("length").set(float(part.parameters.get("resample_length", 0.02)))
         resample.setInput(0, src, 0)
 
-        root = _child(geo, f"{pfx}_root", "attribwrangle")
+        root = _child(sub, f"{pfx}_root", "attribwrangle")
         root.parm("class").set(1)  # run over primitives (curves)
         root.parm("snippet").set(HAIR_ROOT_VEX)
         root.setInput(0, resample, 0)
         root.setInput(1, scalp, 0)
 
-        tag = _child(geo, f"{pfx}_proxypath", "attribwrangle")
+        tag = _child(sub, f"{pfx}_proxypath", "attribwrangle")
         tag.parm("class").set(1)
         tag.parm("snippet").set(PROXY_PATH_VEX.format(proxy_path=part.proxy_path or part.name))
         tag.setInput(0, root, 0)
 
-        out = _child(geo, f"OUT_{part.name}_PROXY", "null")
+        out = _child(sub, f"OUT_{part.name}_PROXY", "null")
         out.setInput(0, tag, 0)
         outs.append(out)
 
-    hair_merge = _child(geo, "hair_proxy_merge", "merge")
+    # retire stale per-part hair nodes inside the subnet (removed hair parts)
+    wanted = {"hair_scalp", "hair_proxy_merge"}
+    for p in hair_parts:
+        wanted |= {f"hx_{p.name}_blast", f"hx_{p.name}_resample", f"hx_{p.name}_root",
+                   f"hx_{p.name}_proxypath", f"OUT_{p.name}_PROXY"}
+    for c in list(sub.children()):
+        nm = c.name()
+        if nm in ("output0",) or nm in wanted:
+            continue
+        if nm.startswith("hx_") or (nm.startswith("OUT_") and nm.endswith("_PROXY")):
+            c.destroy()
+
+    hair_merge = _child(sub, "hair_proxy_merge", "merge")
     for i, o in enumerate(outs):
         hair_merge.setInput(i, o, 0)
+    _stage_output(sub, hair_merge)
+    sub.layoutChildren()
+
     out_hair = _child(geo, "OUT_HAIR_PROXY", "null")
-    out_hair.setInput(0, hair_merge, 0)
+    out_hair.setInput(0, sub, 0)
+    # retire the old flat hair-proxy nodes from the pre-subnet layout
+    stale = ["hair_scalp", "hair_proxy_merge"]
+    for p in hair_parts:
+        stale += [f"hx_{p.name}_blast", f"hx_{p.name}_resample",
+                  f"hx_{p.name}_root", f"hx_{p.name}_proxypath", f"OUT_{p.name}_PROXY"]
+    for nm in stale:
+        n = geo.node(nm)
+        if n is not None:
+            n.destroy()
     geo.layoutChildren()
-    return {"out_hair_proxy": out_hair.path(), "parts": [p.name for p in hair_parts]}
+    return {"hair_subnet": sub.path(), "out_hair_proxy": out_hair.path(),
+            "parts": [p.name for p in hair_parts]}
 
 
 # default point group a hair guide pins by its root (set by HAIR_ROOT_VEX).
@@ -872,6 +1191,76 @@ def build_vellum_chain(geo, parts, con: dict[str, Any], src_for_part,
     return {"out_constraint": out.path(), "parts": info, "warnings": warnings}
 
 
+def _ensure_hair_ref(sub):
+    """Ensure a default ``hair_ref`` constraint template exists inside the
+    CONSTRAINT subnet so hair parts get a recipe to instance. Returns the
+    existing one if present (the artist may edit it).
+
+    Default recipe (input 0 = one isolated hair proxy): ``hair_pingrp`` (root
+    pin group from ``FirstPoints``) -> ``hair_vc`` (vellum HAIR constraints) ->
+    ``hair_pin`` (pin the root) -> ``hair_pack`` (vellumpack) -> ``output0``."""
+
+    ref = sub.node("hair_ref")
+    if ref is not None:
+        return ref
+    ref = sub.createNode("subnet", "hair_ref")
+    for d in list(ref.children()):   # start from a clean subnet
+        d.destroy()
+    ref.setInput(0, sub.indirectInputs()[0])  # activate the subnet's indirect input
+    pg = ref.createNode("groupcreate", "hair_pingrp")
+    pg.parm("grouptype").set("point")
+    pg.parm("groupname").set("pin_root")
+    pg.parm("basegroup").set(HAIR_ROOT_GROUP)   # "FirstPoints" (hair root points)
+    pg.setInput(0, ref.indirectInputs()[0])
+    vc = ref.createNode("vellumconstraints", "hair_vc")
+    vc.parm("constrainttype").set("hair")
+    vc.setInput(0, pg, 0)
+    pin = ref.createNode("vellumconstraints", "hair_pin")
+    pin.parm("constrainttype").set("pin")
+    pin.parm("grouptype").set(0)  # points
+    pin.parm("group").set("pin_root")
+    pin.setInput(0, vc, 0)
+    pin.setInput(1, vc, 1)
+    pack = ref.createNode("vellumpack", "hair_pack")
+    pack.setInput(0, pin, 0)
+    pack.setInput(1, pin, 1)
+    o0 = ref.createNode("output", "output0")
+    o0.setInput(0, pack, 0)
+    ref.layoutChildren()
+    return ref
+
+
+def _instance_hair_ref(sub, hair_parts, hair_in, ref, merge, base_idx) -> list:
+    """Instance the user's ``hair_ref`` constraint template once per hair part.
+
+    Each part is isolated from ``OUT_HAIR_PROXY`` by ``@proxy_path`` (fed to the
+    copy's input 0); the copy's output 0 is appended to ``constraint_merge``.
+    Mirrors the cloth flow: fresh subnet + copied recipe so output 0 routes
+    cleanly. Copies are rebuilt fresh; the template is left untouched."""
+
+    for c in list(sub.children()):  # rebuild hair-constraint copies fresh
+        if c.name().startswith("hcon_") or c.name().startswith("hcin_"):
+            c.destroy()
+    made = []
+    for i, part in enumerate(hair_parts):
+        cin = _child(sub, "hcin_%s" % part.name, "blast")
+        cin.parm("group").set("@proxy_path=%s" % (part.proxy_path or part.name))
+        cin.parm("negate").set(1)  # keep only this hair part
+        cin.setInput(0, hair_in)
+        node = sub.createNode("subnet", "hcon_%s" % part.name)
+        _copy_recipe_into_subnet(ref, node)
+        node.setInput(0, cin, 0)
+        # name the packed prims after the part (parity with cloth vellumpack)
+        for c in node.children():
+            if c.type().name() == "vellumpack" and c.parm("doname"):
+                c.parm("doname").set(1)
+                c.parm("name").set(part.name)
+        node.layoutChildren()
+        merge.setInput(base_idx + i, node, 0)
+        made.append(part.name)
+    return made
+
+
 def build_constraint(cfg: AssetSetupConfig, parent: str = "/obj") -> dict[str, Any]:
     """Stage 2.6 — PER-PART vellum constraint REST authoring (asset stage).
 
@@ -885,16 +1274,65 @@ def build_constraint(cfg: AssetSetupConfig, parent: str = "/obj") -> dict[str, A
     """
 
     geo = _asset_geo(cfg, parent)
-    # drop any single-proxy constraint nodes left by the earlier merged build
-    for stale in ("vellum_constraints", "vellum_pin"):
-        n = geo.node(stale)
-        if n is not None:
-            n.destroy()
-    return build_vellum_chain(
-        geo, cfg.proxy_parts, cfg.constraint,
-        src_for_part=lambda p: geo.node(f"OUT_{p.name}_PROXY"),
-        rest_cage=None, anim_cage=None,
-    )
+    proxy_out = geo.node("OUT_PROXY")
+    hair_out = geo.node("OUT_HAIR_PROXY")
+    srcs = [proxy_out] + ([hair_out] if hair_out is not None else [])
+    sub = _stage_subnet(geo, "CONSTRAINT", *srcs)
+    proxy_in = sub.indirectInputs()[0]
+    hair_in = sub.indirectInputs()[1] if hair_out is not None else None
+
+    # Parts come from the PROXY subnet (source of truth) so the constraint setups
+    # always match the proxies actually generated there; fall back to config.
+    proxy_sub = geo.node("PROXY")
+    all_parts = _parts_from_node(proxy_sub) if proxy_sub is not None else cfg.proxy_parts
+
+    # Hair parts are instanced from the ``hair_ref`` template (a default one is
+    # created if the artist hasn't made one); cloth goes through the built-in
+    # vellum chain.
+    hair_ref = _ensure_hair_ref(sub)
+    chain_parts = [p for p in all_parts if p.cloth]
+    hair_parts = [p for p in all_parts if not p.cloth]
+
+    # retire stale per-part nodes so removed parts leave no orphans (keep hair_ref)
+    for c in list(sub.children()):
+        nm = c.name()
+        if (nm.startswith("cin_") or nm.startswith("vc_") or nm == "constraint_merge"
+                or nm.startswith("hcin_") or nm.startswith("hcon_")
+                or (nm.endswith("_CONSTRAINT") and nm != "OUT_CONSTRAINT")):
+            c.destroy()
+
+    def src_for_part(part):
+        # isolate this part from the merged proxy input by its proxy_path tag
+        base = (hair_in if (not part.cloth and hair_in is not None) else proxy_in)
+        b = _child(sub, f"cin_{part.name}", "blast")
+        b.parm("group").set(f"@proxy_path={part.proxy_path or part.name}")
+        b.parm("negate").set(1)  # keep only this part
+        b.setInput(0, base)
+        return b
+
+    res = build_vellum_chain(sub, chain_parts, cfg.constraint,
+                             src_for_part=src_for_part, rest_cage=None, anim_cage=None)
+    merge = sub.node("constraint_merge")
+    made_hair = []
+    if hair_ref is not None and hair_parts and hair_in is not None:
+        made_hair = _instance_hair_ref(sub, hair_parts, hair_in, hair_ref, merge,
+                                       len(merge.inputs()))
+    _stage_output(sub, sub.node("OUT_CONSTRAINT"))  # build_vellum_chain's merge output
+    sub.layoutChildren()
+
+    out = _child(geo, "OUT_CONSTRAINT", "null")
+    out.setInput(0, sub, 0)
+    # retire the old flat constraint nodes from the pre-subnet layout
+    for c in list(geo.children()):
+        nm = c.name()
+        if (nm.startswith("vc_") or nm.startswith("cin_") or nm == "constraint_merge"
+                or nm in ("vellum_constraints", "vellum_pin")
+                or (nm.endswith("_CONSTRAINT") and nm != "OUT_CONSTRAINT")):
+            c.destroy()
+    geo.layoutChildren()
+    return {"constraint_subnet": sub.path(), "out_constraint": out.path(),
+            "parts": res.get("parts"), "hair_parts": made_hair,
+            "warnings": res.get("warnings", [])}
 
 
 def build_rest_cache(cfg: AssetSetupConfig, parent: str = "/obj",

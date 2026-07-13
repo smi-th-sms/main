@@ -201,25 +201,12 @@ def _build_interface(node) -> None:
 
     # NOTE: FBX / Hair parameters (character_import, hair_import, root/pelvis,
     # hair_scale) live on the built FBX subnet (source of truth), not here.
+    # Cloth/Hair Parts likewise live on the built PROXY subnet — the artist adds
+    # and classifies (cloth vs hair) parts there directly.
 
-    # --- Cloth & Hair Parts (user-driven multiparm, like the studio PROXY) ---
-    parts = hou.FolderParmTemplate("cfx_parts", "Cloth / Hair Parts",
-                                   folder_type=hou.folderType.MultiparmBlock)
-    parts.addParmTemplate(hou.StringParmTemplate("part_name_#", "Part Name", 1))
-    parts.addParmTemplate(hou.StringParmTemplate("part_geo_#", "Geo Path (@geo_path)", 1))
-    parts.addParmTemplate(hou.ToggleParmTemplate("part_cloth_#", "Cloth (off = Hair)",
-                                                default_value=True))
-
-    # --- stage params (the handful worth exposing up front) ---
-    stage = hou.FolderParmTemplate("cfx_stage", "Stage Params", folder_type=hou.folderType.Simple)
-    stage.addParmTemplate(hou.StringParmTemplate("collision_pattern", "Collision Body Pattern", 1,
-                                                default_value=("@geo_path=*body* @geo_path=*head*",)))
-    stage.addParmTemplate(hou.FloatParmTemplate("collision_voxel_ratio", "Collision Voxel Ratio", 1,
-                                               default_value=(0.005,)))
-    stage.addParmTemplate(hou.FloatParmTemplate("stretch_stiffness", "Cloth Stretch Stiffness", 1,
-                                               default_value=(0.9,)))
-    stage.addParmTemplate(hou.FloatParmTemplate("bend_stiffness", "Cloth Bend Stiffness", 1,
-                                               default_value=(0.01,)))
+    # NOTE: Collision params (body pattern + voxel ratio) live on the built
+    # COLLISION subnet (source of truth). Cloth stiffness is authored per part
+    # (on each vellumconstraints node), not globally.
 
     # --- actions ---
     actions = hou.FolderParmTemplate("cfx_actions", "Build", folder_type=hou.folderType.Simple)
@@ -233,7 +220,7 @@ def _build_interface(node) -> None:
                                                    script_callback=_cb("on_write_cache"),
                                                    script_callback_language=hou.scriptLanguage.Python))
 
-    for folder in (config, parts, stage, actions):
+    for folder in (config, actions):
         g.append(folder)
     node.setParmTemplateGroup(g)
 
@@ -261,6 +248,72 @@ def _fbx_subnet(node):
 
     asset = node.evalParm("asset")
     return node.node("%s_asset_setup/FBX" % asset) if asset else None
+
+
+def _proxy_subnet(node):
+    """The built PROXY subnet under this control node (parts source of truth),
+    or None before the network is built."""
+
+    asset = node.evalParm("asset")
+    return node.node("%s_asset_setup/PROXY" % asset) if asset else None
+
+
+def _collision_subnet(node):
+    """The built COLLISION subnet (collision params source of truth), or None."""
+
+    asset = node.evalParm("asset")
+    return node.node("%s_asset_setup/COLLISION" % asset) if asset else None
+
+
+_DEFAULT_COLLISION_PATTERN = "@geo_path=*body* @geo_path=*head*"
+
+
+def _collision_data(node) -> dict:
+    """Collision params (body pattern + voxel ratio) — from the COLLISION subnet
+    when built (source of truth), else the config JSON file, else defaults."""
+
+    sub = _collision_subnet(node)
+    if sub is not None and sub.parm("collision_pattern") is not None:
+        return {"collision_pattern": sub.evalParm("collision_pattern") or _DEFAULT_COLLISION_PATTERN,
+                "voxel_ratio": sub.evalParm("voxel_ratio")}
+    import os
+    path = node.evalParm("config_json")
+    if path and os.path.isfile(path):
+        try:
+            data = json.loads(open(path, encoding="utf-8").read())
+            block = data["asset"] if isinstance(data.get("asset"), dict) else data
+            return {"collision_pattern": block.get("collision_pattern", _DEFAULT_COLLISION_PATTERN),
+                    "voxel_ratio": (block.get("collision") or {}).get("voxel_ratio", 0.005)}
+        except Exception:
+            pass
+    return {"collision_pattern": _DEFAULT_COLLISION_PATTERN, "voxel_ratio": 0.005}
+
+
+def _parts_data(node) -> list:
+    """Cloth/Hair parts — from the PROXY subnet's Parts multiparm when built
+    (source of truth), else from the config JSON file, else empty."""
+
+    sub = _proxy_subnet(node)
+    if sub is not None and sub.parm("parts"):
+        out = []
+        for i in range(1, sub.evalParm("parts") + 1):
+            nm = sub.evalParm("part_name_%d" % i)
+            if not nm:
+                continue
+            geo = sub.evalParm("part_geo_%d" % i)
+            out.append({"name": nm, "geo_path": [geo] if geo else [],
+                        "cloth": bool(sub.evalParm("part_cloth_%d" % i))})
+        return out
+    import os
+    path = node.evalParm("config_json")
+    if path and os.path.isfile(path):
+        try:
+            data = json.loads(open(path, encoding="utf-8").read())
+            block = data["asset"] if isinstance(data.get("asset"), dict) else data
+            return block.get("proxy_parts", [])
+        except Exception:
+            pass
+    return []
 
 
 def _fbx_data(node) -> tuple[dict[str, Any], float]:
@@ -292,30 +345,20 @@ def node_to_config(node) -> AssetSetupConfig:
     """Read the node into an :class:`AssetSetupConfig`. FBX/Hair come from the
     built FBX subnet (source of truth), falling back to the config file."""
 
-    parts = []
-    n = node.parm("cfx_parts").eval() if node.parm("cfx_parts") else 0
-    for i in range(1, n + 1):
-        pname = node.evalParm("part_name_%d" % i)
-        if not pname:
-            continue
-        geo = node.evalParm("part_geo_%d" % i)
-        parts.append({
-            "name": pname,
-            "geo_path": [geo] if geo else [],
-            "cloth": bool(node.evalParm("part_cloth_%d" % i)),
-        })
+    parts = _parts_data(node)
     fbx_data, hair_scale = _fbx_data(node)
+    coll = _collision_data(node)
     data: dict[str, Any] = {
         "show": node.evalParm("show"),
         "asset": node.evalParm("asset"),
         "asset_type": node.evalParm("asset_type") or "Character",
         "hair_scale": hair_scale,
-        "collision_pattern": node.evalParm("collision_pattern"),
+        "collision_pattern": coll["collision_pattern"],
         "fbx": fbx_data,
         "proxy_parts": parts,
-        "collision": {"voxel_ratio": node.evalParm("collision_voxel_ratio")},
-        "constraint": {"stretch_stiffness": node.evalParm("stretch_stiffness"),
-                       "bend_stiffness": node.evalParm("bend_stiffness")},
+        "collision": {"voxel_ratio": coll["voxel_ratio"]},
+        # cloth stiffness is authored per part (on each vellumconstraints node),
+        # not globally — no cfg.constraint stretch/bend here.
     }
     return AssetSetupConfig.from_dict(data)
 
@@ -327,7 +370,6 @@ def config_to_node(node, cfg: AssetSetupConfig) -> None:
     node.parm("show").set(cfg.show)
     node.parm("asset").set(cfg.asset)
     node.parm("asset_type").set(cfg.asset_type)
-    node.parm("collision_pattern").set(cfg.collision_pattern)
     sub = _fbx_subnet(node)
     if sub is not None and sub.parm("character_import"):
         sub.parm("character_import").set(cfg.fbx.character_import or "")
@@ -335,17 +377,18 @@ def config_to_node(node, cfg: AssetSetupConfig) -> None:
         sub.parm("root_name").set(cfg.fbx.root_name)
         sub.parm("pelvis_name").set(cfg.fbx.pelvis_name)
         sub.parm("hair_scale").set(cfg.hair_scale)
-    node.parm("cfx_parts").set(len(cfg.proxy_parts))
-    for i, p in enumerate(cfg.proxy_parts, start=1):
-        node.parm("part_name_%d" % i).set(p.name)
-        node.parm("part_geo_%d" % i).set(p.geo_path[0] if p.geo_path else "")
-        node.parm("part_cloth_%d" % i).set(int(p.cloth))
-    if cfg.collision.get("voxel_ratio") is not None:
-        node.parm("collision_voxel_ratio").set(float(cfg.collision["voxel_ratio"]))
-    if cfg.constraint.get("stretch_stiffness") is not None:
-        node.parm("stretch_stiffness").set(float(cfg.constraint["stretch_stiffness"]))
-    if cfg.constraint.get("bend_stiffness") is not None:
-        node.parm("bend_stiffness").set(float(cfg.constraint["bend_stiffness"]))
+    psub = _proxy_subnet(node)
+    if psub is not None and psub.parm("parts"):
+        psub.parm("parts").set(len(cfg.proxy_parts))
+        for i, p in enumerate(cfg.proxy_parts, start=1):
+            psub.parm("part_name_%d" % i).set(p.name)
+            psub.parm("part_geo_%d" % i).set(p.geo_path[0] if p.geo_path else "")
+            psub.parm("part_cloth_%d" % i).set(int(p.cloth))
+    csub = _collision_subnet(node)
+    if csub is not None and csub.parm("collision_pattern") is not None:
+        csub.parm("collision_pattern").set(cfg.collision_pattern or _DEFAULT_COLLISION_PATTERN)
+        if cfg.collision.get("voxel_ratio") is not None:
+            csub.parm("voxel_ratio").set(float(cfg.collision["voxel_ratio"]))
 
 
 # ---------------------------------------------------------------------------
@@ -371,6 +414,17 @@ def _config_path_for(node) -> str:
     rules = PipelinePathRules.from_dict(
         {"root": root, "context": {"asset_subpath": "assets/%s" % atype}})
     return rules.resolve("asset_config", show=show, asset=asset)
+
+
+def _config_asset(path: str) -> str:
+    """The ``asset`` name recorded in a config JSON (for the auto-load guard)."""
+
+    try:
+        data = json.loads(open(path, encoding="utf-8").read())
+        block = data["asset"] if isinstance(data.get("asset"), dict) else data
+        return str(block.get("asset", ""))
+    except Exception:
+        return ""
 
 
 def _load_file(node, path: str) -> None:
@@ -410,7 +464,7 @@ def on_update_path(node) -> None:
         finally:
             _BUSY = False
         _popup("Existing config found and loaded.\n\nAsset: %s\nParts: %d\n%s"
-               % (node.evalParm("asset"), node.evalParm("cfx_parts"), path))
+               % (node.evalParm("asset"), len(_parts_data(node)), path))
     else:
         _popup("No config yet — path set to:\n%s\n\nFill the parameters and "
                "Save Config to create it." % path)
@@ -429,7 +483,9 @@ def on_asset_changed(node) -> None:
         return
     node.parm("config_json").set(path)
     import os
-    if os.path.isfile(path):
+    if os.path.isfile(path) and _config_asset(path) == node.evalParm("asset"):
+        # only auto-load when the file really is THIS asset's config, so a stale
+        # path can never silently switch the selected asset (drift guard).
         _BUSY = True
         try:
             _load_file(node, path)
@@ -452,6 +508,37 @@ def _popup(msg: str, severity: str = "message") -> None:
         hou.ui.displayMessage(msg, severity=sev, title="CFX Asset Setup")
     except Exception:
         print("[CFX %s] %s" % (severity.upper(), msg))
+
+
+def _autofill_fbx_from_config(node, sub) -> None:
+    """Pull the FBX subnet's Character FBX / Hair Guide paths from the cfx_asset
+    config: resolve the RIG dirs from the control node's selection and set a
+    sensible default file (only when the param is empty, so user picks persist)."""
+
+    import os
+
+    def pick(dirpath, prefer, exts):
+        if not dirpath or not os.path.isdir(dirpath):
+            return ""
+        files = sorted(f for f in os.listdir(dirpath)
+                       if f.lower().endswith(exts)
+                       and os.path.isfile(os.path.join(dirpath, f)))
+        if not files:
+            return ""
+        for key in prefer:                      # prefer a name-matched file
+            for f in files:
+                if key in f.lower():
+                    return os.path.join(dirpath, f).replace("\\", "/")
+        return os.path.join(dirpath, files[0]).replace("\\", "/")
+
+    if sub.parm("character_import") and not sub.evalParm("character_import"):
+        v = pick(_asset_dir(node, "character_fbx_dir"), ("sim",), (".fbx",))
+        if v:
+            sub.parm("character_import").set(v)
+    if sub.parm("hair_import") and not sub.evalParm("hair_import"):
+        v = pick(_asset_dir(node, "hair_guide_dir"), ("guides", "guide"), (".abc",))
+        if v:
+            sub.parm("hair_import").set(v)
 
 
 def _add_fbx_scan_menus(sub) -> None:
@@ -477,6 +564,197 @@ def _add_fbx_scan_menus(sub) -> None:
         sub.parm(pname).set(val)
 
 
+def _add_parts_buttons(sub) -> None:
+    """Install Auto-detect / Clear buttons just above the Parts multiparm on the
+    PROXY subnet (idempotent). Per-row add/remove is the multiparm's native +/-."""
+
+    import hou
+    g = sub.parmTemplateGroup()
+    if g.find("autodetect_parts") is not None:
+        return
+    btn_auto = hou.ButtonParmTemplate(
+        "autodetect_parts", "Auto-detect Parts from geo_path",
+        script_callback=_cb("on_autodetect_parts"),
+        script_callback_language=hou.scriptLanguage.Python)
+    btn_gen = hou.ButtonParmTemplate(
+        "generate_structure", "Generate Structure (from cloth_ref)",
+        script_callback=_cb("on_generate_structure"),
+        script_callback_language=hou.scriptLanguage.Python)
+    btn_clear = hou.ButtonParmTemplate(
+        "clear_parts", "Clear Parts",
+        script_callback=_cb("on_clear_parts"),
+        script_callback_language=hou.scriptLanguage.Python)
+    # hidden bookkeeping: every geo_path auto-detect has ever surfaced, so a
+    # part the user removed is NOT re-added on the next Auto-detect (removals stick).
+    known = hou.StringParmTemplate("known_geo", "Known Geo (internal)", 1,
+                                   is_hidden=True)
+    parts_pt = g.find("parts")
+    if parts_pt is not None:
+        g.insertBefore(parts_pt, btn_auto)
+        g.insertBefore(parts_pt, btn_gen)
+        g.insertBefore(parts_pt, btn_clear)
+    else:
+        g.append(btn_auto)
+        g.append(btn_gen)
+        g.append(btn_clear)
+    g.append(known)
+    sub.setParmTemplateGroup(g)
+
+
+def _part_name_from_geo(geo_path: str) -> str:
+    """Derive a friendly part name from a geo_path (``Pants_geo`` -> ``pants``)."""
+
+    base = geo_path.rsplit("/", 1)[-1]
+    for suf in ("_geo", "_grp", "_mesh", "_msh"):
+        if base.lower().endswith(suf):
+            base = base[: -len(suf)]
+            break
+    return base.lower()
+
+
+def _collision_patterns(node) -> list:
+    """Wildcard tokens from the Collision Body Pattern (COLLISION subnet), used
+    to exclude collider geometry (body/head) from proxy-part auto-detect —
+    those pieces belong to COLLISION, not to the cloth/hair parts."""
+
+    ctrl = _control_node(node)
+    raw = _collision_data(ctrl).get("collision_pattern") or _DEFAULT_COLLISION_PATTERN
+    pats = []
+    for tok in (raw or "").split():
+        if tok.startswith("@geo_path="):
+            tok = tok[len("@geo_path="):]
+        if tok:
+            pats.append(tok)
+    return pats
+
+
+def _known_geo(node) -> set:
+    """geo_paths auto-detect has already surfaced (added or later removed)."""
+
+    raw = node.evalParm("known_geo") if node.parm("known_geo") is not None else ""
+    return {v for v in (raw or "").split("\n") if v}
+
+
+def _set_known_geo(node, values) -> None:
+    if node.parm("known_geo") is not None:
+        node.parm("known_geo").set("\n".join(sorted(values)))
+
+
+def on_autodetect_parts(node) -> None:
+    """Populate the PROXY subnet's Parts multiparm from the distinct ``@geo_path``
+    values on its input (the corrected mesh).
+
+    - Collider geometry matching the Collision Body Pattern (body/head) is
+      excluded — it belongs to COLLISION, not the cloth/hair parts.
+    - Only geo_paths never surfaced before are added (tracked in ``known_geo``),
+      so a part the user removed does NOT come back on the next Auto-detect.
+    New rows default to cloth; the artist then toggles hair. To re-surface every
+    piece from scratch, use Clear Parts first (it resets the memory)."""
+
+    import fnmatch
+
+    inputs = node.inputs()
+    if not inputs or inputs[0] is None:
+        _popup("PROXY subnet has no input to scan.", "warning")
+        return
+    try:
+        g = inputs[0].geometry()
+    except Exception as exc:
+        _popup("Could not read input geometry:\n%s" % exc, "error")
+        return
+    attrib = g.findPrimAttrib("geo_path") if g is not None else None
+    values = sorted(attrib.strings()) if attrib is not None else []
+    if not values:
+        _popup("No @geo_path values found on the input geometry.", "warning")
+        return
+    collider = _collision_patterns(node)
+    known = _known_geo(node)
+    existing = {node.evalParm("part_geo_%d" % i)
+                for i in range(1, (node.evalParm("parts") or 0) + 1)}
+    added, skipped, seen = [], [], set()
+    for v in values:
+        if any(fnmatch.fnmatch(v, p) for p in collider):  # body/head -> COLLISION
+            skipped.append(v)
+            continue
+        seen.add(v)                       # a real cloth/hair candidate
+        if v in existing or v in known:   # already listed, or user removed it before
+            continue
+        n = (node.evalParm("parts") or 0) + 1
+        node.parm("parts").set(n)
+        node.parm("part_name_%d" % n).set(_part_name_from_geo(v))
+        node.parm("part_geo_%d" % n).set(v)
+        node.parm("part_cloth_%d" % n).set(1)  # default cloth; user toggles hair
+        added.append(v)
+    _set_known_geo(node, known | seen)    # remember everything surfaced this run
+    _popup("Auto-detect complete.\n\n%d geo_path value(s) found, %d new part(s) added.\n"
+           "Excluded %d collider (body/head) piece(s).\n\n"
+           "Removed parts are not re-added — use Clear Parts to reset."
+           % (len(values), len(added), len(skipped)))
+
+
+def on_clear_parts(node) -> None:
+    """Remove all rows from the Parts multiparm and reset the Auto-detect memory,
+    so the next Auto-detect surfaces every piece again."""
+
+    if node.parm("parts"):
+        node.parm("parts").set(0)
+    _set_known_geo(node, set())
+    _popup("Cleared all parts (Auto-detect memory reset).")
+
+
+def on_generate_structure(node) -> None:
+    """Auto-generate the cloth proxy structure inside the PROXY subnet by
+    instancing the ``cloth_ref`` template once per cloth part (``node`` is the
+    PROXY subnet). A default ``cloth_ref`` is created if the artist hasn't made
+    one; copies for removed parts are retired. Hair is handled by HAIR."""
+
+    import hou
+
+    _asset._ensure_cloth_ref(node)   # create a default template if missing
+    cloth = [p for p in _asset._parts_from_node(node) if p.cloth and p.geo_path]
+    if not cloth:
+        _popup("No cloth parts with a geo_path to generate.", "warning")
+        return
+    merge = node.node("proxy_merge") or node.createNode("merge", "proxy_merge")
+    made = _asset._instance_cloth_ref(node, cloth, merge)
+    # keep the subnet output wired to the merge
+    out = node.node("output0") or node.createNode("output", "output0")
+    if not out.inputs() or out.inputs()[0] is not merge:
+        out.setInput(0, merge, 0)
+    node.layoutChildren()
+    # keep CONSTRAINT in sync — regenerate the per-part vellum setups to match
+    ctrl = _control_node(node)
+    con_msg = ""
+    try:
+        _asset.build_constraint(node_to_config(ctrl), ctrl.path())
+        con_msg = "\n\nCONSTRAINT updated to match."
+    except Exception as exc:
+        con_msg = "\n\n(CONSTRAINT update failed: %s)" % exc
+    _popup("Generated cloth structure for %d part(s):\n%s%s"
+           % (len(made), "\n".join(made), con_msg))
+
+
+def _layout_recursive(node) -> None:
+    """Lay out a node's children, recursing into every subnet descendant so the
+    whole asset_setup tree (stage subnets + cloth_ref copies) is tidy."""
+
+    kids = node.children()
+    if not kids:
+        return
+    for c in kids:
+        _layout_recursive(c)
+    node.layoutChildren()
+
+
+def _layout_asset(node) -> None:
+    """Tidy the whole built asset network under the control node."""
+
+    asset = node.evalParm("asset")
+    container = node.node("%s_asset_setup" % asset) if asset else None
+    if container is not None:
+        _layout_recursive(container)
+
+
 def on_build(node) -> dict[str, Any]:
     """Build the full asset setup (setup→corrective→collision→proxy→hair→constraint)
     inside this node from its parameters."""
@@ -495,7 +773,12 @@ def on_build(node) -> dict[str, Any]:
         raise
     sub = _fbx_subnet(node)
     if sub is not None:
-        _add_fbx_scan_menus(sub)  # RIG file-scan menus on the FBX subnet
+        _add_fbx_scan_menus(sub)          # RIG file-scan menus on the FBX subnet
+        _autofill_fbx_from_config(node, sub)  # pull default paths from cfx_asset config
+    psub = _proxy_subnet(node)
+    if psub is not None:
+        _add_parts_buttons(psub)          # Auto-detect / Clear on the PROXY subnet
+    _layout_asset(node)                   # tidy the whole network
     built = f"{p}/{cfg.asset}_asset_setup"
     _popup("Asset setup built.\n\nAsset: %s\nParts: %d\n%s"
            % (cfg.asset, len(cfg.proxy_parts), built))
@@ -547,7 +830,7 @@ def on_load_config(node) -> None:
         _popup("Load failed:\n%s\n\n%s" % (path, exc), "error")
         return
     _popup("Config loaded.\n\nAsset: %s\nParts: %d\n%s"
-           % (node.evalParm("asset"), node.evalParm("cfx_parts"), path))
+           % (node.evalParm("asset"), len(_parts_data(node)), path))
 
 
 def on_save_config(node) -> None:
@@ -573,4 +856,4 @@ def on_save_config(node) -> None:
         _popup("Save failed:\n%s\n\n%s" % (path, exc), "error")
         return
     _popup("Config saved.\n\nAsset: %s\nParts: %d\n%s"
-           % (node.evalParm("asset"), node.evalParm("cfx_parts"), path))
+           % (node.evalParm("asset"), len(_parts_data(node)), path))

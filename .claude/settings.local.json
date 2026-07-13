@@ -85,7 +85,10 @@
       "Bash(git reflog *)",
       "Bash(git gc *)",
       "Bash(git push *)",
-      "Bash(.venv-kimodo310/Scripts/python.exe --version)"
+      "Bash(.venv-kimodo310/Scripts/python.exe --version)",
+      "mcp__maya__scene_new",
+      "Bash(claude update *)",
+      "Bash(claude *)"
     ]
   },
   "enableAllProjectMcpServers": true,
