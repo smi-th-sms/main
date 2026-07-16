@@ -6,26 +6,30 @@ curve(오브젝트 실제 vertex 중심선) 기반 IK/FK 하이브리드 리그.
 
 파이프라인:
     1. mesh의 실제 vertex 중심선을 따라가는 base_CRV 생성
-    2. base_CRV 위에 motionPath 기반 null(위치만) 생성. Settings.Slide로
-       전체 null 체인이 curve를 따라 미끄러질 수 있게 함
-    3. base_CRV를 복사해 ik_CRV 생성, 적은 개수의 자유 이동 IK 컨트롤(hidden
+    2. base_CRV를 복사해 ik_CRV 생성, 적은 개수의 자유 이동 IK 컨트롤(hidden
        skin joint)로 skinCluster 구동 -- weight는 자동 dropoff 대신 파라미터
        기준 선형(tent) falloff로 직접 계산해서 설정한다(influence 개수/간격이
-       바뀌어도 항상 예측 가능하게 부드럽게 분배됨)
+       바뀌어도 항상 예측 가능하게 부드럽게 분배됨). Stretch/Squash/Slide
+       attribute는 별도 Settings 노드 없이 마지막 IK 컨트롤러 위에 둔다
+    3. base_CRV 위에 motionPath 기반 null(위치만) 생성. attr_ctrl.Slide로
+       전체 null 체인이 curve를 따라 미끄러질 수 있게 함
     4. ik_CRV를 따라가는 splineIK joint 체인 생성 -- Advanced Twist를 시작/끝
        IK 컨트롤의 회전에 연결. rest 상태에 남는 잔여 rotate는 jointOrient에
        구워서 rotate가 항상 0에서 시작하도록 정리. 이 체인에 Stretch(세그먼트
-       translateX)/Squash(scaleY/Z) 적용
+       translateX)/자체 Squash(scaleY/Z, 전역 게이트만) 적용
     5. 이 splineIK 체인과 정확히 같은 개수/위치에 FK 컨트롤(real DAG 하이라키)을
        생성 -- CTL_OFF(translate) -> OrientOff(jointOrient) -> ConnOff(rotate)
        순서를 ik 조인트와 동일하게 복제해서 위치+회전이 항상 IK 체인과 일치
-       하게 만듦. 각 FK 밑에 숨은 leaf 조인트를 두고 Squash scale은 거기에만
-       적용해(ConnOff 같은 조상 노드에 걸면 비균일 scale이 하위 FK 위치 계산에
-       그대로 곱해져 아래로 갈수록 위치가 틀어짐) 다음 FK 위치에 영향 없게 함
+       하게 만듦
     6. FK 조인트들로 base_CRV를 skinCluster 바인드(마찬가지로 dropoff 낮춤)
     7. null의 twist 참조를 공유 up-vector 대신 가장 가까운 FK 컨트롤 두 개의
        world rotation을 보간해서 얻음 -- 참조가 항상 국지적이라 커브가 크게
        휘어도 플립 위험이 훨씬 적음
+    8. null 밑에 최종 BIND_JNT 생성. base_CRV 위를 파라미터로 움직이는
+       SquashStart/End 컨트롤러 2개(Parameter+Volume attribute)를 만들어,
+       그 구간에 속하는 BIND_JNT의 squash 볼륨을 start~end로 보간(구간 밖은
+       가장 가까운 끝 값으로 고정)하고 attr_ctrl.Squash를 전역 게이트로 곱해
+       BIND_JNT의 scaleY/Z에 적용 -- FK_JNT에는 더 이상 squash를 걸지 않음
 
 :Example:
     from python2.rigging import tentacle_autorig
@@ -208,15 +212,21 @@ def _build_mp_nulls(name, num_nulls, base_shape, null_grp):
     return mps, nulls
 
 
-def _build_slide(name, mps, settings_ctl):
-    """Settings.Slide(-1~1)를 모든 motionPath의 uValue에 더해서 전체 null
-    체인이 curve를 따라 미끄러지게 한다. clamp(0,1)로 curve 끝을 넘지 않게 고정.
+def _build_slide(name, mps, attr_ctrl):
+    """attr_ctrl.Slide(-10~10)를 모든 motionPath의 uValue에 더해서 전체 null
+    체인이 curve를 따라 미끄러지게 한다. Stretch/Squash가 0~10 입력을 /10으로
+    0~1 게이트로 정규화하는 것과 동일한 컨벤션으로, Slide도 /10해서 기존과
+    동일한 -1~1 이동 범위를 유지한다. clamp(0,1)로 curve 끝을 넘지 않게 고정.
     """
+    slide_norm = cmds.createNode('multDoubleLinear', n='{}_slideNorm_MDL'.format(name))
+    cmds.setAttr(slide_norm+'.input2', 0.1)
+    cmds.connectAttr(attr_ctrl+'.Slide', slide_norm+'.input1')
+
     for i, mp in enumerate(mps):
         base_u = cmds.getAttr(mp+'.uValue')
         add = cmds.createNode('plusMinusAverage', n='{}_slide{:02d}_PMA'.format(name, i))
         cmds.setAttr(add+'.input1D[0]', base_u)
-        cmds.connectAttr(settings_ctl+'.Slide', add+'.input1D[1]')
+        cmds.connectAttr(slide_norm+'.output', add+'.input1D[1]')
         clamp = cmds.createNode('clamp', n='{}_slide{:02d}_CLAMP'.format(name, i))
         cmds.setAttr(clamp+'.minR', 0)
         cmds.setAttr(clamp+'.maxR', 1)
@@ -224,13 +234,13 @@ def _build_slide(name, mps, settings_ctl):
         cmds.connectAttr(clamp+'.outputR', mp+'.uValue', f=True)
 
 
-def _build_settings_ctl(name, base_pos, ctl_grp):
-    s = cmds.createNode('transform', n='{}_Settings_CTL'.format(name), p=ctl_grp)
-    cmds.xform(s, ws=True, t=base_pos)
-    cmds.addAttr(s, ln='Stretch', at='double', min=0, max=10, dv=0, k=True)
-    cmds.addAttr(s, ln='Squash', at='double', min=0, max=10, dv=0, k=True)
-    cmds.addAttr(s, ln='Slide', at='double', min=-1, max=1, dv=0, k=True)
-    return s
+def _add_rig_attrs(ctrl):
+    """Stretch/Squash/Slide attribute를 주어진 컨트롤(마지막 IK 컨트롤러)에 추가한다.
+    Settings_CTL 같은 별도 허브 노드 없이, 늘 존재하는 마지막 IK 컨트롤러 위에 둔다.
+    """
+    cmds.addAttr(ctrl, ln='Stretch', at='double', min=0, max=10, dv=0, k=True)
+    cmds.addAttr(ctrl, ln='Squash', at='double', min=0, max=10, dv=0, k=True)
+    cmds.addAttr(ctrl, ln='Slide', at='double', min=-10, max=10, dv=0, k=True)
 
 
 def _make_ctrl(n, radius, pos, rot=None, normal=(0, 1, 0)):
@@ -253,8 +263,8 @@ def _build_ik_curve(name, crv_grp, base_crv):
     return ik_crv
 
 
-def _build_stretch_ratio(name, ik_crv, settings_ctl):
-    """ik_CRV의 rest 대비 현재 arc length 비율(ratio_plug)과, Settings.Stretch/
+def _build_stretch_ratio(name, ik_crv, attr_ctrl):
+    """ik_CRV의 rest 대비 현재 arc length 비율(ratio_plug)과, attr_ctrl의 Stretch/
     Squash를 0~1 게이트로 바꾼 값(stretch_gate_plug/squash_gate_plug)을 만든다.
     """
     rest_length = cmds.arclen(ik_crv)
@@ -270,11 +280,11 @@ def _build_stretch_ratio(name, ik_crv, settings_ctl):
 
     stretch_gate = cmds.createNode('multDoubleLinear', n='{}_stretchGate_MDL'.format(name))
     cmds.setAttr(stretch_gate+'.input2', 0.1)
-    cmds.connectAttr(settings_ctl+'.Stretch', stretch_gate+'.input1')
+    cmds.connectAttr(attr_ctrl+'.Stretch', stretch_gate+'.input1')
 
     squash_gate = cmds.createNode('multDoubleLinear', n='{}_squashGate_MDL'.format(name))
     cmds.setAttr(squash_gate+'.input2', 0.1)
-    cmds.connectAttr(settings_ctl+'.Squash', squash_gate+'.input1')
+    cmds.connectAttr(attr_ctrl+'.Squash', squash_gate+'.input1')
 
     return ratio_md+'.outputX', stretch_gate+'.output', squash_gate+'.output'
 
@@ -412,7 +422,7 @@ def _build_ik_spline_chain(name, num_jnts, ik_crv, ik_ctrls, jnt_grp, sys_grp,
     return jnts
 
 
-def _build_fk_setup(name, ik_jnts, fk_ctl_grp, ratio_plug, squash_gate_plug):
+def _build_fk_setup(name, ik_jnts, fk_ctl_grp):
     """splineIK 체인(ik_jnts)과 정확히 같은 개수/위치에 FK 컨트롤을 real DAG
     하이라키(spine2_.py 방식, 부모-자식)로 생성한다.
 
@@ -425,12 +435,10 @@ def _build_fk_setup(name, ik_jnts, fk_ctl_grp, ratio_plug, squash_gate_plug):
           -> OrientOff (rotate = ik_jnts[i].jointOrient, 정적)
             -> ConnOff (rotate = ik_jnts[i].rotate, live)
               -> CTL (leaf)
-                -> JNT (leaf, base_CRV skin용 + Squash scale 여기 적용)
+                -> JNT (leaf, base_CRV skin influence 전용)
 
-    Squash를 ConnOff처럼 다음 FK의 조상이 되는 노드에 걸면, 비균일 scale이
-    다음 FK 레벨의 위치 계산(부모의 scale이 자식 translate에 그대로 곱해짐)에
-    누적되어 아래로 갈수록 위치가 크게 틀어진다. FK_JNT는 leaf(자식 없음)라
-    이 문제가 없어서 Squash는 항상 여기에 건다.
+    Squash는 여기(FK_JNT)에 걸지 않는다 -- null 하위의 최종 BIND_JNT
+    (_build_null_bind_joints)에서 구간별 볼륨으로 적용한다.
     """
     fk_ctrls, fk_jnts = [], []
     for i, jnt in enumerate(ik_jnts):
@@ -463,17 +471,6 @@ def _build_fk_setup(name, ik_jnts, fk_ctl_grp, ratio_plug, squash_gate_plug):
         # (FK_CTL이 이미 회전돼 있는 상태에서 새 joint를 부모링하면) 명시적으로
         # 0으로 되돌려야 FK_JNT 축이 FK_CTL과 완전히 같아진다.
         cmds.setAttr(fk_jnt+'.jointOrient', 0, 0, 0)
-
-        inv_ratio = cmds.createNode('multiplyDivide', n='{}_FK{:02d}_squashInv_MD'.format(name, i))
-        cmds.setAttr(inv_ratio+'.operation', 2)  # divide
-        cmds.setAttr(inv_ratio+'.input1X', 1.0)
-        cmds.connectAttr(ratio_plug, inv_ratio+'.input2X')
-        for axis in ('Y', 'Z'):
-            sq_blend = cmds.createNode('blendTwoAttr', n='{}_FK{:02d}_squash{}_BTA'.format(name, i, axis))
-            cmds.setAttr(sq_blend+'.input[0]', 1.0)
-            cmds.connectAttr(inv_ratio+'.outputX', sq_blend+'.input[1]')
-            cmds.connectAttr(squash_gate_plug, sq_blend+'.attributesBlender')
-            cmds.connectAttr(sq_blend+'.output', fk_jnt+'.scale'+axis, f=True)
 
         fk_ctrls.append(c)
         fk_jnts.append(fk_jnt)
@@ -542,12 +539,62 @@ def _build_null_rotation_from_fk(name, mps, nulls, num_nulls, fk_ctrls):
         cmds.connectAttr(mp+'.rotate', nulls[i]+'.rotate')
 
 
-def _build_null_bind_joints(name, nulls):
+def _build_squash_region_ctrls(name, base_crv, ctl_grp):
+    """base_CRV 위를 파라미터(0~1)로 움직이는 Squash Start/End 컨트롤러 2개.
+
+    각자 Parameter(0~1)와 Volume(0 이상, 상한 없음) attribute를 갖는다 -- Parameter로
+    커브 위 위치가, Volume으로 그 지점의 squash 강도가 결정된다. 둘 사이 구간에 속하는
+    null/BIND_JNT의 squash 볼륨이 start~end 값으로 보간된다(_build_null_bind_joints).
+    기본값은 Start=0/End=1(커브 전체를 덮음), Volume=0(꺼짐)이라 아무것도 안
+    건드리면 이전과 동일하게 squash가 꺼진 상태로 시작한다.
+    """
+    shape = cmds.listRelatives(base_crv, shapes=True, ni=True, fullPath=True)[0]
+    ctrls = []
+    for label, default_param in (('Start', 0.0), ('End', 1.0)):
+        c, off = _make_ctrl('{}_Squash{}_CTL'.format(name, label), 1.2, (0, 0, 0))
+        cmds.setAttr(c+'.overrideEnabled', 1)
+        cmds.setAttr(c+'.overrideColor', 17)
+        cmds.parent(off, ctl_grp)
+        cmds.addAttr(c, ln='Parameter', at='double', min=0, max=1, dv=default_param, k=True)
+        cmds.addAttr(c, ln='Volume', at='double', min=0, dv=0, k=True)
+
+        mp = cmds.createNode('motionPath', n='{}_squash{}_MP'.format(name, label))
+        cmds.connectAttr(shape+'.worldSpace[0]', mp+'.geometryPath')
+        cmds.setAttr(mp+'.fractionMode', 1)
+        cmds.connectAttr(c+'.Parameter', mp+'.uValue')
+        cmds.connectAttr(mp+'.allCoordinates', off+'.translate')
+
+        ctrls.append(c)
+    return ctrls[0], ctrls[1]
+
+
+def _build_null_bind_joints(name, nulls, num_nulls, squash_start_ctrl, squash_end_ctrl,
+                             ratio_plug, squash_gate_plug):
     """각 null 밑에 최종 바인드용 조인트를 만든다 -- 캐릭터 메쉬를 스키닝할
     때 실제로 쓰는 조인트로, null의 위치+회전(커브를 따라가며 twist까지
     반영된 최종 값)을 그대로 물려받는다. 다른 내부 유틸 joint(IK/FK_JNT)와
     달리 숨기지 않는다 -- 애니메이터/리거가 직접 선택해서 스키닝에 쓴다.
+
+    Squash volume은 여기(scaleY/Z)에서만 적용한다. 각 BIND_JNT의 고정
+    파라미터(u_i)를 squash_start_ctrl.Parameter~squash_end_ctrl.Parameter
+    구간에서 0~1로 clamp한 t로 삼아, start.Volume~end.Volume을 보간한다 --
+    t가 0/1로 clamp되므로 구간 밖은 자연히 가장 가까운 끝의 볼륨값으로
+    고정된다. 여기에 전역 squash_gate_plug(마지막 IK 컨트롤러의 Squash)를
+    곱해서 최종 게이트로 쓴다 -- 전역 Squash=0이면 구간 볼륨과 무관하게
+    항상 꺼진다.
     """
+    param_diff = cmds.createNode('plusMinusAverage', n='{}_squashParamRange_PMA'.format(name))
+    cmds.setAttr(param_diff+'.operation', 2)  # subtract
+    cmds.connectAttr(squash_end_ctrl+'.Parameter', param_diff+'.input1D[0]')
+    cmds.connectAttr(squash_start_ctrl+'.Parameter', param_diff+'.input1D[1]')
+
+    volume_diff = cmds.createNode('plusMinusAverage', n='{}_squashVolumeRange_PMA'.format(name))
+    cmds.setAttr(volume_diff+'.operation', 2)  # subtract
+    cmds.connectAttr(squash_end_ctrl+'.Volume', volume_diff+'.input1D[0]')
+    cmds.connectAttr(squash_start_ctrl+'.Volume', volume_diff+'.input1D[1]')
+
+    null_params = _sample_params(num_nulls, include_tip=True)
+
     bind_jnts = []
     for i, null in enumerate(nulls):
         cmds.select(cl=True)
@@ -559,6 +606,51 @@ def _build_null_bind_joints(name, nulls):
         # (null이 이미 twist로 회전돼 있는 상태에서 새 joint를 부모링하면)
         # 명시적으로 0으로 되돌려야 이 joint의 축이 null과 완전히 같아진다.
         cmds.setAttr(jnt+'.jointOrient', 0, 0, 0)
+
+        u = null_params[i]
+        pos_diff = cmds.createNode('plusMinusAverage', n='{}_squashPos{:02d}_PMA'.format(name, i))
+        cmds.setAttr(pos_diff+'.operation', 2)  # subtract
+        cmds.setAttr(pos_diff+'.input1D[0]', u)
+        cmds.connectAttr(squash_start_ctrl+'.Parameter', pos_diff+'.input1D[1]')
+
+        t_raw = cmds.createNode('multiplyDivide', n='{}_squashT{:02d}_MD'.format(name, i))
+        cmds.setAttr(t_raw+'.operation', 2)  # divide
+        cmds.connectAttr(pos_diff+'.output1D', t_raw+'.input1X')
+        cmds.connectAttr(param_diff+'.output1D', t_raw+'.input2X')
+
+        t_clamped = cmds.createNode('clamp', n='{}_squashT{:02d}_CLAMP'.format(name, i))
+        cmds.setAttr(t_clamped+'.minR', 0)
+        cmds.setAttr(t_clamped+'.maxR', 1)
+        cmds.connectAttr(t_raw+'.outputX', t_clamped+'.inputR')
+
+        volume_scaled = cmds.createNode('multDoubleLinear', n='{}_squashVolume{:02d}_MDL'.format(name, i))
+        cmds.connectAttr(volume_diff+'.output1D', volume_scaled+'.input1')
+        cmds.connectAttr(t_clamped+'.outputR', volume_scaled+'.input2')
+
+        volume_i = cmds.createNode('addDoubleLinear', n='{}_squashVolume{:02d}_ADL'.format(name, i))
+        cmds.connectAttr(squash_start_ctrl+'.Volume', volume_i+'.input1')
+        cmds.connectAttr(volume_scaled+'.output', volume_i+'.input2')
+
+        local_gate = cmds.createNode('multDoubleLinear', n='{}_squashLocalGate{:02d}_MDL'.format(name, i))
+        cmds.setAttr(local_gate+'.input2', 0.1)
+        cmds.connectAttr(volume_i+'.output', local_gate+'.input1')
+
+        final_gate = cmds.createNode('multDoubleLinear', n='{}_squashFinalGate{:02d}_MDL'.format(name, i))
+        cmds.connectAttr(local_gate+'.output', final_gate+'.input1')
+        cmds.connectAttr(squash_gate_plug, final_gate+'.input2')
+
+        inv_ratio = cmds.createNode('multiplyDivide', n='{}_squashInv{:02d}_MD'.format(name, i))
+        cmds.setAttr(inv_ratio+'.operation', 2)  # divide
+        cmds.setAttr(inv_ratio+'.input1X', 1.0)
+        cmds.connectAttr(ratio_plug, inv_ratio+'.input2X')
+
+        for axis in ('Y', 'Z'):
+            sq_blend = cmds.createNode('blendTwoAttr', n='{}_squash{:02d}{}_BTA'.format(name, i, axis))
+            cmds.setAttr(sq_blend+'.input[0]', 1.0)
+            cmds.connectAttr(inv_ratio+'.outputX', sq_blend+'.input[1]')
+            cmds.connectAttr(final_gate+'.output', sq_blend+'.attributesBlender')
+            cmds.connectAttr(sq_blend+'.output', jnt+'.scale'+axis, f=True)
+
         bind_jnts.append(jnt)
     return bind_jnts
 
@@ -650,26 +742,31 @@ def build_tentacle_rig_continue(name='tentacle', num_ctrls=7, num_ik_ctrls=2):
     base = cmds.pointPosition(base_crv+'.cv[0]', world=True)
 
     up_loc = _build_up_vector(name, g['sys'], axis, base)
-    mps, nulls = _build_mp_nulls(name, num_nulls, base_shape, g['null'])
 
-    settings_ctl = _build_settings_ctl(name, base, g['ctl'])
-    _build_slide(name, mps, settings_ctl)
-
+    # Stretch/Squash/Slide는 Settings_CTL 없이 마지막 IK 컨트롤러 위에 얹는다 --
+    # 그 컨트롤이 존재해야 하므로 ik_CRV/IK 컨트롤을 먼저 만든다.
     ik_crv = _build_ik_curve(name, g['crv'], base_crv)
-    ratio_plug, stretch_gate_plug, squash_gate_plug = _build_stretch_ratio(name, ik_crv, settings_ctl)
-
     ik_ctrls, ik_ctrl_jnts = _build_ik_setup(name, num_ik_ctrls, g['ik_ctl'], ik_crv, up_loc)
+    attr_ctrl = ik_ctrls[-1]
+    _add_rig_attrs(attr_ctrl)
+    ratio_plug, stretch_gate_plug, squash_gate_plug = _build_stretch_ratio(name, ik_crv, attr_ctrl)
+
+    mps, nulls = _build_mp_nulls(name, num_nulls, base_shape, g['null'])
+    _build_slide(name, mps, attr_ctrl)
+
+    squash_start_ctrl, squash_end_ctrl = _build_squash_region_ctrls(name, base_crv, g['ctl'])
 
     ik_jnts = _build_ik_spline_chain(name, num_ctrls, ik_crv, ik_ctrls, g['jnt'], g['sys'],
                                       ratio_plug, stretch_gate_plug, squash_gate_plug)
 
-    fk_ctrls, fk_jnts = _build_fk_setup(name, ik_jnts, g['fk_ctl'], ratio_plug, squash_gate_plug)
+    fk_ctrls, fk_jnts = _build_fk_setup(name, ik_jnts, g['fk_ctl'])
 
     _build_fk_skin(name, fk_jnts, base_crv)
 
     _build_null_rotation_from_fk(name, mps, nulls, num_nulls, fk_ctrls)
 
-    bind_jnts = _build_null_bind_joints(name, nulls)
+    bind_jnts = _build_null_bind_joints(name, nulls, num_nulls, squash_start_ctrl, squash_end_ctrl,
+                                         ratio_plug, squash_gate_plug)
 
     result = {
         'rig_grp': g['rig'],
@@ -679,7 +776,9 @@ def build_tentacle_rig_continue(name='tentacle', num_ctrls=7, num_ik_ctrls=2):
         'motion_paths': mps,
         'nulls': nulls,
         'bind_jnts': bind_jnts,
-        'settings_ctl': settings_ctl,
+        'attr_ctrl': attr_ctrl,
+        'squash_start_ctrl': squash_start_ctrl,
+        'squash_end_ctrl': squash_end_ctrl,
         'ik_ctrls': ik_ctrls,
         'ik_jnts': ik_jnts,
         'fk_ctrls': fk_ctrls,
@@ -694,6 +793,8 @@ def build_tentacle_rig_continue(name='tentacle', num_ctrls=7, num_ik_ctrls=2):
     print('  FK ctrls       : {}'.format(len(fk_ctrls)))
     print('  IK ctrls       : {}'.format(len(ik_ctrls)))
     print('  ikSpline jnts  : {}'.format(len(ik_jnts)))
+    print('  Stretch/Squash/Slide -> {}'.format(attr_ctrl))
+    print('  Squash region  : {} ~ {}'.format(squash_start_ctrl, squash_end_ctrl))
     print('=' * 60)
     return result
 

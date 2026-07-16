@@ -17,6 +17,7 @@ Usage:
     tentacle_autorig_ui.show()
 ============================================================================"""
 import importlib
+import sys
 import traceback
 
 import maya.cmds as cmds
@@ -24,6 +25,20 @@ import maya.cmds as cmds
 from python2.rigging import tentacle_autorig as rig
 
 _WIN_ID = 'tentacleAutoRigWin'
+
+
+def _reload_rig():
+    """importlib.reload(rig)가 'module ... not in sys.modules'로 실패하는
+    경우(python2가 여러 namespace package 조각으로 섞여 있을 때 rig의
+    __name__이 sys.modules의 등록 키와 어긋나면서 생김)에 대비한다.
+    실패하면 sys.modules에서 지우고 새로 import해서 rig 참조를 다시 맞춘다.
+    """
+    global rig
+    try:
+        importlib.reload(rig)
+    except ImportError:
+        sys.modules.pop('python2.rigging.tentacle_autorig', None)
+        rig = importlib.import_module('python2.rigging.tentacle_autorig')
 
 
 def _get_selected_mesh():
@@ -152,7 +167,7 @@ class TentacleAutoRigUI(object):
             return
 
         try:
-            importlib.reload(rig)
+            _reload_rig()
             result = rig.build_tentacle_base_curve(mesh=mesh, name=name, axis=axis, num_nulls=num_nulls)
         except Exception as exc:
             cmds.warning('tentacle_autorig_ui: curve 생성 실패 -- {}'.format(exc))
@@ -181,7 +196,7 @@ class TentacleAutoRigUI(object):
             return
 
         try:
-            importlib.reload(rig)
+            _reload_rig()
             result = rig.build_tentacle_rig_continue(name=name, num_ctrls=num_ctrls,
                                                        num_ik_ctrls=num_ik_ctrls)
         except Exception as exc:
