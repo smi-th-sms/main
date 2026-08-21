@@ -1,0 +1,30 @@
+(dp0
+Vid
+p1
+V3f67f738874090
+p2
+sVname
+p3
+VjointSet
+p4
+sVinfo
+p5
+VjointSet tool
+p6
+sVtags
+p7
+Vtools
+p8
+sVicon
+p9
+V
+p10
+sVcommand
+p11
+Vfrom python2.tools import jointSet\u000aimport importlib\u000aimportlib.reload(jointSet)\u000a
+p12
+sVsyntax
+p13
+Vpython
+p14
+s.

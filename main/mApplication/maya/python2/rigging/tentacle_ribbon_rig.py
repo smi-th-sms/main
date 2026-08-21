@@ -58,12 +58,16 @@ tentacle_rig_proto.ma(실제 프로덕션 리그)를 분석해서 그 구조를 
     joint 자신의 orientation만 돌아가고 다른 joint 위치에는 전혀 영향이 없다
     (FK 체인처럼 부모-자식으로 엮인 노드에 twist를 더하면 자식 전체가 그
     축을 중심으로 같이 돌면서 위치까지 끌려가 버린다 -- 그래서 twist는 FK
-    체인이 아니라 flat한 Skin 레이어에 건다). Volume 컨트롤 N개(각각 Volume
-    attribute, 고정 위치) -> 대응 구간을 선형보간해서 Skin joint의 scaleY/Z에
-    연결(squash/stretch 볼륨 보정). Volume 컨트롤은 위치가 고정이라 두 컨트롤
-    사이 보간 가중치를 빌드 타임에 파이썬으로 계산해서 blendTwoAttr 하나만
-    연결하지만(_gradient_plug), Twist는 Parameter가 라이브라 비율 계산 자체를
-    노드 네트워크로 만든다(_ranged_twist_plug).
+    체인이 아니라 flat한 Skin 레이어에 건다). Volume 컨트롤 N개(각각 volumeY,
+    volumeZ attribute) -> 대응 구간을 선형보간해서 Skin joint의 scaleY/Z에 각각 연결
+    (squash/stretch 볼륨 보정). Volume 컨트롤의 OFF 그룹은 자신과 같은
+    arc-length 위치에 가장 가까운 Skin joint의 worldMatrix를 multMatrix/
+    decomposeMatrix로 라이브로 따라간다(_connect_volume_to_skin) -- 그래서
+    리그가 애니메이션으로 휘어져도 Volume 컨트롤이 build 시점 정적 위치가
+    아니라 그 순간의 실제 표면 위치에 남아 있다. 두 컨트롤 사이 보간
+    가중치는 고정 fraction 기준이라 빌드 타임에 파이썬으로 계산해서
+    blendTwoAttr 하나만 연결하지만(_gradient_plug), Twist는 Parameter가
+    라이브라 비율 계산 자체를 노드 네트워크로 만든다(_ranged_twist_plug).
 
 6단계(Branch/TOP, 선택): 메인 리본 서피스를 복제해서, 그 위에 Demo(메인)를
     구동하는 마스터 컨트롤 레이어(TOP)를 만든다(build_branch). TOP은
@@ -94,7 +98,215 @@ import math
 import maya.cmds as cmds
 import maya.api.OpenMaya as om2
 
-_PERP_AXIS = {'x': (0.0, 0.0, 1.0), 'y': (1.0, 0.0, 0.0), 'z': (1.0, 0.0, 0.0)}
+_AXIS_VECTOR = {'x': (1.0, 0.0, 0.0), 'y': (0.0, 1.0, 0.0), 'z': (0.0, 0.0, 1.0)}
+# up_axis를 명시하지 않았을 때 쓰는 기본값 -- 기존 _PERP_AXIS 하드코딩과 동일한 결과
+# (x->z, y->x, z->x)를 내도록 맞춘 값이라 기존 리그의 방향은 바뀌지 않는다.
+_DEFAULT_UP_AXIS = {'x': 'z', 'y': 'x', 'z': 'x'}
+
+
+def _static_param_at_fraction(curve, frac):
+    """curve의 arc-length fraction(0~1)에 해당하는 raw parameter를 빌드 타임에
+    한 번 계산한다(MFnNurbsCurve.findParamFromLength).
+
+    예전엔 이 값을 motionPath(fractionMode=1)로 3D 위치를 얻은 뒤
+    nearestPointOnCurve/closestPointOnSurface로 '그 위치에서 가장 가까운 점'을
+    다시 찾는 방식으로 구했는데, curve가 촉수답게 실제로 구불구불 말리면
+    (curl) 서로 다른 arc-length 구간이 3D 공간에서 서로 가까이 지나가는
+    경우가 흔해서 -- '가장 가까운 점'이 의도한 지점이 아니라 근처를 지나가는
+    다른 구간을 잘못 짚는 문제가 있었다(빌드 직후, 애니메이터가 아무것도
+    안 만졌는데도 위치/회전이 크게 틀어짐 -- 끝점 두 개만 우연히 맞고 중간은
+    전부 틀어지는 패턴으로 나타났다). findParamFromLength는 3D 위치 검색이
+    전혀 없이 curve 자신의 arc-length만 따라가는 1차원 이분탐색이라 curve가
+    스스로 얼마나 가까이 지나가든 절대 모호해지지 않는다.
+
+    이 값은 빌드 시점에 한 번 계산해서 follicle의 parameterU에 고정
+    (connectAttr 없이 setAttr)한다 -- follicle의 parameter 좌표는 material
+    point의 고정 주소라서 surface/curve가 나중에 변형돼도(TOP을 움직이는 등)
+    라이브로 다시 풀 필요가 없다. 라이브 재계산이 필요한 유일한 경우는
+    Stretch로 유효 길이 자체가 실시간으로 바뀌는 _build_output_follicles의
+    stretch_ctrl 경로뿐이다(그 경로는 기존 방식을 그대로 쓴다).
+
+    follicle.parameterU/V는 curve/surface의 실제(raw) parameter range가 아니라
+    항상 정규화된 0~1 값을 요구한다 -- mesh 기반 build_base는 항상
+    rebuildCurve(end=1)로 range를 0~1로 맞춰서 이 차이가 안 드러났지만, curve
+    모드(build_base(curve=...), 사용자가 만든 curve를 그대로 씀)는 range가
+    보통 0~1이 아니라서(예: CV 40개 curve면 0~37), raw parameter를 그대로
+    넘기면 follicle이 1보다 큰 값을 1로 clamp해버려 완전히 다른(대개 끝
+    근처) 지점을 짚어버린다(빌드 직후, 아무 조작 없이도 위치/회전이 크게
+    틀어지는 원인 -- 양 끝만 우연히 맞고 중간은 다 틀어지는 패턴이 바로 이
+    증상이었다). 그래서 findParamFromLength가 돌려준 raw parameter를
+    knotDomain 기준으로 0~1로 정규화해서 돌려준다.
+    """
+    curve_fn = _curve_fn(curve)
+    raw_param = curve_fn.findParamFromLength(frac * curve_fn.length())
+    min_u, max_u = curve_fn.knotDomain
+    return (raw_param - min_u) / (max_u - min_u)
+
+
+def _curve_fn(curve):
+    sel = om2.MSelectionList()
+    sel.add(curve)
+    return om2.MFnNurbsCurve(sel.getDagPath(0))
+
+
+def _raw_param_at_fraction(curve, frac):
+    """curve의 arc-length fraction(0~1)에 해당하는 raw(=curve/surface의 실제
+    knotDomain 기준) parameter를 계산한다(_static_param_at_fraction과 동일한
+    findParamFromLength 기반이지만 0~1 정규화는 안 함). follicle.parameterU
+    처럼 항상 정규화가 필요한 게 아니라, pointOnSurfaceInfo/closestPointOnSurface
+    처럼 raw range를 그대로 받는 곳(_sample_surface_frame)에 쓴다 -- curve가
+    curveFromSurfaceIso로 뽑힌 것이라 이 raw parameter가 surface의 실제
+    parameterU와 그대로 대응한다.
+    """
+    curve_fn = _curve_fn(curve)
+    return curve_fn.findParamFromLength(frac * curve_fn.length())
+
+
+def _rotate_vector_by_node(vec, node):
+    """vec(월드 축 단위벡터)를 node의 현재 월드 회전으로 같이 돌린다.
+
+    up_vector는 리본의 실제 폭 방향을 가리켜야 하는데, 리본(curve/surface)은
+    항상 rig_grp 밑에 있어서 rig_grp를 회전시키면 리본도 그 회전을 그대로
+    따라간다. up_vector를 고정된 세계축 그대로 쓰면(rig_grp가 identity일
+    때만 맞음), rig_grp를 build_base 이후에 다시 방향을 잡아둔 리그에서는(
+    캐릭터 위에 다른 자세로 얹는 경우 등) up_vector가 리본의 실제(회전된)
+    폭 방향과 어긋나서 _build_twist_controls가 계산하는 컨트롤 roll이 서피스의
+    진짜 폭 방향과 안 맞게 된다 -- 그래서 매번 rig_grp의 현재 회전을 반영해야
+    한다.
+    """
+    m = cmds.xform(node, q=True, ws=True, m=True)
+    rows = (m[0:3], m[4:7], m[8:11])
+    return tuple(sum(vec[k]*rows[k][i] for k in range(3)) for i in range(3))
+
+
+def _get_up_vector(rig_grp, axis):
+    """rig_grp에 저장된 tentacleUpAxis(build_base의 up_axis 인자)를 읽어
+    rig_grp의 현재 월드 회전을 반영한 단위벡터로 변환한다(_rotate_vector_by_node
+    참고). 옛 리그처럼 attribute가 없으면 기존 동작과 동일한 기본값
+    (_DEFAULT_UP_AXIS)으로 대체한다.
+
+    이름은 "up"이지만 실제로는 리본의 폭(width, V-tangent 계열) 방향을
+    가리키는 참조 벡터다 -- 진짜 surface normal이 아니다("up_axis"라는
+    이름 자체가 오해의 소지가 있다). IK/Volume/TOP FK-IK 컨트롤의 정지
+    배치는 이제 이 근사 대신 _sample_surface_frame(pointOnSurfaceInfo로
+    매 지점의 실제 tangentU/normal을 직접 읽음, follicle과 완전히 동일한
+    재료)을 쓴다 -- 이 함수(및 이 함수를 쓰는 _build_twist_controls)는
+    Twist 컨트롤처럼 Parameter 값에 따라 라이브로 위치가 바뀌어야 하고,
+    자신의 world orientation이 다른 라이브 연결의 입력으로 쓰이지 않는
+    경우에만 남아있다 -- motionPath(follow=1)에 worldUpVector로 넘겨서
+    tangent(front_axis)에 수직인 성분만 남긴 방향을 컨트롤의 up_local_axis
+    자리에 배치하는데, motionPath는 세 로컬 축 중 front_axis/up_local_axis
+    두 자리만 명시적으로 지정할 수 있고 나머지 한 자리(third axis)는 항상
+    그 둘의 cross product로 자동 채워진다 -- 그 남는 자리가 결과적으로
+    surface의 실제 normal에 가장 가깝다(front ⊥ up_vector인 평면적인/완만한
+    형태에서는 거의 정확히 normal과 일치, 많이 휘거나 꼬인 형태에서는
+    근사치, 이 근사가 실제 프로덕션 촉수에서 60도 이상 벌어지는 경우가
+    확인되어 다른 정지 배치 함수들은 전부 _sample_surface_frame으로
+    교체됐다).
+    """
+    if cmds.attributeQuery('tentacleUpAxis', node=rig_grp, exists=True):
+        up_axis = cmds.getAttr(rig_grp+'.tentacleUpAxis')
+    else:
+        up_axis = _DEFAULT_UP_AXIS[axis]
+    return _rotate_vector_by_node(_AXIS_VECTOR[up_axis], rig_grp)
+
+
+# motionPath.frontAxis/upAxis 는 0=X, 1=Y, 2=Z 인덱스를 받는다(기존 하드코딩
+# frontAxis=0/upAxis=1과 동일한 기본값).
+_AXIS_INDEX = {'x': 0, 'y': 1, 'z': 2}
+
+
+def _permutation_parity(perm):
+    """perm(0,1,2의 순열 tuple)이 짝순열이면 1, 홀순열이면 -1을 돌린다(inversion
+    개수로 계산) -- _axis_remap_matrix가 회전을 유지(det=+1, 뒤집히지 않게)하는
+    데 쓴다.
+    """
+    p = list(perm)
+    parity = 1
+    for i in range(len(p)):
+        for j in range(i+1, len(p)):
+            if p[i] > p[j]:
+                parity *= -1
+    return parity
+
+
+def _axis_remap_matrix(front_axis, up_local_axis):
+    """follicle의 네이티브 회전(row0=tangentU/forward, row1=Gram-Schmidt로
+    보정된 secondary, row2=normal -- 실측으로 확인된 순서. follicle 노드
+    자체는 frontAxis/upAxis 같은 걸 몰라서 항상 이 고정 순서로만 낸다)을
+    원하는 로컬 축 배치로 다시 매핑하는 고정 4x4 행렬을 만든다.
+
+    forward(native row0)는 front_axis 자리로, normal(native row2)은
+    up_local_axis 자리로("up"이 실제로 surface normal을 뜻하도록), 남는
+    secondary(native row1)는 나머지 자리로 옮긴다(부호는 오른손 좌표계
+    유지를 위해 순열의 parity로 결정). _build_master_drive_follicles에서
+    이 행렬을 follicle 출력 앞에 곱해서 main IK_OFF에 연결하면, front_axis/
+    up_local_axis가 무엇이었든 _sample_surface_frame으로 잡은 static 배치
+    (forward=tangentU, up_local_axis=normal)와 항상 정확히 일치한다.
+    """
+    front_idx = _AXIS_INDEX[front_axis]
+    up_idx = _AXIS_INDEX[up_local_axis]
+    third_idx = ({0, 1, 2} - {front_idx, up_idx}).pop()
+
+    # native row0(forward)->front_idx, native row2(normal)->up_idx,
+    # native row1(secondary)->third_idx -- perm[new_slot] = native_row_index
+    perm = [None, None, None]
+    perm[front_idx] = 0
+    perm[up_idx] = 2
+    perm[third_idx] = 1
+    sign = _permutation_parity(tuple(perm))
+
+    rows = [[0.0]*4 for _ in range(4)]
+    rows[front_idx][0] = 1.0
+    rows[up_idx][2] = 1.0
+    rows[third_idx][1] = sign
+    rows[3][3] = 1.0
+    return [v for row in rows for v in row]
+
+
+def _get_ctrl_axes(rig_grp):
+    """rig_grp에 저장된 tentacleCtrlFrontAxis/tentacleCtrlUpAxis(컨트롤 자신의
+    로컬 forward/up 축, build_base의 front_axis/up_local_axis 인자)를 읽는다.
+    옛 리그처럼 attribute가 없으면 기존 동작과 동일한 기본값('x'/'y')으로
+    대체한다. 이 값은 _sample_surface_frame이 배치하는 forward/up 자리와
+    컨트롤 shape의 circle normal을 함께 결정한다 -- 서로 다른 두 값을 따로
+    저장해야 하나가 아니라 둘 다 필요하다.
+    """
+    if cmds.attributeQuery('tentacleCtrlFrontAxis', node=rig_grp, exists=True):
+        front_axis = cmds.getAttr(rig_grp+'.tentacleCtrlFrontAxis')
+    else:
+        front_axis = 'x'
+    if cmds.attributeQuery('tentacleCtrlUpAxis', node=rig_grp, exists=True):
+        up_local_axis = cmds.getAttr(rig_grp+'.tentacleCtrlUpAxis')
+    else:
+        up_local_axis = 'y'
+    return front_axis, up_local_axis
+
+
+def _set_string_attr(node, attr, value):
+    if not cmds.attributeQuery(attr, node=node, exists=True):
+        cmds.addAttr(node, ln=attr, dt='string')
+    cmds.setAttr(node+'.'+attr, value, type='string')
+
+
+def _set_ctrl_axes(rig_grp, front_axis, up_local_axis):
+    """rig_grp의 tentacleCtrlFrontAxis/tentacleCtrlUpAxis를 갱신한다.
+
+    build_ik/build_twist_scale/build_branch에서 front_axis/up_local_axis를
+    override로 받으면, build_base를 다시 실행하지 않고도 이후 단계(Twist/
+    Volume, Branch)가 바뀐 값을 그대로 이어받도록 여기 저장소를 같이
+    갱신해둔다 -- 안 그러면 여기서만 바뀐 축으로 컨트롤이 만들어지고, 뒤
+    단계는 build_base 때 저장된 옛 값을 계속 읽어서 서로 어긋난다.
+    """
+    _set_string_attr(rig_grp, 'tentacleCtrlFrontAxis', front_axis)
+    _set_string_attr(rig_grp, 'tentacleCtrlUpAxis', up_local_axis)
+
+
+def _set_up_axis(rig_grp, up_axis):
+    """rig_grp의 tentacleUpAxis를 갱신한다(_set_ctrl_axes와 동일한 이유 --
+    build_ik 등에서 up_axis override를 받으면 이후 단계도 이어받게 한다).
+    """
+    _set_string_attr(rig_grp, 'tentacleUpAxis', up_axis)
 
 
 def _vec_sub(a, b):
@@ -115,6 +327,15 @@ def _vec_dot(a, b):
 
 def _vec_norm(a):
     return math.sqrt(_vec_dot(a, a))
+
+
+def _vec_normalize(a):
+    n = _vec_norm(a)
+    return _vec_scale(a, 1.0/n) if n > 1e-9 else a
+
+
+def _vec_cross(a, b):
+    return (a[1]*b[2]-a[2]*b[1], a[2]*b[0]-a[0]*b[2], a[0]*b[1]-a[1]*b[0])
 
 
 def _vec_mean(vecs):
@@ -210,12 +431,54 @@ def _resample_uniform(points, num_points):
     return out
 
 
+_AXIS_MISMATCH_RATIO = 0.5
+
+
+def _resolve_axis(obj, axis):
+    """obj(mesh/curve 등 아무 DAG 오브젝트)의 world bbox 기준으로 axis를 검증/보정한다.
+
+    axis가 None이면 가장 긴 축으로 자동 감지한다. axis가 명시돼도 그 축의
+    bbox 길이가 실제 가장 긴 축의 절반에도 못 미치면(오브젝트가 axis와 다른
+    방향으로 뻗어있다는 뜻 -- 예: 실린더를 눕혀놨는데 axis='y' 기본값을 그대로
+    쓴 경우) 무시하고 가장 긴 축으로 자동 전환한다. 그렇지 않으면(mesh 경로)
+    base/tip이 실제 형태의 거의 같은 지점(짧은 축 방향의 좁은 단면)으로 잡혀서
+    _get_centerline_points의 반복이 한쪽 끝에서 중간까지 갔다가 같은 끝으로
+    되돌아오는 식으로 접혀 curve/surface가 자기 자신과 겹쳐버리는 문제가
+    있었다.
+
+    obj가 방금 편집된(예: build_base() 이후 사용자가 NSF의 CV를 직접 옮긴)
+    curveFromSurfaceIso 등 라이브 히스토리 체인의 하류에 있으면,
+    cmds.exactWorldBoundingBox()가 그 편집을 아직 안 당겨온 stale한 값을
+    돌려주는 경우가 있다(Maya의 지연 평가 -- 이후 아무 쿼리 하나만 더 해도
+    다음 호출부턴 정상 값이 나온다). 그래서 bbox를 구하기 전에 shape의
+    worldSpace/worldMesh를 한 번 강제로 평가해서 이 문제를 피한다.
+    """
+    for shape in cmds.listRelatives(obj, shapes=True, ni=True, fullPath=True) or []:
+        for attr in ('.worldSpace[0]', '.worldMesh[0]'):
+            try:
+                cmds.getAttr(shape+attr)
+                break
+            except (RuntimeError, ValueError):
+                continue
+    bbox = cmds.exactWorldBoundingBox(obj)
+    lens = {'x': bbox[3]-bbox[0], 'y': bbox[4]-bbox[1], 'z': bbox[5]-bbox[2]}
+    longest_axis = max(lens, key=lens.get)
+    if axis is None:
+        return longest_axis
+    if lens[axis] < lens[longest_axis] * _AXIS_MISMATCH_RATIO:
+        cmds.warning(
+            '_resolve_axis: axis={}의 bbox 길이({:.4f})가 실제 가장 긴 축 '
+            '{}({:.4f})보다 너무 짧습니다 -- 오브젝트 방향과 axis가 안 맞는 것으로 '
+            '보고 {}로 자동 전환합니다.'.format(
+                axis, lens[axis], longest_axis, lens[longest_axis], longest_axis))
+        return longest_axis
+    return axis
+
+
 def _get_axis_endpoints(mesh, axis='y'):
     """mesh의 world bounding box 중심을 지나는 축(base->tip 방향)의 양 끝점을 구한다."""
+    axis = _resolve_axis(mesh, axis)
     bbox = cmds.exactWorldBoundingBox(mesh)
-    if axis is None:
-        lens = {'x': bbox[3]-bbox[0], 'y': bbox[4]-bbox[1], 'z': bbox[5]-bbox[2]}
-        axis = max(lens, key=lens.get)
     mid = ((bbox[0]+bbox[3])/2.0, (bbox[1]+bbox[4])/2.0, (bbox[2]+bbox[5])/2.0)
     base = list(mid)
     tip = list(mid)
@@ -357,9 +620,9 @@ def _build_centerline_curve(name, mesh, axis, base, tip, num_cv):
     return crv
 
 
-def _build_ribbon_surface(name, center_crv, axis, width, sys_grp):
-    """center_crv를 axis에 수직인 방향으로 +-width/2만큼 복제/이동한 두 커브를
-    loft해서 얇은 리본 NURBS 서피스를 만든다.
+def _build_ribbon_surface(name, center_crv, perp_vector, width, sys_grp):
+    """center_crv를 perp_vector(up_axis) 방향으로 +-width/2만큼 복제/이동한 두
+    커브를 loft해서 얇은 리본 NURBS 서피스를 만든다.
 
     (참고) cmds.extrude(profile, path, et=2)로 시도했을 때는 path 위를
     정확히 따라가지 않고 profile 위치를 중심으로 대칭으로 스윕돼서 커브가
@@ -367,7 +630,7 @@ def _build_ribbon_surface(name, center_crv, axis, width, sys_grp):
     예측 가능하고 정확하다. loft한 서피스는 U가 긴 방향(center_crv를 따라),
     V가 짧은 폭 방향이 된다.
     """
-    perp = _PERP_AXIS[axis]
+    perp = perp_vector
     half = width*0.5
     left = cmds.duplicate(center_crv, n='{}_ribbonLeftTemp_CRV'.format(name))[0]
     right = cmds.duplicate(center_crv, n='{}_ribbonRightTemp_CRV'.format(name))[0]
@@ -414,31 +677,91 @@ def _store_rest_length(curve):
     return length
 
 
-def build_base(mesh='pSphere1', name='tentacle', axis='y', num_cv=19, ribbon_width=1.0):
-    """1단계 베이스: mesh 중심선 -> 리본 서피스 -> 서피스에서 curve 재추출
-    -> restCurveLength 저장.
+def build_base(mesh=None, curve=None, name='tentacle', axis='y', up_axis=None,
+                front_axis='x', up_local_axis='y', num_cv=19, ribbon_width=1.0):
+    """1단계 베이스: (mesh 중심선 추출 또는 이미 있는 curve) -> 리본 서피스 ->
+    서피스에서 curve 재추출 -> restCurveLength 저장.
+
+    curve를 주면 mesh 기반 중심선 추출(scatter+moving-frame, _get_centerline_points)
+    을 건너뛰고 그 curve를 리본의 center curve로 그대로 쓴다 -- 애니메이터/
+    모델러가 직접 그린 가이드 curve를 그대로 반영할 수 있게 하기 위함이다
+    (원본 curve는 안 지운다 -- 리본은 이 curve를 duplicate해서 좌우로 벌린
+    뒤 loft한 것이라 원본과는 별개 노드). mesh는 curve가 없을 때만 쓰인다.
 
     Arguments:
-        mesh (str): 촉수 형상 스탠드인
+        mesh (str): 촉수 형상 스탠드인(curve가 없을 때만 사용).
+        curve (str): 사용자가 직접 만든 center curve(주면 mesh 무시, 우선순위 높음).
         name (str): 리그 네이밍 프리픽스
-        axis (str): 중심선이 뻗어나갈 축 ('x'/'y'/'z'). None이면 가장 긴 축 자동 감지.
-        num_cv (int): center curve의 CV 개수(=리본 서피스 U방향 해상도)
+        axis (str): 리본 폭 방향 기본값(up_axis) 계산 등에 참고하는 축('x'/'y'/'z').
+            None이면 mesh/curve의 bbox에서 가장 긴 축을 자동 감지. curve 모드에서는
+            curve의 bbox, mesh 모드에서는 mesh의 bbox를 기준으로 판단한다.
+        up_axis (str): 리본 서피스의 폭(width) 방향 기준으로 쓸 세계축('x'/'y'/'z',
+            axis와 달라야 함) -- 이름은 "up"이지만 실제로는 surface normal이
+            아니라 리본의 폭 방향 참조 벡터다(_get_up_vector 참고, Twist 컨트롤
+            정지 배치에만 쓰인다 -- 아래 up_local_axis와는 별개). None이면
+            기존 동작과 동일한 기본값(_DEFAULT_UP_AXIS: axis='x'->'z', 'y'/'z'
+            ->'x')을 쓴다. build_ik/build_branch 등 이후 단계도 여기서 저장한
+            값(tentacleUpAxis)을 그대로 읽으므로, base와 top(branch)이 항상
+            같은 폭 방향 기준으로 정렬된다.
+        front_axis (str): IK/Volume/TOP FK-IK 컨트롤의 로컬 축 중 surface
+            tangentU(forward)에 맞출 축('x'/'y'/'z', 기본 'x' -- 기존 동작과
+            동일). 컨트롤 shape의 circle normal도 이 축에 맞춰 같이 돈다.
+        up_local_axis (str): 위 컨트롤들의 로컬 축 중 실제 surface normal에
+            맞출 축('x'/'y'/'z', 기본 'y' -- 기존 동작과 동일, front_axis와
+            달라야 함). _sample_surface_frame이 pointOnSurfaceInfo로 매 지점의
+            실제 normal(Gram-Schmidt로 tangentU에 수직인 성분만 남긴 값)을
+            읽어 이 축 자리에 직접 넣는다 -- follicle이 회전을 내는 것과
+            동일한 재료(_axis_remap_matrix가 follicle 쪽과 이 자리를 맞춘다).
+            front_axis/up_local_axis로 지정 안 한 나머지 로컬 축(third axis)은
+            그 둘에 수직인 secondary(forward×up) 방향이 자동으로 채워진다.
+        num_cv (int): center curve의 CV 개수(=리본 서피스 U방향 해상도, mesh
+            모드에서만 쓰임 -- curve 모드에서는 그 curve의 기존 CV 그대로 씀).
         ribbon_width (float): 리본 서피스의 폭
 
     Returns:
         dict: surface, curve, axis, rest_length 등
     """
+    if mesh is None and curve is None:
+        raise ValueError('build_base: mesh 또는 curve 중 하나는 반드시 지정해야 합니다')
+    if curve is not None and not cmds.objExists(curve):
+        raise ValueError('build_base: curve "{}"가 씬에 없습니다'.format(curve))
+
     if cmds.objExists('{}_rig_GRP'.format(name)):
         cmds.delete('{}_rig_GRP'.format(name))
 
-    base, tip, axis = _get_axis_endpoints(mesh, axis)
+    if curve is not None:
+        axis = _resolve_axis(curve, axis)
+    else:
+        base, tip, axis = _get_axis_endpoints(mesh, axis)
+
+    if up_axis is None:
+        up_axis = _DEFAULT_UP_AXIS[axis]
+    elif up_axis == axis:
+        raise ValueError('build_base: up_axis({})는 axis({})와 달라야 합니다'.format(up_axis, axis))
+    if front_axis == up_local_axis:
+        raise ValueError('build_base: front_axis({})는 up_local_axis({})와 달라야 합니다'.format(
+            front_axis, up_local_axis))
+
     g = _build_groups(name)
     cmds.addAttr(g['rig'], ln='tentacleAxis', dt='string')
     cmds.setAttr(g['rig']+'.tentacleAxis', axis, type='string')
+    cmds.addAttr(g['rig'], ln='tentacleUpAxis', dt='string')
+    cmds.setAttr(g['rig']+'.tentacleUpAxis', up_axis, type='string')
+    cmds.addAttr(g['rig'], ln='tentacleCtrlFrontAxis', dt='string')
+    cmds.setAttr(g['rig']+'.tentacleCtrlFrontAxis', front_axis, type='string')
+    cmds.addAttr(g['rig'], ln='tentacleCtrlUpAxis', dt='string')
+    cmds.setAttr(g['rig']+'.tentacleCtrlUpAxis', up_local_axis, type='string')
 
-    center_crv = _build_centerline_curve(name, mesh, axis, base, tip, num_cv)
-    surface = _build_ribbon_surface(name, center_crv, axis, ribbon_width, g['sys'])
-    cmds.delete(center_crv)
+    if curve is not None:
+        center_crv = curve
+    else:
+        center_crv = _build_centerline_curve(name, mesh, axis, base, tip, num_cv)
+
+    surface = _build_ribbon_surface(name, center_crv, _AXIS_VECTOR[up_axis], ribbon_width, g['sys'])
+
+    if curve is None:
+        cmds.delete(center_crv)
+
     cmds.parent(surface, g['geo'])
 
     out_crv = _extract_curve_from_surface(name, surface)
@@ -456,45 +779,84 @@ def build_base(mesh='pSphere1', name='tentacle', axis='y', num_cv=19, ribbon_wid
             'axis': axis, 'rest_length': rest_length}
 
 
-def _sample_curve_frame(curve, fraction, up_vector):
-    """curve 위 한 지점의 world position/rotation을 motionPath로 샘플링한다
-    (follow=1 -- 접선(tangent) 방향으로 자동 정렬, worldUpVector로 기울어짐을
-    고정). 라이브 리그 연결이 아니라 IK 컨트롤의 초기 배치/방향을 한 번만
-    계산하는 용도라, 세션 전체에서 지적된 up-vector 방식의 플립 문제는
-    여기서는 해당되지 않는다(완만한 촉수 굴곡에서 정적인 bind pose를 잡는
-    정도로 충분 -- 실제 라이브 출력 체인은 이후 단계에서 follicle로 만든다).
-    up_vector는 리본 서피스의 폭 방향(_PERP_AXIS)과 동일한 벡터를 써서, 굴곡이
-    있어도 표면의 실제 폭 방향과 컨트롤의 정렬 기준이 서로 어긋나지 않게 한다.
+def _sample_surface_frame(surface, u_param, front_axis='x', up_local_axis='y'):
+    """surface 위 (u_param, v=0.5) 지점의 world position/rotation을
+    pointOnSurfaceInfo로 직접 계산한다 -- forward=tangentU, up=normal
+    (Gram-Schmidt로 forward에 수직인 성분만 남김), secondary=forward×up.
+    follicle이 회전을 내는 것과 완전히 동일한 재료(tangentU/normal)를 쓰기
+    때문에, build_output()/build_branch()의 follicle 기반 라이브 출력과
+    항상 정확히 일치한다(_axis_remap_matrix가 이 함수와 follicle 양쪽에
+    동일한 규칙으로 맞춰져 있다).
+
+    예전 _sample_curve_frame(motionPath+고정 world up-vector)은 표면이
+    거의 평평할 때만 "up"이 실제 normal과 가까웠고, 많이 휘거나 꼬인
+    표면에서는(실제 프로덕션 촉수에서 확인됨) up이 normal과 60도 이상
+    벌어지는 경우도 있었다 -- 그 근사를 없애고 매 지점마다 surface 자신의
+    실제 tangentU/normal을 직접 읽는다.
+
+    u_param은 curve/surface의 raw(정규화 안 된) parameter다(_raw_param_at_fraction
+    참고, follicle.parameterU가 요구하는 0~1 정규화 값과는 다르다).
     """
-    shape = cmds.listRelatives(curve, shapes=True, ni=True, fullPath=True)[0]
-    mp = cmds.createNode('motionPath', n='tmp_sampleFrame_MPT')
-    cmds.connectAttr(shape+'.worldSpace[0]', mp+'.geometryPath')
-    cmds.setAttr(mp+'.fractionMode', 1)
-    cmds.setAttr(mp+'.uValue', fraction)
-    cmds.setAttr(mp+'.follow', 1)
-    cmds.setAttr(mp+'.frontAxis', 0)
-    cmds.setAttr(mp+'.upAxis', 1)
-    cmds.setAttr(mp+'.worldUpType', 3)
-    cmds.setAttr(mp+'.worldUpVectorX', up_vector[0])
-    cmds.setAttr(mp+'.worldUpVectorY', up_vector[1])
-    cmds.setAttr(mp+'.worldUpVectorZ', up_vector[2])
-    pos = cmds.getAttr(mp+'.allCoordinates')[0]
-    rot = (cmds.getAttr(mp+'.rotateX'), cmds.getAttr(mp+'.rotateY'), cmds.getAttr(mp+'.rotateZ'))
-    cmds.delete(mp)
-    return pos, rot
+    surf_shape = cmds.listRelatives(surface, shapes=True, ni=True, fullPath=True)[0]
+    psi = cmds.createNode('pointOnSurfaceInfo', n='tmp_sampleSurfFrame_PSI')
+    cmds.connectAttr(surf_shape+'.worldSpace[0]', psi+'.inputSurface')
+    cmds.setAttr(psi+'.parameterU', u_param)
+    cmds.setAttr(psi+'.parameterV', 0.5)
+    pos = cmds.getAttr(psi+'.position')[0]
+    tangent_u = (cmds.getAttr(psi+'.tangentUx'), cmds.getAttr(psi+'.tangentUy'), cmds.getAttr(psi+'.tangentUz'))
+    normal_raw = (cmds.getAttr(psi+'.normalX'), cmds.getAttr(psi+'.normalY'), cmds.getAttr(psi+'.normalZ'))
+    cmds.delete(psi)
+
+    forward = _vec_normalize(tangent_u)
+    up = _vec_normalize(_vec_sub(normal_raw, _vec_scale(forward, _vec_dot(normal_raw, forward))))
+    secondary = _vec_cross(forward, up)
+
+    front_idx = _AXIS_INDEX[front_axis]
+    up_idx = _AXIS_INDEX[up_local_axis]
+    third_idx = ({0, 1, 2} - {front_idx, up_idx}).pop()
+
+    # forward/up/secondary는 (front_idx, up_idx, third_idx)=(0,1,2)일 때만
+    # secondary=forward×up가 그대로 det=+1(제대로 된 회전)이 된다 -- 다른
+    # 배치 조합에서는 부호를 뒤집어야 오른손 좌표계가 유지된다(_axis_remap_matrix
+    # 와 동일한 순열 parity 로직).
+    perm = [None, None, None]
+    perm[front_idx] = 0
+    perm[up_idx] = 1
+    perm[third_idx] = 2
+    sign = _permutation_parity(tuple(perm))
+
+    rows = [None, None, None]
+    rows[front_idx] = forward
+    rows[up_idx] = up
+    rows[third_idx] = _vec_scale(secondary, sign)
+
+    m = om2.MMatrix((
+        rows[0][0], rows[0][1], rows[0][2], 0.0,
+        rows[1][0], rows[1][1], rows[1][2], 0.0,
+        rows[2][0], rows[2][1], rows[2][2], 0.0,
+        pos[0], pos[1], pos[2], 1.0,
+    ))
+    euler = om2.MTransformationMatrix(m).rotation(asQuaternion=False)
+    rot_deg = (math.degrees(euler.x), math.degrees(euler.y), math.degrees(euler.z))
+    return (pos[0], pos[1], pos[2]), rot_deg
 
 
-def _build_ik_controls(name, curve, axis, num_ik, radius, ctl_grp):
+def _build_ik_controls(name, curve, surface, num_ik, radius, ctl_grp, front_axis='x', up_local_axis='y'):
     """리본 curve 위에 arc-length 균등 배치된 IK 컨트롤 num_ik개를 만든다
-    (참조 리그의 L_IK_tentacle_XXX_CON). 컨트롤 shape는 aim축(local X)을
+    (참조 리그의 L_IK_tentacle_XXX_CON). 컨트롤 shape는 aim축(local front_axis)을
     감싸는 원 -- 나중에 촉수를 굽힐 때 자연스러운 회전 링 형태.
+
+    _sample_surface_frame으로 배치한다 -- surface의 실제 tangentU/normal을
+    직접 읽어서 follicle 기반 라이브 출력(build_output/build_branch)과
+    항상 정확히 일치한다.
     """
-    up_vector = _PERP_AXIS[axis]
+    front_vec = _AXIS_VECTOR[front_axis]
     ctrls, offsets = [], []
     for i in range(num_ik):
         frac = i/float(num_ik-1) if num_ik > 1 else 0.0
-        pos, rot = _sample_curve_frame(curve, frac, up_vector)
-        ctrl = cmds.circle(n='{}_IK{:02d}_CTL'.format(name, i+1), ch=False, nr=(1, 0, 0), r=radius)[0]
+        u_param = _raw_param_at_fraction(curve, frac)
+        pos, rot = _sample_surface_frame(surface, u_param, front_axis, up_local_axis)
+        ctrl = cmds.circle(n='{}_IK{:02d}_CTL'.format(name, i+1), ch=False, nr=front_vec, r=radius)[0]
         off = cmds.group(ctrl, n='{}_IK{:02d}_OFF'.format(name, i+1))
         cmds.xform(off, ws=True, t=pos, ro=rot)
         cmds.setAttr(ctrl+'.overrideEnabled', 1)
@@ -530,7 +892,8 @@ def _skin_ribbon_surface(name, surface, bind_jnts):
     return skin
 
 
-def build_ik(name='tentacle', num_ik=9, ctrl_radius=1.0):
+def build_ik(name='tentacle', num_ik=9, ctrl_radius=1.0,
+             up_axis=None, front_axis=None, up_local_axis=None):
     """2단계: 리본 서피스를 따라 IK 컨트롤 N개 배치 -> 1:1 NurbsBind joint ->
     리본 서피스 스킨 바인드.
 
@@ -541,9 +904,26 @@ def build_ik(name='tentacle', num_ik=9, ctrl_radius=1.0):
         name (str): build_base()와 동일한 리그 네이밍 프리픽스
         num_ik (int): IK 컨트롤 개수(=NurbsBind joint 개수)
         ctrl_radius (float): IK 컨트롤 shape 반경
+        up_axis (str): build_base()가 저장한 값을 override(build_base를 다시
+            돌리지 않고 축만 바꿔서 IK를 다시 만들 때 사용). None이면 build_base
+            때 저장된 값을 그대로 쓴다. override하면 이후 build_twist_scale/
+            build_branch도 이어받도록 rig_grp에 다시 저장된다.
+        front_axis (str): 위와 동일한 방식의 override(컨트롤 로컬 forward축).
+        up_local_axis (str): 위와 동일한 방식의 override(컨트롤 로컬 up축).
 
     Returns:
         dict: ik_ctrls, bind_jnts, skin_cluster
+
+    Note:
+        build_base() 이후 사용자가 {name}_NSF를 직접(CV 이동, sculpt 등) 다시
+        모양을 바꿨을 수 있다 -- curve는 curveFromSurfaceIso로 라이브 추출된
+        것이라 그 편집을 그대로 반영하지만(_extract_curve_from_surface),
+        저장된 tentacleAxis는 build_base() 시점 mesh 기준으로 딱 한 번만
+        정해진 값이라 그 뒤 모양이 바뀌어도 자동으로 다시 안 맞춰진다. 그래서
+        매번 build_ik() 실행 시 저장된 축을 curve의 현재(=수정 반영된) bbox
+        기준으로 다시 검증한다(_resolve_axis -- 실제 가장 긴 축의 절반에도
+        못 미치면 자동 전환+경고, 아니면 그대로 유지). 이후 build_twist_scale/
+        build_branch도 여기서 갱신된 값을 이어받는다.
     """
     rig_grp = '{}_rig_GRP'.format(name)
     curve = '{}_CRV'.format(name)
@@ -551,7 +931,20 @@ def build_ik(name='tentacle', num_ik=9, ctrl_radius=1.0):
     if not cmds.objExists(rig_grp) or not cmds.objExists(curve) or not cmds.objExists(surface):
         raise RuntimeError('build_ik: build_base()를 먼저 실행하세요 ({} 없음)'.format(rig_grp))
 
-    axis = cmds.getAttr(rig_grp+'.tentacleAxis')
+    stored_axis = cmds.getAttr(rig_grp+'.tentacleAxis')
+    axis = _resolve_axis(curve, stored_axis)
+    if axis != stored_axis:
+        _set_string_attr(rig_grp, 'tentacleAxis', axis)
+    if up_axis is not None:
+        _set_up_axis(rig_grp, up_axis)
+
+    stored_front_axis, stored_up_local_axis = _get_ctrl_axes(rig_grp)
+    front_axis = front_axis if front_axis is not None else stored_front_axis
+    up_local_axis = up_local_axis if up_local_axis is not None else stored_up_local_axis
+    if front_axis == up_local_axis:
+        raise ValueError('build_ik: front_axis({})는 up_local_axis({})와 달라야 합니다'.format(
+            front_axis, up_local_axis))
+    _set_ctrl_axes(rig_grp, front_axis, up_local_axis)
 
     ctl_grp_name = '{}_ikCtl_GRP'.format(name)
     jnt_grp_name = '{}_bindJnt_GRP'.format(name)
@@ -565,7 +958,8 @@ def build_ik(name='tentacle', num_ik=9, ctrl_radius=1.0):
     jnt_grp = cmds.createNode('transform', n=jnt_grp_name,
                                p=sys_grp if cmds.objExists(sys_grp) else rig_grp)
 
-    ik_ctrls, ik_offsets = _build_ik_controls(name, curve, axis, num_ik, ctrl_radius, ctl_grp)
+    ik_ctrls, ik_offsets = _build_ik_controls(name, curve, surface, num_ik, ctrl_radius, ctl_grp,
+                                               front_axis=front_axis, up_local_axis=up_local_axis)
     bind_jnts = _build_nurbs_bind_joints(name, ik_ctrls, ik_offsets, jnt_grp)
     skin = _skin_ribbon_surface(name, surface, bind_jnts)
 
@@ -615,38 +1009,35 @@ def _build_stretch_ratio(name, curve, stretch_ctrl):
 
 
 def _build_output_follicles(name, curve, surface, num_output, fol_grp, stretch_ctrl=None):
-    """curve 위 num_output개 지점을 motionPath(position만)로 라이브 추적하고,
-    그 위치를 closestPointOnSurface로 서피스의 실제 parameterU로 변환한 뒤
-    그 U에 follicle을 붙인다.
+    """curve 위 num_output개 지점을 follicle의 parameterU에 배치한다.
 
-    curve는 서피스에서 curveFromSurfaceIso로 라이브 추출된 것(_extract_curve_from_surface)
-    이라 서피스가 IK로 변형되면 같이 움직이지만, curve 자체의 parametrization이
-    서피스의 U parametrization과 정확히 일치하는 보장은 없다 -- 그래서 curve
-    위치를 그대로 follicle에 쓰지 않고, closestPointOnSurface로 그 위치에
-    대응하는 서피스의 실제 U를 다시 구해서 넘긴다. follicle의 출력 회전은
-    서피스의 국소 tangent/normal에서 바로 계산되므로 motionPath의 up-vector
-    방식과 달리 구조적으로 플립이 없다.
+    stretch_ctrl이 없으면(고정 fraction) 빌드 타임에 _static_param_at_fraction
+    (findParamFromLength -- 3D 위치 검색이 없는 1차원 arc-length 이분탐색)
+    으로 parameter를 한 번에 정확히 계산해서 setAttr로 고정한다. curve가
+    curveFromSurfaceIso로 뽑힌 것(_extract_curve_from_surface)이라 curve의
+    parameter range/값이 서피스의 parameterU와 그대로 대응하고, follicle의
+    parameter 좌표는 material point의 고정 주소라서 서피스가 나중에 IK로
+    변형돼도 라이브로 다시 풀 필요가 없다.
 
-    motionPath의 geometryPath는 curve의 worldSpace를 읽으므로 allCoordinates
-    출력도 이미 world space 좌표다 -- 그래서 closestPointOnSurface.inPosition에
-    (같은 world space를 쓰는 inputSurface와 짝을 맞춰) 바로 연결한다. 예전엔
-    중간에 위치 확인용 locator를 하나 두고 그 locator의 .translate(로컬
-    attribute)에 이 world space 좌표를 connectAttr로 그대로 꽂았는데, 이
-    locator가 identity가 아닌 조상(예: 다른 곳에 붙는 branch 리그의 follicle)
-    아래에 있으면 조상 트랜스폼이 다시 한번 곱해져 위치가 완전히 틀어지는
-    버그가 있었다(메인 리그는 조상이 항상 월드 원점이라 안 드러났다) --
-    locator를 없애고 world space 값을 그대로 넘기면 이 문제가 원천적으로
-    없어진다.
+    stretch_ctrl을 주면(Stretch attribute를 가진 마지막 IK 컨트롤) 유효 길이
+    자체가 라이브로 바뀌므로, 그 경우만 motionPath(fractionMode=1)로 3D
+    위치를 얻은 뒤 nearestPointOnCurve로 curve에서 parameter를 역산하는
+    라이브 방식을 쓴다 -- fractionMode=1은 항상 현재 arc length 기준으로
+    균등 재분배하는데, Stretch가 0에 가까울수록 effectiveLength가
+    restCurveLength에 가까워져서 늘어난 커브 위에서도 rest 간격을 유지하다가
+    tip 앞에서 멈추는(rigid) 동작이 된다. (이 라이브 경로는 curve가 심하게
+    말려 있으면서 동시에 Stretch를 라이브로 조절하는 경우에만, 서로 다른
+    arc-length 구간이 3D 공간에서 가까이 지나가는 self-proximity로 인한
+    오차가 남는 더 좁은 잔여 한계가 있다 -- 고정 fraction 경로는 이 문제가
+    아예 없다.)
 
-    stretch_ctrl을 주면(Stretch attribute를 가진 마지막 IK 컨트롤) 각 지점의
-    motionPath uValue를 '고정 fraction'이 아니라 '유효 길이(_build_stretch_ratio)
-    기준으로 리매핑된 fraction'으로 라이브 연결한다 -- fractionMode=1은 항상
-    현재 arc length 기준으로 균등 재분배하는데, Stretch가 0에 가까울수록
-    effectiveLength가 restCurveLength에 가까워져서 늘어난 커브 위에서도 rest
-    간격을 유지하다가 tip 앞에서 멈추는(rigid) 동작이 된다.
+    follicle의 출력 회전은 서피스의 국소 tangent/normal에서 바로 계산되므로
+    motionPath의 up-vector 방식과 달리 구조적으로 플립이 없다.
     """
     crv_shape = cmds.listRelatives(curve, shapes=True, ni=True, fullPath=True)[0]
     surf_shape = cmds.listRelatives(surface, shapes=True, ni=True, fullPath=True)[0]
+    crv_min = cmds.getAttr(crv_shape+'.minValue')
+    crv_max = cmds.getAttr(crv_shape+'.maxValue')
 
     if stretch_ctrl:
         effective_len_plug, arc_len_plug = _build_stretch_ratio(name, curve, stretch_ctrl)
@@ -656,11 +1047,23 @@ def _build_output_follicles(name, curve, surface, num_output, fol_grp, stretch_c
         frac = i/float(num_output-1) if num_output > 1 else 0.0
         idx = i+1
 
-        mp = cmds.createNode('motionPath', n='{}_output{:02d}_MPT'.format(name, idx))
-        cmds.connectAttr(crv_shape+'.worldSpace[0]', mp+'.geometryPath')
-        cmds.setAttr(mp+'.fractionMode', 1)
+        fol_shape = cmds.createNode('follicle', n='{}_output{:02d}_FOLShape'.format(name, idx))
+        fol_xform = cmds.listRelatives(fol_shape, parent=True)[0]
+        fol_xform = cmds.rename(fol_xform, '{}_output{:02d}_FOL'.format(name, idx))
+        cmds.connectAttr(surf_shape+'.local', fol_shape+'.inputSurface')
+        cmds.connectAttr(surf_shape+'.worldMatrix[0]', fol_shape+'.inputWorldMatrix')
 
         if stretch_ctrl:
+            # Stretch는 라이브로 바뀌는 값이라(유효 길이가 실시간으로 변함) 여기만
+            # 예전 방식(motionPath 3D 위치 -> nearestPointOnCurve 역산)을 그대로
+            # 쓴다 -- curve가 심하게 말려 있으면서 동시에 Stretch를 라이브로
+            # 조절하는 경우에만 self-proximity로 인한 오차가 남는, 더 좁은 잔여
+            # 한계다. 고정 fraction(아래 else)은 _static_param_at_fraction으로
+            # 빌드 타임에 한 번에 정확히 계산해서 이 문제가 아예 없다.
+            mp = cmds.createNode('motionPath', n='{}_output{:02d}_MPT'.format(name, idx))
+            cmds.connectAttr(crv_shape+'.worldSpace[0]', mp+'.geometryPath')
+            cmds.setAttr(mp+'.fractionMode', 1)
+
             frac_len = cmds.createNode('multDoubleLinear', n='{}_output{:02d}_fracLen_MDL'.format(name, idx))
             cmds.setAttr(frac_len+'.input2', frac)
             cmds.connectAttr(effective_len_plug, frac_len+'.input1')
@@ -670,23 +1073,47 @@ def _build_output_follicles(name, curve, surface, num_output, fol_grp, stretch_c
             cmds.connectAttr(frac_len+'.output', remap+'.input1X')
             cmds.connectAttr(arc_len_plug, remap+'.input2X')
             cmds.connectAttr(remap+'.outputX', mp+'.uValue')
+
+            npc = cmds.createNode('nearestPointOnCurve', n='{}_output{:02d}_NPC'.format(name, idx))
+            cmds.connectAttr(crv_shape+'.worldSpace[0]', npc+'.inputCurve')
+            cmds.connectAttr(mp+'.allCoordinates', npc+'.inPosition')
+
+            # follicle.parameterU는 항상 정규화된 0~1을 기대하는데 npc.parameter는
+            # curve의 raw range(예: curve 모드에서 CV 40개면 0~37)라서 그대로
+            # 연결하면 follicle이 1보다 큰 값을 1로 clamp해버린다 -- knotDomain
+            # 기준으로 라이브 정규화한다(_static_param_at_fraction과 동일한 이유).
+            norm_sub = cmds.createNode('plusMinusAverage', n='{}_output{:02d}_paramNorm_PMA'.format(name, idx))
+            cmds.setAttr(norm_sub+'.operation', 2)
+            cmds.connectAttr(npc+'.parameter', norm_sub+'.input1D[0]')
+            cmds.setAttr(norm_sub+'.input1D[1]', crv_min)
+
+            norm_scale = cmds.createNode('multDoubleLinear', n='{}_output{:02d}_paramNorm_MDL'.format(name, idx))
+            cmds.setAttr(norm_scale+'.input2', 1.0/(crv_max-crv_min) if crv_max != crv_min else 1.0)
+            cmds.connectAttr(norm_sub+'.output1D', norm_scale+'.input1')
+            cmds.connectAttr(norm_scale+'.output', fol_shape+'.parameterU')
         else:
-            cmds.setAttr(mp+'.uValue', frac)
+            cmds.setAttr(fol_shape+'.parameterU', _static_param_at_fraction(curve, frac))
 
-        cps = cmds.createNode('closestPointOnSurface', n='{}_output{:02d}_CPS'.format(name, idx))
-        cmds.connectAttr(surf_shape+'.worldSpace[0]', cps+'.inputSurface')
-        cmds.connectAttr(mp+'.allCoordinates', cps+'.inPosition')
-
-        fol_shape = cmds.createNode('follicle', n='{}_output{:02d}_FOLShape'.format(name, idx))
-        fol_xform = cmds.listRelatives(fol_shape, parent=True)[0]
-        fol_xform = cmds.rename(fol_xform, '{}_output{:02d}_FOL'.format(name, idx))
-        cmds.connectAttr(surf_shape+'.local', fol_shape+'.inputSurface')
-        cmds.connectAttr(surf_shape+'.worldMatrix[0]', fol_shape+'.inputWorldMatrix')
-        cmds.connectAttr(cps+'.parameterU', fol_shape+'.parameterU')
         cmds.setAttr(fol_shape+'.parameterV', 0.5)
-        cmds.connectAttr(fol_shape+'.outTranslate', fol_xform+'.translate')
-        cmds.connectAttr(fol_shape+'.outRotate', fol_xform+'.rotate')
         cmds.parent(fol_xform, fol_grp)
+
+        # follicle.outTranslate/outRotate는 월드 스페이스인데 fol_xform.translate/
+        # rotate는 로컬이라, fol_grp(-> sys_grp -> rig_grp) 체인이 월드 원점이
+        # 아니면(리그를 캐릭터 위 다른 위치/회전으로 옮겨두면) 그대로 연결 시 위치가
+        # 완전히 틀어진다 -- fol_xform.parentInverseMatrix로 반드시 로컬 변환해야
+        # 한다(_build_fk_chain/_build_skin_joints와 동일한 matrix-follow 패턴).
+        compose = cmds.createNode('composeMatrix', n='{}_output{:02d}_worldComposeCMX'.format(name, idx))
+        cmds.connectAttr(fol_shape+'.outTranslate', compose+'.inputTranslate')
+        cmds.connectAttr(fol_shape+'.outRotate', compose+'.inputRotate')
+
+        local_mm = cmds.createNode('multMatrix', n='{}_output{:02d}_toLocalMMX'.format(name, idx))
+        cmds.connectAttr(compose+'.outputMatrix', local_mm+'.matrixIn[0]')
+        cmds.connectAttr(fol_xform+'.parentInverseMatrix[0]', local_mm+'.matrixIn[1]')
+
+        local_dcm = cmds.createNode('decomposeMatrix', n='{}_output{:02d}_toLocalDCM'.format(name, idx))
+        cmds.connectAttr(local_mm+'.matrixSum', local_dcm+'.inputMatrix')
+        cmds.connectAttr(local_dcm+'.outputTranslate', fol_xform+'.translate')
+        cmds.connectAttr(local_dcm+'.outputRotate', fol_xform+'.rotate')
 
         follicles.append(fol_xform)
     return follicles
@@ -912,7 +1339,7 @@ def build_fk(name='tentacle', ctrl_radius=0.8, twist_ctrls=None):
     return {'fk_ctrls': fk_ctrls, 'skin_jnts': skin_jnts}
 
 
-def _build_twist_controls(name, curve, axis, ctl_grp, ctrl_radius):
+def _build_twist_controls(name, curve, up_vector, ctl_grp, ctrl_radius, front_axis='x', up_local_axis='y'):
     """curve의 시작/끝에 Twist(각도)와 Parameter(0~1, 트위스트 구간의 경계)
     attribute를 하나씩 가진 컨트롤 2개를 만든다.
 
@@ -928,12 +1355,13 @@ def _build_twist_controls(name, curve, axis, ctl_grp, ctrl_radius):
     기준으로 각 joint의 t가 몇 %인지(구간 밖은 clamp) 계산해서 Twist 값을
     선형보간한다(_ranged_twist_plug).
     """
-    up_vector = _PERP_AXIS[axis]
+    front_idx, up_idx = _AXIS_INDEX[front_axis], _AXIS_INDEX[up_local_axis]
+    front_vec = _AXIS_VECTOR[front_axis]
     crv_shape = cmds.listRelatives(curve, shapes=True, ni=True, fullPath=True)[0]
     ctrls = []
     for label, default_param in (('Start', 0.0), ('End', 1.0)):
         ctrl = cmds.circle(n='{}_Twist{}_CTL'.format(name, label), ch=False,
-                            nr=(1, 0, 0), r=ctrl_radius*1.4)[0]
+                            nr=front_vec, r=ctrl_radius*1.4)[0]
         off = cmds.group(ctrl, n='{}_Twist{}_OFF'.format(name, label))
         cmds.setAttr(ctrl+'.overrideEnabled', 1)
         cmds.setAttr(ctrl+'.overrideColor', 18)
@@ -946,14 +1374,29 @@ def _build_twist_controls(name, curve, axis, ctl_grp, ctrl_radius):
         cmds.setAttr(mp+'.fractionMode', 1)
         cmds.connectAttr(ctrl+'.Parameter', mp+'.uValue')
         cmds.setAttr(mp+'.follow', 1)
-        cmds.setAttr(mp+'.frontAxis', 0)
-        cmds.setAttr(mp+'.upAxis', 1)
+        cmds.setAttr(mp+'.frontAxis', front_idx)
+        cmds.setAttr(mp+'.upAxis', up_idx)
         cmds.setAttr(mp+'.worldUpType', 3)
         cmds.setAttr(mp+'.worldUpVectorX', up_vector[0])
         cmds.setAttr(mp+'.worldUpVectorY', up_vector[1])
         cmds.setAttr(mp+'.worldUpVectorZ', up_vector[2])
-        cmds.connectAttr(mp+'.allCoordinates', off+'.translate')
-        cmds.connectAttr(mp+'.rotate', off+'.rotate')
+
+        # motionPath의 geometryPath가 월드 스페이스 curve라 allCoordinates/rotate도
+        # 월드 스페이스로 나온다 -- off.translate/rotate는 로컬이라 ctl_grp(->rig_grp)
+        # 체인이 월드 원점이 아니면 그대로 연결 시 위치가 틀어진다. off.parentInverseMatrix
+        # 로 반드시 로컬 변환해야 한다(_build_output_follicles와 동일한 이유/패턴).
+        compose = cmds.createNode('composeMatrix', n='{}_Twist{}_worldComposeCMX'.format(name, label))
+        cmds.connectAttr(mp+'.allCoordinates', compose+'.inputTranslate')
+        cmds.connectAttr(mp+'.rotate', compose+'.inputRotate')
+
+        local_mm = cmds.createNode('multMatrix', n='{}_Twist{}_toLocalMMX'.format(name, label))
+        cmds.connectAttr(compose+'.outputMatrix', local_mm+'.matrixIn[0]')
+        cmds.connectAttr(off+'.parentInverseMatrix[0]', local_mm+'.matrixIn[1]')
+
+        local_dcm = cmds.createNode('decomposeMatrix', n='{}_Twist{}_toLocalDCM'.format(name, label))
+        cmds.connectAttr(local_mm+'.matrixSum', local_dcm+'.inputMatrix')
+        cmds.connectAttr(local_dcm+'.outputTranslate', off+'.translate')
+        cmds.connectAttr(local_dcm+'.outputRotate', off+'.rotate')
 
         ctrls.append(ctrl)
     return ctrls
@@ -998,74 +1441,145 @@ def _ranged_twist_plug(start_ctrl, end_ctrl, t, node_prefix):
     return blend+'.output'
 
 
-def _build_volume_controls(name, curve, axis, num_volume, ctl_grp, ctrl_radius):
-    """curve 위 고정 위치(0~1 균등)에 Volume attribute를 하나씩 가진 컨트롤
+def _build_volume_controls(name, curve, surface, num_volume, ctl_grp, ctrl_radius,
+                            front_axis='x', up_local_axis='y'):
+    """curve 위 고정 위치(0~1 균등)에 volumeY/volumeZ attribute를 가진 컨트롤
     num_volume개를 만든다. 인접 두 컨트롤 사이를 선형보간해서 Skin joint의
-    scaleY/Z(aim축과 수직인 두 축)에 연결하면 구간별 squash/stretch 볼륨
+    scaleY/Z(aim축과 수직인 두 축)에 각각 연결하면 구간별 squash/stretch 볼륨
     보정이 된다.
     """
-    up_vector = _PERP_AXIS[axis]
+    front_vec = _AXIS_VECTOR[front_axis]
     positions = [i/float(num_volume-1) for i in range(num_volume)] if num_volume > 1 else [0.0]
     ctrls = []
     for i, frac in enumerate(positions):
-        pos, rot = _sample_curve_frame(curve, frac, up_vector)
+        u_param = _raw_param_at_fraction(curve, frac)
+        pos, rot = _sample_surface_frame(surface, u_param, front_axis, up_local_axis)
         ctrl = cmds.circle(n='{}_Volume{:02d}_CTL'.format(name, i+1), ch=False,
-                            nr=(1, 0, 0), r=ctrl_radius*1.15)[0]
+                            nr=front_vec, r=ctrl_radius*1.15)[0]
         off = cmds.group(ctrl, n='{}_Volume{:02d}_OFF'.format(name, i+1))
         cmds.xform(off, ws=True, t=pos, ro=rot)
         cmds.setAttr(ctrl+'.overrideEnabled', 1)
         cmds.setAttr(ctrl+'.overrideColor', 14)
-        cmds.addAttr(ctrl, ln='Volume', at='double', min=-10, max=10, dv=0, k=True)
+        cmds.addAttr(ctrl, ln='volumeY', at='double', min=-10, max=10, dv=0, k=True)
+        cmds.addAttr(ctrl, ln='volumeZ', at='double', min=-10, max=10, dv=0, k=True)
         cmds.parent(off, ctl_grp)
         ctrls.append(ctrl)
     return ctrls, positions
 
 
+def _connect_volume_to_skin(name, volume_ctrls, positions, skin_jnts):
+    """Volume 컨트롤의 OFF 그룹이 같은 위치(positions[i]의 t)의 Skin joint를
+    라이브로 따라가게 한다(multMatrix: skin_jnt.worldMatrix[0] *
+    off.parentInverseMatrix[0] -> decomposeMatrix -> OFF.translate/rotate --
+    _build_fk_chain/_build_skin_joints와 동일한 matrix-follow 패턴).
+
+    Volume 컨트롤은 build 시점에 curve 위 정적 위치에 한 번 배치되는데(
+    _build_volume_controls), 그 뒤로는 리그가 애니메이션으로 휘어져도 그
+    자리에 그대로 남아 있었다 -- 이 connection을 걸면 해당 위치에 가장 가까운
+    Skin joint의 실제 world pose를 그대로 따라간다. 연결 대상은 CTL이 아니라
+    그 부모인 OFF 그룹이라 CTL 자신의 로컬 transform은 계속 0으로 비워둘 수
+    있고, 애니메이터가 그 위에 추가로 오프셋을 얹을 수 있다(다른 단계의
+    NUL/CTL 패턴과 동일).
+
+    positions(Volume 컨트롤들의 고정 arc-length fraction)와 Skin joint 개수로
+    가장 가까운 인덱스를 골라 매칭한다 -- Volume 컨트롤 개수와 Skin joint
+    개수가 다를 수 있어서(기본 5개 vs 기본 25개) 1:1 대응이 아니라 fraction
+    기준 최근접 매칭을 쓴다.
+    """
+    num_skin = len(skin_jnts)
+    for i, (ctrl, t) in enumerate(zip(volume_ctrls, positions)):
+        off = cmds.listRelatives(ctrl, parent=True, fullPath=True)[0]
+        skin_idx = int(round(t*(num_skin-1))) if num_skin > 1 else 0
+        skin_idx = max(0, min(num_skin-1, skin_idx))
+        jnt = skin_jnts[skin_idx]
+
+        mm = cmds.createNode('multMatrix', n='{}_Volume{:02d}_followMMX'.format(name, i+1))
+        cmds.connectAttr(jnt+'.worldMatrix[0]', mm+'.matrixIn[0]')
+        cmds.connectAttr(off+'.parentInverseMatrix[0]', mm+'.matrixIn[1]')
+
+        dcm = cmds.createNode('decomposeMatrix', n='{}_Volume{:02d}_followDCM'.format(name, i+1))
+        cmds.connectAttr(mm+'.matrixSum', dcm+'.inputMatrix')
+        cmds.connectAttr(dcm+'.outputTranslate', off+'.translate')
+        cmds.connectAttr(dcm+'.outputRotate', off+'.rotate')
+
+
 def _apply_volume_scale(name, skin_jnts, volume_ctrls, positions):
     """Volume 컨트롤 값(-10~10)을 /10으로 정규화해서 1+delta 형태의 scale로
-    만들고, Skin joint의 scaleY/Z에 연결한다(aim축인 scaleX는 그대로 둔다 --
+    만들고, volumeY는 Skin joint scaleY에, volumeZ는 scaleZ에 연결한다
+    (aim축인 scaleX는 그대로 둔다 --
     길이 방향까지 스케일하면 stretch 계산과 겹쳐서 이중으로 늘어난다).
     """
     num = len(skin_jnts)
     for i, jnt in enumerate(skin_jnts):
         t = i/float(num-1) if num > 1 else 0.0
-        vol_plug = _gradient_plug(volume_ctrls, 'Volume', positions, t,
-                                   '{}_Skin{:02d}_volume'.format(name, i+1))
-        norm = cmds.createNode('multDoubleLinear', n='{}_Skin{:02d}_volumeNorm_MDL'.format(name, i+1))
-        cmds.setAttr(norm+'.input2', 0.1)
-        cmds.connectAttr(vol_plug, norm+'.input1')
-        scale = cmds.createNode('addDoubleLinear', n='{}_Skin{:02d}_volumeScale_ADL'.format(name, i+1))
-        cmds.setAttr(scale+'.input1', 1.0)
-        cmds.connectAttr(norm+'.output', scale+'.input2')
-        cmds.connectAttr(scale+'.output', jnt+'.scaleY')
-        cmds.connectAttr(scale+'.output', jnt+'.scaleZ')
+        vol_y_plug = _gradient_plug(volume_ctrls, 'volumeY', positions, t,
+                                    '{}_Skin{:02d}_volumeY'.format(name, i+1))
+        norm_y = cmds.createNode('multDoubleLinear', n='{}_Skin{:02d}_volumeYNorm_MDL'.format(name, i+1))
+        cmds.setAttr(norm_y+'.input2', 0.1)
+        cmds.connectAttr(vol_y_plug, norm_y+'.input1')
+        scale_y = cmds.createNode('addDoubleLinear', n='{}_Skin{:02d}_volumeYScale_ADL'.format(name, i+1))
+        cmds.setAttr(scale_y+'.input1', 1.0)
+        cmds.connectAttr(norm_y+'.output', scale_y+'.input2')
+        cmds.connectAttr(scale_y+'.output', jnt+'.scaleY')
+
+        vol_z_plug = _gradient_plug(volume_ctrls, 'volumeZ', positions, t,
+                                    '{}_Skin{:02d}_volumeZ'.format(name, i+1))
+        norm_z = cmds.createNode('multDoubleLinear', n='{}_Skin{:02d}_volumeZNorm_MDL'.format(name, i+1))
+        cmds.setAttr(norm_z+'.input2', 0.1)
+        cmds.connectAttr(vol_z_plug, norm_z+'.input1')
+        scale_z = cmds.createNode('addDoubleLinear', n='{}_Skin{:02d}_volumeZScale_ADL'.format(name, i+1))
+        cmds.setAttr(scale_z+'.input1', 1.0)
+        cmds.connectAttr(norm_z+'.output', scale_z+'.input2')
+        cmds.connectAttr(scale_z+'.output', jnt+'.scaleZ')
 
 
-def build_twist_scale(name='tentacle', num_volume=5, ctrl_radius=0.8):
+def build_twist_scale(name='tentacle', num_volume=5, ctrl_radius=0.8,
+                       up_axis=None, front_axis=None, up_local_axis=None):
     """5단계: Twist 시작/끝 컨트롤 2개를 만들어 FK 체인에 그라디언트로 가산하고
     (FK/Skin을 twist_ctrls와 함께 재빌드), Volume 컨트롤 num_volume개를 만들어
-    최종 Skin joint의 scaleY/Z에 구간별 볼륨 그라디언트로 연결한다.
+    최종 Skin joint의 scaleY/Z에 구간별 볼륨 그라디언트로 각각 연결한다. 또한 각
+    Volume 컨트롤의 OFF 그룹을 같은 위치의 Skin joint에 라이브로 연결해서
+    (_connect_volume_to_skin) 리그가 휘어질 때 Volume 컨트롤이 그 표면 위치를
+    따라가게 한다.
 
     build_output()/build_fk()가 먼저 실행되어 있어야 한다. FK 체인은 Twist를
     얹기 위해 build_fk()를 내부적으로 다시 호출해서 재빌드한다(fk_ctrls의
     로컬 회전 등 그 사이 애니메이터가 손댄 값은 다시 0으로 초기화됨 -- 리그
-    구성 단계이므로 문제 없음).
+    구성 단계이므로 문제 없음). Volume 컨트롤은 build_fk() 재호출로 skin_jnts가
+    다시 만들어진 뒤에 연결해야 하므로, _build_volume_controls -> build_fk() ->
+    _connect_volume_to_skin 순서로 호출한다.
 
     Arguments:
         name (str): 이전 단계와 동일한 리그 네이밍 프리픽스
         num_volume (int): Volume 컨트롤 개수(참조 리그와 동일하게 기본 5)
         ctrl_radius (float): build_fk()에 그대로 전달할 FK 컨트롤 shape 반경
+        up_axis (str): build_base()/build_ik()가 저장한 값을 override(None이면
+            그대로 씀). build_ik()와 동일한 override+저장 방식(_set_up_axis).
+        front_axis (str): 위와 동일한 방식의 override(컨트롤 로컬 forward축).
+        up_local_axis (str): 위와 동일한 방식의 override(컨트롤 로컬 up축).
 
     Returns:
         dict: twist_ctrls, volume_ctrls, fk_ctrls, skin_jnts
     """
     rig_grp = '{}_rig_GRP'.format(name)
     curve = '{}_CRV'.format(name)
+    surface = '{}_NSF'.format(name)
     follicles = cmds.ls('{}_output*_FOL'.format(name))
     if not cmds.objExists(rig_grp) or not cmds.objExists(curve) or not follicles:
         raise RuntimeError('build_twist_scale: build_output()을 먼저 실행하세요 ({} 없음)'.format(rig_grp))
 
     axis = cmds.getAttr(rig_grp+'.tentacleAxis')
+    if up_axis is not None:
+        _set_up_axis(rig_grp, up_axis)
+    up_vector = _get_up_vector(rig_grp, axis)
+
+    stored_front_axis, stored_up_local_axis = _get_ctrl_axes(rig_grp)
+    front_axis = front_axis if front_axis is not None else stored_front_axis
+    up_local_axis = up_local_axis if up_local_axis is not None else stored_up_local_axis
+    if front_axis == up_local_axis:
+        raise ValueError('build_twist_scale: front_axis({})는 up_local_axis({})와 달라야 합니다'.format(
+            front_axis, up_local_axis))
+    _set_ctrl_axes(rig_grp, front_axis, up_local_axis)
 
     twist_grp_name = '{}_twistCtl_GRP'.format(name)
     volume_grp_name = '{}_volumeCtl_GRP'.format(name)
@@ -1076,10 +1590,13 @@ def build_twist_scale(name='tentacle', num_volume=5, ctrl_radius=0.8):
     twist_grp = cmds.createNode('transform', n=twist_grp_name, p=rig_grp)
     volume_grp = cmds.createNode('transform', n=volume_grp_name, p=rig_grp)
 
-    twist_ctrls = _build_twist_controls(name, curve, axis, twist_grp, ctrl_radius)
-    volume_ctrls, positions = _build_volume_controls(name, curve, axis, num_volume, volume_grp, ctrl_radius)
+    twist_ctrls = _build_twist_controls(name, curve, up_vector, twist_grp, ctrl_radius,
+                                         front_axis=front_axis, up_local_axis=up_local_axis)
+    volume_ctrls, positions = _build_volume_controls(name, curve, surface, num_volume, volume_grp, ctrl_radius,
+                                                       front_axis=front_axis, up_local_axis=up_local_axis)
 
     fk_result = build_fk(name=name, ctrl_radius=ctrl_radius, twist_ctrls=twist_ctrls)
+    _connect_volume_to_skin(name, volume_ctrls, positions, fk_result['skin_jnts'])
     _apply_volume_scale(name, fk_result['skin_jnts'], volume_ctrls, positions)
 
     print('=' * 60)
@@ -1091,7 +1608,8 @@ def build_twist_scale(name='tentacle', num_volume=5, ctrl_radius=0.8):
             'fk_ctrls': fk_result['fk_ctrls'], 'skin_jnts': fk_result['skin_jnts']}
 
 
-def _build_top_fk_ik_controls(name, curve, axis, num_ctrl, fk_radius, ik_radius, ctl_grp):
+def _build_top_fk_ik_controls(name, curve, surface, num_ctrl, fk_radius, ik_radius, ctl_grp,
+                               front_axis='x', up_local_axis='y'):
     """curve 위에 FK 컨트롤 num_ctrl개를 실제 체인(FK{i}_OFF가 FK{i-1}_CTL의
     자식)으로 쌓고, 각 FK_CTL의 자식으로 IK 컨트롤을 하나씩 둔다 -- FK가
     상위/마스터(체인이라 앞쪽 FK를 돌리면 뒤쪽 전체가 같이 딸려온다, 일반적인
@@ -1100,22 +1618,23 @@ def _build_top_fk_ik_controls(name, curve, axis, num_ctrl, fk_radius, ik_radius,
     IK 컨트롤의 최종 world pose(부모 FK 체인 전체의 누적 포즈 + 자기 로컬
     오프셋의 합)가 NurbsBind joint를 구동해서 표면을 스킨한다.
     """
-    up_vector = _PERP_AXIS[axis]
+    front_vec = _AXIS_VECTOR[front_axis]
     fk_ctrls, ik_ctrls = [], []
     parent_node = ctl_grp
     for i in range(num_ctrl):
         frac = i/float(num_ctrl-1) if num_ctrl > 1 else 0.0
         idx = i+1
-        pos, rot = _sample_curve_frame(curve, frac, up_vector)
+        u_param = _raw_param_at_fraction(curve, frac)
+        pos, rot = _sample_surface_frame(surface, u_param, front_axis, up_local_axis)
 
-        fk_ctrl = cmds.circle(n='{}_FK{:02d}_CTL'.format(name, idx), ch=False, nr=(1, 0, 0), r=fk_radius)[0]
+        fk_ctrl = cmds.circle(n='{}_FK{:02d}_CTL'.format(name, idx), ch=False, nr=front_vec, r=fk_radius)[0]
         fk_off = cmds.group(fk_ctrl, n='{}_FK{:02d}_OFF'.format(name, idx))
         cmds.xform(fk_off, ws=True, t=pos, ro=rot)
         cmds.setAttr(fk_ctrl+'.overrideEnabled', 1)
         cmds.setAttr(fk_ctrl+'.overrideColor', 6)
         cmds.parent(fk_off, parent_node)
 
-        ik_ctrl = cmds.circle(n='{}_IK{:02d}_CTL'.format(name, idx), ch=False, nr=(1, 0, 0), r=ik_radius)[0]
+        ik_ctrl = cmds.circle(n='{}_IK{:02d}_CTL'.format(name, idx), ch=False, nr=front_vec, r=ik_radius)[0]
         cmds.setAttr(ik_ctrl+'.overrideEnabled', 1)
         cmds.setAttr(ik_ctrl+'.overrideColor', 17)
         cmds.parent(ik_ctrl, fk_ctrl)
@@ -1129,55 +1648,100 @@ def _build_top_fk_ik_controls(name, curve, axis, num_ctrl, fk_radius, ik_radius,
     return fk_ctrls, ik_ctrls
 
 
-def _build_master_drive_follicles(branch_name, top_curve, top_surface, main_ik_offsets, sys_grp):
+def _build_master_drive_follicles(branch_name, top_curve, top_surface, main_ik_offsets, sys_grp,
+                                   front_axis='x', up_local_axis='y'):
     """top_surface(TOP의 FK/IK로 변형된 서피스) 위에 main_ik_offsets와 같은
-    개수의 follicle을, main_ik_offsets가 원래 만들어진 것과 동일한 방식
-    (motionPath arc-length fraction -> closestPointOnSurface, _build_output_follicles
-    참고)으로 배치한다 -- 서피스의 raw parameterU를 그 fraction 값으로 직접
-    쓰면 안 된다(surface parameter는 arc length와 선형 관계가 아니라서, 원래
-    main IK가 커브의 arc-length 기준으로 배치된 위치와 다른 지점을 가리키게
-    된다). top_curve(TOP 서피스에서 추출한 curve)를 통해 정확한 arc-length
-    위치를 구하고, 그 위치를 closestPointOnSurface로 서피스의 실제 U로
-    변환해야 rest 상태에서 main_ik_offsets 위치가 그대로 유지된다.
+    개수의 follicle을, main_ik_offsets가 원래 놓인 것과 동일한 arc-length
+    fraction의 parameterU에 배치한다(_static_param_at_fraction) -- 서피스의
+    raw parameterU를 그 fraction 값으로 직접 쓰면 안 된다(surface parameter는
+    arc length와 선형 관계가 아니라서, 원래 main IK가 커브의 arc-length
+    기준으로 배치된 위치와 다른 지점을 가리키게 된다). top_curve(TOP 서피스에서
+    추출한 curve, top_surface의 v=0.5 isoparm이라 parameter range/값이
+    top_surface의 parameterU와 그대로 대응한다)의 arc-length fraction에서
+    parameter를 빌드 타임에 직접 계산해서 고정한다.
 
-    follicle의 outTranslate/outRotate로 main_ik_offsets를 직접 구동한다 --
+    예전엔 이 U를 (1) closestPointOnSurface로 서피스 전체(U, V 둘 다)에서
+    찾거나 (2) motionPath로 3D 위치를 얻은 뒤 nearestPointOnCurve로 그 위치에
+    가장 가까운 점을 curve에서 다시 찾는 방식으로 구했는데, 둘 다 '3D 위치
+    기준으로 가장 가까운 점 찾기'라는 공통 결함이 있었다 -- 촉수답게 실제로
+    구불구불 말리면(curl) 서로 다른 arc-length 구간이 3D 공간에서 서로
+    가까이 지나가는 경우가 흔해서, '가장 가까운 점'이 의도한 지점이 아니라
+    근처를 지나가는 다른 구간을 잘못 짚었다(빌드 직후, 애니메이터가 아무것도
+    안 만졌는데도 main IK_OFF/base NSF가 크게 틀어져 보이는 원인 -- 양 끝점만
+    우연히 맞고 중간 지점들은 전부 틀어지는 패턴으로 나타났다).
+    _static_param_at_fraction(findParamFromLength)은 3D 위치 검색이 전혀 없이
+    curve 자신의 arc-length만 따라가는 1차원 이분탐색이라 curve가 스스로 얼마나
+    가까이 지나가든 절대 모호해지지 않는다.
+
+    follicle의 outTranslate/outRotate는 월드 스페이스다(_build_output_follicles와
+    동일한 이유) -- 그런데 main_ik_offsets(off)는 LOCAL translate/rotate라서
+    바로 연결하면 안 된다. off의 부모 체인(ctl_grp -> rig_grp)이 항상 월드
+    원점(identity)이라는 보장이 없기 때문이다(실제 프로덕션에서는 리그 전체를
+    캐릭터 위 다른 위치/회전으로 옮겨두는 게 정상). 그래서 매번 off.
+    parentInverseMatrix로 로컬로 변환해야 한다(_build_fk_chain/_build_skin_joints
+    와 동일한 matrix-follow 패턴).
+
+    거기에 축 보정도 같은 matrixSum 체인에서 같이 처리한다(matrixIn[0]=remap
+    -- _axis_remap_matrix) -- follicle 노드는 항상 자기 로컬 X=tangent/
+    Y=up-vector 기준으로만 회전을 낸다(front_axis/up_local_axis를 모른다).
+    main IK_OFF는 build_ik() 때 front_axis/up_local_axis 기준으로 배치돼
+    있으므로, 그 축이 기본값('x'/'y')이 아니면 follicle의 raw outRotate를
+    그대로 연결하는 순간 IK_OFF의 회전이 follicle의 기본 축 배치로 홱
+    돌아가 버린다(빌드 직후, 애니메이터가 아무것도 안 만졌는데도 rest pose가
+    바뀌는 것처럼 보임) -- 그래서 remap을 적용해야 build_ik()가 잡은 방향과
+    어긋나지 않는다.
+
     main의 IK_CTL 자신은 그 OFF의 자식으로 그대로 남아 애니메이터가 그
     위에 추가로 움직일 수 있다(FK NUL/CTL과 동일한 패턴). 결과적으로 TOP을
     움직이면 그 서피스 변형이 follicle을 통해 그대로 main(Demo)의 IK
     컨트롤 위치/방향을 구동하는 마스터-슬레이브 관계가 된다.
     """
-    crv_shape = cmds.listRelatives(top_curve, shapes=True, ni=True, fullPath=True)[0]
+    remap = _axis_remap_matrix(front_axis, up_local_axis)
     surf_shape = cmds.listRelatives(top_surface, shapes=True, ni=True, fullPath=True)[0]
     num = len(main_ik_offsets)
     fols = []
     for i, off in enumerate(main_ik_offsets):
         frac = i/float(num-1) if num > 1 else 0.0
         idx = i+1
-
-        mp = cmds.createNode('motionPath', n='{}_drive{:02d}_MPT'.format(branch_name, idx))
-        cmds.connectAttr(crv_shape+'.worldSpace[0]', mp+'.geometryPath')
-        cmds.setAttr(mp+'.fractionMode', 1)
-        cmds.setAttr(mp+'.uValue', frac)
-
-        cps = cmds.createNode('closestPointOnSurface', n='{}_drive{:02d}_CPS'.format(branch_name, idx))
-        cmds.connectAttr(surf_shape+'.worldSpace[0]', cps+'.inputSurface')
-        cmds.connectAttr(mp+'.allCoordinates', cps+'.inPosition')
+        param = _static_param_at_fraction(top_curve, frac)
 
         fol_shape = cmds.createNode('follicle', n='{}_drive{:02d}_FOLShape'.format(branch_name, idx))
         fol_xform = cmds.listRelatives(fol_shape, parent=True)[0]
         fol_xform = cmds.rename(fol_xform, '{}_drive{:02d}_FOL'.format(branch_name, idx))
         cmds.connectAttr(surf_shape+'.local', fol_shape+'.inputSurface')
         cmds.connectAttr(surf_shape+'.worldMatrix[0]', fol_shape+'.inputWorldMatrix')
-        cmds.connectAttr(cps+'.parameterU', fol_shape+'.parameterU')
+        cmds.setAttr(fol_shape+'.parameterU', param)
         cmds.setAttr(fol_shape+'.parameterV', 0.5)
-        cmds.connectAttr(fol_shape+'.outTranslate', off+'.translate')
-        cmds.connectAttr(fol_shape+'.outRotate', off+'.rotate')
+
+        # follicle.outTranslate/outRotate는 월드 스페이스다(_build_output_follicles와
+        # 동일). off는 tentacle_ikCtl_GRP -> tentacle_rig_GRP 밑이라 그 체인이 항상
+        # identity(월드 원점)라는 보장이 없다 -- 실제 프로덕션에서는 리그 전체를
+        # 캐릭터 위 다른 위치/회전으로 옮겨두는 게 정상이라, 그 경우 월드 값을
+        # local attribute에 그냥 꽂으면 위치/회전이 완전히 틀어진다. 그래서
+        # off.parentInverseMatrix로 로컬 공간으로 변환하는 단계가 반드시 필요하다
+        # -- axis remap(follicle 고유 축 -> front_axis/up_local_axis)까지 같은
+        # matrixSum 체인에서 한 번에 처리한다(remap * 월드 매트릭스 * parentInverseMatrix).
+        compose = cmds.createNode('composeMatrix', n='{}_drive{:02d}_worldComposeCMX'.format(branch_name, idx))
+        cmds.connectAttr(fol_shape+'.outTranslate', compose+'.inputTranslate')
+        cmds.connectAttr(fol_shape+'.outRotate', compose+'.inputRotate')
+
+        local_mm = cmds.createNode('multMatrix', n='{}_drive{:02d}_toLocalMMX'.format(branch_name, idx))
+        cmds.setAttr(local_mm+'.matrixIn[0]', remap, type='matrix')
+        cmds.connectAttr(compose+'.outputMatrix', local_mm+'.matrixIn[1]')
+        cmds.connectAttr(off+'.parentInverseMatrix[0]', local_mm+'.matrixIn[2]')
+
+        local_dcm = cmds.createNode('decomposeMatrix', n='{}_drive{:02d}_toLocalDCM'.format(branch_name, idx))
+        cmds.connectAttr(local_mm+'.matrixSum', local_dcm+'.inputMatrix')
+        cmds.connectAttr(local_dcm+'.outputTranslate', off+'.translate')
+        cmds.connectAttr(local_dcm+'.outputRotate', off+'.rotate')
+
         cmds.parent(fol_xform, sys_grp)
         fols.append(fol_xform)
     return fols
 
 
-def build_branch(name='tentacle', branch_name='topTentacle', num_ctrl=4, fk_radius=0.9, ik_radius=0.6):
+def build_branch(name='tentacle', branch_name='topTentacle', num_ctrl=4, fk_radius=0.9, ik_radius=0.6,
+                  up_axis=None, front_axis=None, up_local_axis=None):
     """{branch_name}(TOP)을 {name}(Demo)을 구동하는 마스터 컨트롤 레이어로
     빌드한다.
 
@@ -1207,6 +1771,13 @@ def build_branch(name='tentacle', branch_name='topTentacle', num_ctrl=4, fk_radi
             개수보다 적어도 됨 -- 굵은 마스터 컨트롤)
         fk_radius (float): TOP FK 컨트롤 shape 반경
         ik_radius (float): TOP IK 컨트롤 shape 반경(FK 자식이라 보통 더 작게)
+        up_axis (str): main(name)에 저장된 값을 override(None이면 그대로 씀).
+            base/top이 항상 같은 축을 쓰도록, override하면 main_rig_grp의
+            저장값도 같이 갱신한다(build_ik()와 동일한 이유 -- 안 그러면 이후
+            main 쪽에서 build_ik()/build_twist_scale()을 다시 돌릴 때 옛
+            값으로 되돌아가 버린다).
+        front_axis (str): 위와 동일한 방식의 override(컨트롤 로컬 forward축).
+        up_local_axis (str): 위와 동일한 방식의 override(컨트롤 로컬 up축).
 
     Returns:
         dict: surface, curve, fk_ctrls, ik_ctrls, drive_follicles
@@ -1225,10 +1796,36 @@ def build_branch(name='tentacle', branch_name='topTentacle', num_ctrl=4, fk_radi
         cmds.delete('{}_rig_GRP'.format(branch_name))
 
     axis = cmds.getAttr(main_rig_grp+'.tentacleAxis')
+    if up_axis is not None:
+        _set_up_axis(main_rig_grp, up_axis)
+    up_axis = cmds.getAttr(main_rig_grp+'.tentacleUpAxis') if cmds.attributeQuery(
+        'tentacleUpAxis', node=main_rig_grp, exists=True) else _DEFAULT_UP_AXIS[axis]
+
+    stored_front_axis, stored_up_local_axis = _get_ctrl_axes(main_rig_grp)
+    front_axis = front_axis if front_axis is not None else stored_front_axis
+    up_local_axis = up_local_axis if up_local_axis is not None else stored_up_local_axis
+    if front_axis == up_local_axis:
+        raise ValueError('build_branch: front_axis({})는 up_local_axis({})와 달라야 합니다'.format(
+            front_axis, up_local_axis))
+    _set_ctrl_axes(main_rig_grp, front_axis, up_local_axis)
+
     g = _build_groups(branch_name)
     cmds.addAttr(g['rig'], ln='tentacleAxis', dt='string')
     cmds.setAttr(g['rig']+'.tentacleAxis', axis, type='string')
-    cmds.parent(g['rig'], main_rig_grp)
+    cmds.addAttr(g['rig'], ln='tentacleUpAxis', dt='string')
+    cmds.setAttr(g['rig']+'.tentacleUpAxis', up_axis, type='string')
+    cmds.addAttr(g['rig'], ln='tentacleCtrlFrontAxis', dt='string')
+    cmds.setAttr(g['rig']+'.tentacleCtrlFrontAxis', front_axis, type='string')
+    cmds.addAttr(g['rig'], ln='tentacleCtrlUpAxis', dt='string')
+    cmds.setAttr(g['rig']+'.tentacleCtrlUpAxis', up_local_axis, type='string')
+    # relative=True(월드 프리저브 없이 그대로 붙임)가 필수다 -- 기본 동작(월드
+    # 위치 보존)으로 붙이면, g['rig']가 (막 만들어진 직후라 identity인) 현재
+    # 월드 위치를 유지하려고 main_rig_grp의 오프셋을 상쇄하는 local transform을
+    # 자동으로 넣어버린다. 그러면 TOP의 duplicate 서피스가 main_rig_grp가 월드
+    # 원점이 아닐 때(실제 리그를 캐릭터 위로 옮겨둔 상태) main의 서피스와 같은
+    # 월드 프레임에 있지 않게 되어, _build_master_drive_follicles가 그 위에서
+    # 계산한 arc-length 위치가 main IK_OFF가 실제로 있어야 할 위치와 어긋난다.
+    cmds.parent(g['rig'], main_rig_grp, relative=True)
 
     surface = cmds.duplicate(main_surface, n='{}_NSF'.format(branch_name), renameChildren=True)[0]
     cmds.parent(surface, g['geo'])
@@ -1240,12 +1837,14 @@ def build_branch(name='tentacle', branch_name='topTentacle', num_ctrl=4, fk_radi
     ctl_grp = cmds.createNode('transform', n='{}_ctl_GRP'.format(branch_name), p=g['rig'])
     jnt_grp = cmds.createNode('transform', n='{}_bindJnt_GRP'.format(branch_name), p=g['sys'])
 
-    fk_ctrls, ik_ctrls = _build_top_fk_ik_controls(branch_name, out_crv, axis, num_ctrl,
-                                                     fk_radius, ik_radius, ctl_grp)
+    fk_ctrls, ik_ctrls = _build_top_fk_ik_controls(branch_name, out_crv, surface, num_ctrl,
+                                                     fk_radius, ik_radius, ctl_grp,
+                                                     front_axis=front_axis, up_local_axis=up_local_axis)
     bind_jnts = _build_nurbs_bind_joints(branch_name, ik_ctrls, ik_ctrls, jnt_grp)
     skin = _skin_ribbon_surface(branch_name, surface, bind_jnts)
 
-    drive_fols = _build_master_drive_follicles(branch_name, out_crv, surface, main_ik_offsets, g['sys'])
+    drive_fols = _build_master_drive_follicles(branch_name, out_crv, surface, main_ik_offsets, g['sys'],
+                                                front_axis=front_axis, up_local_axis=up_local_axis)
 
     print('=' * 60)
     print('Tentacle Branch(master) 완료: {} -> {} 구동'.format(branch_name, name))
@@ -1260,7 +1859,7 @@ def build_branch(name='tentacle', branch_name='topTentacle', num_ctrl=4, fk_radi
 
 
 if __name__ == '__main__':
-    build_base()
+    build_base(mesh='pSphere1')
     build_ik()
     build_output()
     build_fk()
