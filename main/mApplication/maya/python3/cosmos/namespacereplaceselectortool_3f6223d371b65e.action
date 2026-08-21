@@ -1,0 +1,30 @@
+(dp0
+Vid
+p1
+V3f6223d371b65e
+p2
+sVname
+p3
+Vnamespace_replace_selector_tool
+p4
+sVinfo
+p5
+Vnamespace replace selector
+p6
+sVtags
+p7
+Vtools
+p8
+sVicon
+p9
+V
+p10
+sVcommand
+p11
+Vimport importlib\u000aimport namespace_replace_selector_tool as ns_tool\u000aimportlib.reload(ns_tool)\u000ans_tool.show()
+p12
+sVsyntax
+p13
+Vpython
+p14
+s.

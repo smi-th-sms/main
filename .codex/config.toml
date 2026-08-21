@@ -1,3 +1,7 @@
 [mcp_servers.MayaMCP]
 args = ["C:/Users/smi_th/Documents/maya/scripts/MayaMCP-main/MayaMCP-main/src/maya_mcp_server.py"]
 command = "C:/Users/smi_th/Documents/maya/scripts/MayaMCP-main/MayaMCP-main/.venv/Scripts/python.exe"
+
+[mcp_servers.HoudiniMCP]
+args = ["E:/script/pythonWorkSpace/main/mApplication/houdini/mcp/houdini_mcp_claude_server.py"]
+command = "E:/script/pythonWorkSpace/.venv-houdini-mcp/Scripts/python.exe"

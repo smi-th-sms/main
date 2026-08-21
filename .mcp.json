@@ -5,6 +5,28 @@
       "args": [
         "D:/main/main/mApplication/maya/mcp/MayaMCP/src/maya_mcp_server.py"
       ]
+    },
+    "HoudiniMCP": {
+      "command": "E:/script/pythonWorkSpace/.venv-houdini-mcp/Scripts/python.exe",
+      "args": [
+        "E:/script/pythonWorkSpace/main/mApplication/houdini/mcp/houdini_mcp_claude_server.py"
+      ]
+    },
+    "BlenderMCP": {
+      "command": "C:/Users/smi_th/.local/bin/uvx.exe",
+      "args": [
+        "--python",
+        "3.11",
+        "--from",
+        "blender-mcp",
+        "blender-mcp"
+      ],
+      "env": {
+        "BLENDER_HOST": "localhost",
+        "BLENDER_PORT": "9876",
+        "DISABLE_TELEMETRY": "true",
+        "UV_CACHE_DIR": "E:/script/pythonWorkSpace/.uv-cache-blender-mcp"
+      }
     }
   }
 }

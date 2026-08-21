@@ -88,7 +88,17 @@
       "Bash(.venv-kimodo310/Scripts/python.exe --version)",
       "mcp__maya__scene_new",
       "Bash(claude update *)",
-      "Bash(claude *)"
+      "Bash(claude *)",
+      "Bash(python2 -m py_compile \"E:/script/pythonWorkSpace/main/mApplication/maya/python2/rigging/tentacle_ribbon_rig.py\")",
+      "Bash(python3 -c \"import ast; ast.parse\\(open\\('E:/script/pythonWorkSpace/main/mApplication/maya/python2/rigging/tentacle_ribbon_rig.py', encoding='utf-8'\\).read\\(\\)\\)\")",
+      "Bash(python3 -m py_compile tentacle_ribbon_rig.py)",
+      "PowerShell(py *)",
+      "Read(//d/valor/Valor/**)",
+      "Bash(where python2 *)",
+      "Bash(git status *)",
+      "Bash(sed 's/^+//')",
+      "mcp__HoudiniMCP__houdini_get_info",
+      "Bash(powershell -NoProfile -Command \"Test-NetConnection -ComputerName localhost -Port 9876 -InformationLevel Quiet\")"
     ]
   },
   "enableAllProjectMcpServers": true,
