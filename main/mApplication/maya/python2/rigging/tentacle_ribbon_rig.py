@@ -127,14 +127,8 @@ def _static_param_at_fraction(curve, frac):
     stretch_ctrl 경로뿐이다(그 경로는 기존 방식을 그대로 쓴다).
 
     follicle.parameterU/V는 curve/surface의 실제(raw) parameter range가 아니라
-    항상 정규화된 0~1 값을 요구한다 -- mesh 기반 build_base는 항상
-    rebuildCurve(end=1)로 range를 0~1로 맞춰서 이 차이가 안 드러났지만, curve
-    모드(build_base(curve=...), 사용자가 만든 curve를 그대로 씀)는 range가
-    보통 0~1이 아니라서(예: CV 40개 curve면 0~37), raw parameter를 그대로
-    넘기면 follicle이 1보다 큰 값을 1로 clamp해버려 완전히 다른(대개 끝
-    근처) 지점을 짚어버린다(빌드 직후, 아무 조작 없이도 위치/회전이 크게
-    틀어지는 원인 -- 양 끝만 우연히 맞고 중간은 다 틀어지는 패턴이 바로 이
-    증상이었다). 그래서 findParamFromLength가 돌려준 raw parameter를
+    항상 정규화된 0~1 값을 요구한다. curveFromSurfaceIso로 뽑은 curve의 raw
+    range가 0~1이 아닐 수 있으므로, findParamFromLength가 돌려준 raw parameter를
     knotDomain 기준으로 0~1로 정규화해서 돌려준다.
     """
     curve_fn = _curve_fn(curve)
@@ -643,6 +637,31 @@ def _build_ribbon_surface(name, center_crv, perp_vector, width, sys_grp):
     return surf
 
 
+def _shape_owner(node, shape_type, label):
+    """node가 지정 타입 shape 또는 그 transform이면 transform 이름을 돌린다."""
+    if not cmds.objExists(node):
+        raise ValueError('build_base: {} "{}"가 씬에 없습니다'.format(label, node))
+
+    node_type = cmds.nodeType(node)
+    if node_type == shape_type:
+        parents = cmds.listRelatives(node, parent=True, fullPath=True) or []
+        if not parents:
+            raise ValueError('build_base: {} "{}"의 transform을 찾을 수 없습니다'.format(label, node))
+        return parents[0]
+
+    shapes = cmds.listRelatives(node, shapes=True, ni=True, fullPath=True) or []
+    if any(cmds.nodeType(shape) == shape_type for shape in shapes):
+        return node
+
+    raise ValueError('build_base: {} "{}"는 {}가 아닙니다'.format(label, node, shape_type))
+
+
+def _duplicate_base_surface(name, source_surface):
+    """입력 surface 원본은 보존하고 리그가 변형할 전용 NSF 복제본을 만든다."""
+    surface = cmds.duplicate(source_surface, n='{}_NSF'.format(name), renameChildren=True)[0]
+    return surface
+
+
 def _extract_curve_from_surface(name, surface, v_param=0.5):
     """서피스의 V=0.5(중심선) isoparm에서 curve를 라이브로 추출한다
     (curveFromSurfaceIso -- 나중에 서피스가 IK로 변형되면 이 curve도 따라감).
@@ -677,24 +696,26 @@ def _store_rest_length(curve):
     return length
 
 
-def build_base(mesh=None, curve=None, name='tentacle', axis='y', up_axis=None,
+def build_base(mesh=None, curve=None, surface=None, name='tentacle', axis='y', up_axis=None,
                 front_axis='x', up_local_axis='y', num_cv=19, ribbon_width=1.0):
-    """1단계 베이스: (mesh 중심선 추출 또는 이미 있는 curve) -> 리본 서피스 ->
+    """1단계 베이스: (이미 있는 surface 또는 mesh 가이드) -> 리본 서피스 ->
     서피스에서 curve 재추출 -> restCurveLength 저장.
 
-    curve를 주면 mesh 기반 중심선 추출(scatter+moving-frame, _get_centerline_points)
-    을 건너뛰고 그 curve를 리본의 center curve로 그대로 쓴다 -- 애니메이터/
-    모델러가 직접 그린 가이드 curve를 그대로 반영할 수 있게 하기 위함이다
-    (원본 curve는 안 지운다 -- 리본은 이 curve를 duplicate해서 좌우로 벌린
-    뒤 loft한 것이라 원본과는 별개 노드). mesh는 curve가 없을 때만 쓰인다.
+    surface를 주면 그 NURBS surface를 리본 베이스로 사용한다. 원본 surface를
+    직접 스킨/재부모하지 않고 {name}_NSF로 복제해서 이후 단계가 변형할 전용
+    리본으로 쓴다. surface가 있으면 mesh보다 우선한다.
+
+    curve 기반 surface 생성은 불안정해서 더 이상 지원하지 않는다. curve 인자는
+    예전 호출부 호환성을 위해 남겨두지만, surface/mesh 선택에는 쓰지 않는다.
 
     Arguments:
-        mesh (str): 촉수 형상 스탠드인(curve가 없을 때만 사용).
-        curve (str): 사용자가 직접 만든 center curve(주면 mesh 무시, 우선순위 높음).
+        surface (str): 사용자가 직접 만든 리본 NURBS surface(주면 mesh 무시,
+            우선순위 가장 높음). 원본은 보존하고 복제본을 리그 베이스로 쓴다.
+        mesh (str): 촉수 형상 스탠드인(surface가 없을 때만 사용).
+        curve (str): deprecated. curve 기반 리본 surface 생성은 더 이상 사용하지 않는다.
         name (str): 리그 네이밍 프리픽스
         axis (str): 리본 폭 방향 기본값(up_axis) 계산 등에 참고하는 축('x'/'y'/'z').
-            None이면 mesh/curve의 bbox에서 가장 긴 축을 자동 감지. curve 모드에서는
-            curve의 bbox, mesh 모드에서는 mesh의 bbox를 기준으로 판단한다.
+            None이면 surface/mesh의 bbox에서 가장 긴 축을 자동 감지한다.
         up_axis (str): 리본 서피스의 폭(width) 방향 기준으로 쓸 세계축('x'/'y'/'z',
             axis와 달라야 함) -- 이름은 "up"이지만 실제로는 surface normal이
             아니라 리본의 폭 방향 참조 벡터다(_get_up_vector 참고, Twist 컨트롤
@@ -715,22 +736,32 @@ def build_base(mesh=None, curve=None, name='tentacle', axis='y', up_axis=None,
             front_axis/up_local_axis로 지정 안 한 나머지 로컬 축(third axis)은
             그 둘에 수직인 secondary(forward×up) 방향이 자동으로 채워진다.
         num_cv (int): center curve의 CV 개수(=리본 서피스 U방향 해상도, mesh
-            모드에서만 쓰임 -- curve 모드에서는 그 curve의 기존 CV 그대로 씀).
-        ribbon_width (float): 리본 서피스의 폭
+            모드에서만 쓰임).
+        ribbon_width (float): mesh 모드에서 생성할 리본 서피스의 폭
 
     Returns:
         dict: surface, curve, axis, rest_length 등
     """
-    if mesh is None and curve is None:
-        raise ValueError('build_base: mesh 또는 curve 중 하나는 반드시 지정해야 합니다')
-    if curve is not None and not cmds.objExists(curve):
-        raise ValueError('build_base: curve "{}"가 씬에 없습니다'.format(curve))
+    if mesh is None and surface is None:
+        raise ValueError('build_base: surface 또는 mesh 중 하나는 반드시 지정해야 합니다')
+    if surface is not None:
+        surface = _shape_owner(surface, 'nurbsSurface', 'surface')
 
+    source_surface = None
     if cmds.objExists('{}_rig_GRP'.format(name)):
+        if surface is not None:
+            rig_path = cmds.ls('{}_rig_GRP'.format(name), long=True)[0]
+            surf_path = cmds.ls(surface, long=True)[0]
+            if surf_path.startswith(rig_path + '|'):
+                source_surface = cmds.duplicate(surface, n='{}_surfaceSourceTemp_NSF'.format(name),
+                                                renameChildren=True)[0]
+                cmds.parent(source_surface, world=True)
         cmds.delete('{}_rig_GRP'.format(name))
+    if source_surface is not None:
+        surface = source_surface
 
-    if curve is not None:
-        axis = _resolve_axis(curve, axis)
+    if surface is not None:
+        axis = _resolve_axis(surface, axis)
     else:
         base, tip, axis = _get_axis_endpoints(mesh, axis)
 
@@ -752,14 +783,13 @@ def build_base(mesh=None, curve=None, name='tentacle', axis='y', up_axis=None,
     cmds.addAttr(g['rig'], ln='tentacleCtrlUpAxis', dt='string')
     cmds.setAttr(g['rig']+'.tentacleCtrlUpAxis', up_local_axis, type='string')
 
-    if curve is not None:
-        center_crv = curve
+    if surface is not None:
+        surface = _duplicate_base_surface(name, surface)
+        if source_surface is not None and cmds.objExists(source_surface):
+            cmds.delete(source_surface)
     else:
         center_crv = _build_centerline_curve(name, mesh, axis, base, tip, num_cv)
-
-    surface = _build_ribbon_surface(name, center_crv, _AXIS_VECTOR[up_axis], ribbon_width, g['sys'])
-
-    if curve is None:
+        surface = _build_ribbon_surface(name, center_crv, _AXIS_VECTOR[up_axis], ribbon_width, g['sys'])
         cmds.delete(center_crv)
 
     cmds.parent(surface, g['geo'])
@@ -1079,9 +1109,9 @@ def _build_output_follicles(name, curve, surface, num_output, fol_grp, stretch_c
             cmds.connectAttr(mp+'.allCoordinates', npc+'.inPosition')
 
             # follicle.parameterU는 항상 정규화된 0~1을 기대하는데 npc.parameter는
-            # curve의 raw range(예: curve 모드에서 CV 40개면 0~37)라서 그대로
-            # 연결하면 follicle이 1보다 큰 값을 1로 clamp해버린다 -- knotDomain
-            # 기준으로 라이브 정규화한다(_static_param_at_fraction과 동일한 이유).
+            # curve의 raw range라서 그대로 연결하면 follicle이 1보다 큰 값을
+            # 1로 clamp해버린다 -- knotDomain 기준으로 라이브 정규화한다
+            # (_static_param_at_fraction과 동일한 이유).
             norm_sub = cmds.createNode('plusMinusAverage', n='{}_output{:02d}_paramNorm_PMA'.format(name, idx))
             cmds.setAttr(norm_sub+'.operation', 2)
             cmds.connectAttr(npc+'.parameter', norm_sub+'.input1D[0]')
