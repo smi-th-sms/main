@@ -6,7 +6,7 @@ tentacle_ribbon_rig의 6단계 빌드 함수(build_base ~ build_branch)를 감�
 tentacle_rig_proto.ma(실제 프로덕션 리그)를 분석해서 만든 단계별 파이프라인을
 하나씩 실행하고 씬에서 검토한 뒤 다음 단계로 넘어가는 방식으로 쓴다.
 
-    1단계: Base   -- mesh 중심선 -> 리본 서피스 -> curve 재추출
+    1단계: Base   -- 기존 surface 사용 또는 mesh 중심선 -> 리본 서피스
     2단계: IK     -- IK 컨트롤 -> NurbsBind joint -> 리본 스킨 (+ Stretch)
     3단계: Output -- curve -> closestPointOnSurface -> follicle(플립 없음)
     4단계: FK     -- follicle 기반 FK 체인 -> 최종 Skin joint
@@ -53,11 +53,11 @@ def _get_selected_mesh():
     return sel[0]
 
 
-def _get_selected_curve():
+def _get_selected_surface():
     sel = cmds.ls(sl=True, type='transform')
-    sel = [s for s in sel if cmds.listRelatives(s, shapes=True, type='nurbsCurve')]
+    sel = [s for s in sel if cmds.listRelatives(s, shapes=True, type='nurbsSurface')]
     if not sel:
-        cmds.warning('tentacle_ribbon_rig_ui: 먼저 nurbsCurve를 선택하세요.')
+        cmds.warning('tentacle_ribbon_rig_ui: 먼저 nurbsSurface를 선택하세요.')
         return None
     return sel[0]
 
@@ -66,7 +66,7 @@ class TentacleRibbonRigUI(object):
     def __init__(self):
         self.window_name = _WIN_ID
         self._mesh_field = None
-        self._curve_field = None
+        self._surface_field = None
         self._name_field = None
         self._axis_menu = None
         self._up_axis_menu = None
@@ -118,10 +118,10 @@ class TentacleRibbonRigUI(object):
 
         cmds.rowLayout(numberOfColumns=2, adjustableColumn=1,
                         columnAttach=[(1, 'both', 0), (2, 'both', 0)])
-        self._curve_field = cmds.textField(placeholderText='(선택) 직접 그린 center curve -- 채우면 mesh 무시')
-        cmds.button(label='<< 선택', width=70, c=lambda *_: self._grab_selected_curve())
+        self._surface_field = cmds.textField(placeholderText='(선택) 기존 NURBS surface -- 지정하면 이것을 base로 사용')
+        cmds.button(label='<< 선택', width=70, c=lambda *_: self._grab_selected_surface())
         cmds.setParent('..')
-        cmds.text(label='-> curve를 채우면 mesh 기반 중심선 추출 없이 그 curve를 그대로 씁니다.',
+        cmds.text(label='-> surface를 지정하면 원본을 보존하고 복제본을 base로 사용합니다. 비워두면 mesh에서 생성합니다.',
                   align='left', font='smallPlainLabelFont')
 
         cmds.rowLayout(numberOfColumns=2, adjustableColumn=2, columnWidth2=(120, 200))
@@ -171,7 +171,7 @@ class TentacleRibbonRigUI(object):
         cmds.setParent('..')  # columnLayout
         cmds.setParent('..')  # frameLayout
 
-        cmds.frameLayout(label='1단계 -- Base (중심선 -> 리본 서피스)', collapsable=True,
+        cmds.frameLayout(label='1단계 -- Base (surface 사용 또는 mesh -> 리본 서피스)', collapsable=True,
                           collapse=False, marginWidth=5, marginHeight=5)
         cmds.columnLayout(adjustableColumn=True, rowSpacing=4)
         cmds.rowLayout(numberOfColumns=2, adjustableColumn=2, columnWidth2=(120, 200))
@@ -293,10 +293,10 @@ class TentacleRibbonRigUI(object):
         if mesh:
             cmds.textField(self._mesh_field, e=True, text=mesh)
 
-    def _grab_selected_curve(self):
-        curve = _get_selected_curve()
-        if curve:
-            cmds.textField(self._curve_field, e=True, text=curve)
+    def _grab_selected_surface(self):
+        surface = _get_selected_surface()
+        if surface:
+            cmds.textField(self._surface_field, e=True, text=surface)
 
     def _get_name(self):
         name = cmds.textField(self._name_field, q=True, text=True).strip()
@@ -331,32 +331,34 @@ class TentacleRibbonRigUI(object):
         self._set_status('{} 완료.\n{}'.format(label, result))
         return result
 
-    def _get_mesh_or_curve(self):
-        """curve 필드가 채워져 있으면 그걸 우선 쓰고(mesh 무시), 아니면 mesh
-        필드를 쓴다. (mesh, curve, viewfit_target) 튜플을 돌려준다. 둘 다
-        없거나 존재하지 않으면 상태창에 에러를 띄우고 None을 돌려준다.
+    def _get_base_inputs(self):
+        """surface가 있으면 surface를 우선하고, 없으면 mesh를 사용한다.
+        (surface, mesh, viewfit_target) 튜플을 돌려준다.
         """
-        curve = cmds.textField(self._curve_field, q=True, text=True).strip()
-        if curve:
-            if not cmds.objExists(curve):
-                self._set_status('curve "{}"를 찾을 수 없습니다.'.format(curve))
+        surface = cmds.textField(self._surface_field, q=True, text=True).strip()
+        if surface:
+            if not cmds.objExists(surface):
+                self._set_status('surface "{}"를 찾을 수 없습니다.'.format(surface))
                 return None
-            return None, curve, curve
+            if not cmds.listRelatives(surface, shapes=True, type='nurbsSurface'):
+                self._set_status('오브젝트 "{}"는 NURBS surface가 아닙니다.'.format(surface))
+                return None
+            return surface, None, surface
 
         mesh = cmds.textField(self._mesh_field, q=True, text=True).strip()
         if not mesh or not cmds.objExists(mesh):
             self._set_status('오브젝트 "{}"를 찾을 수 없습니다.'.format(mesh))
             return None
-        return mesh, None, mesh
+        return None, mesh, mesh
 
     def _on_build_base(self):
         name = self._get_name()
         if name is None:
             return
-        mesh_curve = self._get_mesh_or_curve()
-        if mesh_curve is None:
+        base_inputs = self._get_base_inputs()
+        if base_inputs is None:
             return
-        mesh, curve, viewfit_target = mesh_curve
+        surface, mesh, viewfit_target = base_inputs
         axis = self._get_axis()
         up_axis = self._get_up_axis()
         front_axis = self._get_front_axis()
@@ -365,7 +367,7 @@ class TentacleRibbonRigUI(object):
         ribbon_width = cmds.floatField(self._ribbon_width_field, q=True, value=True)
 
         result = self._run('1단계(Base)', lambda: rig.build_base(
-            mesh=mesh, curve=curve, name=name, axis=axis, up_axis=up_axis,
+            mesh=mesh, surface=surface, name=name, axis=axis, up_axis=up_axis,
             front_axis=front_axis, up_local_axis=up_local_axis,
             num_cv=num_cv, ribbon_width=ribbon_width))
         if result:
@@ -435,10 +437,10 @@ class TentacleRibbonRigUI(object):
         name = self._get_name()
         if name is None:
             return
-        mesh_curve = self._get_mesh_or_curve()
-        if mesh_curve is None:
+        base_inputs = self._get_base_inputs()
+        if base_inputs is None:
             return
-        mesh, curve, _ = mesh_curve
+        surface, mesh, _ = base_inputs
         axis = self._get_axis()
         up_axis = self._get_up_axis()
         front_axis = self._get_front_axis()
@@ -453,7 +455,7 @@ class TentacleRibbonRigUI(object):
         ts_radius = cmds.floatField(self._ts_radius_field, q=True, value=True)
 
         def _all():
-            rig.build_base(mesh=mesh, curve=curve, name=name, axis=axis, up_axis=up_axis,
+            rig.build_base(mesh=mesh, surface=surface, name=name, axis=axis, up_axis=up_axis,
                             front_axis=front_axis, up_local_axis=up_local_axis,
                             num_cv=num_cv, ribbon_width=ribbon_width)
             rig.build_ik(name=name, num_ik=num_ik, ctrl_radius=ik_radius)
