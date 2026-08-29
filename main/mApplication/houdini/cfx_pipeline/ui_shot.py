@@ -328,6 +328,19 @@ def _build_interface(node) -> None:
     config.addParmTemplate(av)
     config.addParmTemplate(_btn("check_asset_version", "Check Asset Cache Version",
                                 "on_check_asset_version"))
+    rest_source = hou.MenuParmTemplate(
+        "rest_source_mode", "REST Source",
+        menu_items=("cache", "hda"),
+        menu_labels=("Rest Cache (LOAD)", "Asset Stage HDAs"),
+        default_value=0,
+        menu_type=hou.menuType.Normal)
+    rest_source.setScriptCallback(_cb("on_rest_source_changed"))
+    rest_source.setScriptCallbackLanguage(hou.scriptLanguage.Python)
+    rest_source.setHelp(
+        "Switch REST_PROXY/CORRECTIVE/COLLISION/SKEL between the disk rest "
+        "cache and the published asset-stage HDA outputs. The LOAD branch is "
+        "preserved and can be restored at any time.")
+    config.addParmTemplate(rest_source)
     # instantiate the published asset CONSTRAINT HDA (hand-authored setup) instead
     # of rebuilding the chain from config; falls back to the config rebuild if no
     # HDA is published for this asset.
@@ -603,7 +616,12 @@ def node_to_shot_config(node, version: str | None = None) -> ShotSimConfig:
         "cloth_alembic": bool(node.evalParm("export_cloth")),
         "hair_alembic": bool(node.evalParm("export_hair")),
         "cache_out": cache_out,
-        "metadata": {"version": ver},
+        "metadata": {
+            "version": ver,
+            "rest_source": (
+                node.parm("rest_source_mode").evalAsString()
+                if node.parm("rest_source_mode") else "cache"),
+        },
     }
     info = _shot_path_rules(node)
     if info is not None:
@@ -688,6 +706,9 @@ def config_to_node(node, cfg: ShotSimConfig) -> None:
     node.parmTuple("ue_rotate").set(tuple(co.ue_rotate))
     if cfg.metadata.get("version"):
         node.parm("version").set(str(cfg.metadata["version"]))
+    if node.parm("rest_source_mode"):
+        node.parm("rest_source_mode").set(
+            1 if cfg.metadata.get("rest_source") == "hda" else 0)
 
 
 # ---------------------------------------------------------------------------
@@ -971,6 +992,9 @@ def _sync_built_parameters(node, cfg: ShotSimConfig) -> dict[str, Any]:
         "collision_input_pattern": (
             node.evalParm("collision_input_pattern")
             if node.parm("collision_input_pattern") else ""),
+        "rest_source": (
+            node.parm("rest_source_mode").evalAsString()
+            if node.parm("rest_source_mode") else "cache"),
         "sim_params": dict(sp),
     }
     geo.setUserData(
@@ -1057,6 +1081,11 @@ def _on_build_shot_impl(node, force: bool = False) -> dict[str, Any]:
     asset_hda_version = _asset_version_status(node)["concrete"]
     steps = [
         ("load_caches", lambda: _shot.load_asset_caches(cfg, p)),
+        ("rest_sources", lambda: _shot.configure_rest_sources(
+            cfg, p,
+            use_hda=bool(node.evalParm("rest_source_mode"))
+            if node.parm("rest_source_mode") else False,
+            hda_version=asset_hda_version)),
         ("timeline", lambda: _shot.set_shot_timeline(
             cfg, apply=True, from_clip=bool(node.evalParm("timeline_from_clip")), parent=p)),
         ("anim", lambda: _shot.build_shot_anim(cfg, p)),
@@ -1320,13 +1349,9 @@ def _apply_asset_version(node) -> dict[str, Any]:
             if nodes:
                 updated.append((name, path))
         else:
-            # this version's file is missing -> remove the load node + its REST_ null
-            # so nothing points at a non-existent file (a rebuild re-adds it if the
-            # cache later appears).
-            for fc in nodes:
-                fc.destroy()
-            for rn in [n for n in geo.allSubChildren() if n.name() == out_name]:
-                rn.destroy()
+            # Preserve the previous LOAD branch and REST interface. It may be
+            # the fallback of a Cache/HDA source switch, and destroying it here
+            # would also break an otherwise valid HDA-mode shot.
             if nodes:
                 missing.append(name)
     return {"updated": updated, "missing": missing,
@@ -1345,6 +1370,29 @@ def on_asset_version_changed(node) -> None:
     if res["missing"]:
         parts.append("MISSING (left unchanged): %s" % ", ".join(res["missing"]))
     _popup("\n".join(parts), "warning" if res["missing"] else "message")
+
+
+def on_rest_source_changed(node) -> dict[str, Any]:
+    """Apply the REST Source menu to an existing setup without rebuilding it."""
+
+    import hou
+    geo = _shot_geo_node(node)
+    if geo is None:
+        return {"mode": (
+            node.parm("rest_source_mode").evalAsString()
+            if node.parm("rest_source_mode") else "cache"),
+            "note": "shot setup not built; selection will apply on Build"}
+    cfg = node_to_shot_config(node)
+    use_hda = bool(node.evalParm("rest_source_mode"))
+    result = _shot.configure_rest_sources(
+        cfg, node.path(), use_hda=use_hda,
+        hda_version=_asset_version_status(node)["concrete"])
+    message = "REST source -> %s" % result["mode"].upper()
+    print("[CFX REST] %s" % message)
+    if hou.isUIAvailable():
+        hou.ui.setStatusMessage(
+            message, severity=hou.severityType.Message)
+    return result
 
 
 def on_check_asset_version(node) -> dict[str, Any]:

@@ -17,7 +17,8 @@ def _surface_shape(node):
 
 def create_surface_u_nulls(surface, count=None, u_count=None, v_parameter=0.5,
                            use_percentage=True, parent=None,
-                           name_prefix=None, create_joints=False):
+                           name_prefix=None, create_joints=False, axis='U',
+                           fixed_parameter=None):
     """Create transform nulls on one fixed-V U strip of *surface*.
 
     ``count`` controls the number of nulls. In percentage mode they are
@@ -26,37 +27,57 @@ def create_surface_u_nulls(surface, count=None, u_count=None, v_parameter=0.5,
     and drives its own
     pointOnSurfaceInfo, so the attachment remains editable after creation.
     """
+    if fixed_parameter is None:
+        fixed_parameter = v_parameter
+    return create_surface_nulls(
+        surface=surface, axis=axis, count=count, u_count=u_count,
+        fixed_parameter=fixed_parameter, use_percentage=use_percentage,
+        parent=parent, name_prefix=name_prefix,
+        create_joints=create_joints)
+
+
+def create_surface_nulls(surface, axis='U', count=None, u_count=None,
+                         fixed_parameter=0.5, use_percentage=True,
+                         parent=None, name_prefix=None, create_joints=False):
+    """Create nulls distributed along the selected U or V parameter axis."""
     shape = _surface_shape(surface)
     if not shape:
         raise RuntimeError('A NURBS surface transform or shape is required')
+    axis = str(axis).upper()
+    if axis not in ('U', 'V'):
+        raise ValueError('axis must be U or V')
     if count is not None and u_count is not None:
         raise ValueError('Use count or u_count, not both')
     if count is not None:
         u_count = count
     if u_count is None:
-        u_count = int(cmds.getAttr(shape + '.spansU')) + 1
+        u_count = int(cmds.getAttr(shape + '.spans' + axis)) + 1
     u_count = int(u_count)
     if u_count < 1:
         raise ValueError('u_count must be at least 1')
     u_max = float(cmds.getAttr(shape + '.spansU'))
     v_max = float(cmds.getAttr(shape + '.spansV'))
     if use_percentage:
-        if not 0.0 <= float(v_parameter) <= 1.0:
-            raise ValueError('v_parameter must be between 0 and 1')
-    elif not 0.0 <= float(v_parameter) <= v_max:
-        raise ValueError('v_parameter is outside the surface V range')
+        if not 0.0 <= float(fixed_parameter) <= 1.0:
+            raise ValueError('fixed_parameter must be between 0 and 1')
+    else:
+        fixed_max = v_max if axis == 'U' else u_max
+        if not 0.0 <= float(fixed_parameter) <= fixed_max:
+            raise ValueError('fixed_parameter is outside the surface range')
 
     transform = (cmds.listRelatives(shape, parent=True, fullPath=False)
                  or [surface])[0]
     prefix = name_prefix or transform
-    group = cmds.createNode('transform', name='{}_U_nulls_GRP'.format(prefix))
+    group = cmds.createNode('transform',
+                            name='{}_{}_nulls_GRP'.format(prefix, axis))
     if parent:
         cmds.parent(group, parent)
 
     result = []
     for index in range(u_count):
-        normalized_u = 0.0 if u_count == 1 else float(index) / (u_count - 1)
-        u_value = normalized_u if use_percentage else normalized_u * u_max
+        normalized = 0.0 if u_count == 1 else float(index) / (u_count - 1)
+        varying_value = normalized if use_percentage else normalized * (u_max if axis == 'U' else v_max)
+        fixed_value = fixed_parameter if use_percentage else fixed_parameter
         base = '{}_{:02d}'.format(prefix, index)
         psi = cmds.createNode('pointOnSurfaceInfo', name=base + '_PSI')
         cmds.connectAttr(shape + '.worldSpace[0]', psi + '.inputSurface',
@@ -64,8 +85,9 @@ def create_surface_u_nulls(surface, count=None, u_count=None, v_parameter=0.5,
         cmds.setAttr(psi + '.turnOnPercentage', bool(use_percentage))
 
         rotate_helper = cmds.createNode('rotateHelper', name=base + '_RH')
-        # Local forward follows V; local up follows the surface normal.
-        cmds.connectAttr(psi + '.normalizedTangentV',
+        tangent_attr = ('normalizedTangentU' if axis == 'U'
+                        else 'normalizedTangentV')
+        cmds.connectAttr(psi + '.' + tangent_attr,
                          rotate_helper + '.forward', force=True)
         cmds.connectAttr(psi + '.normalizedNormal',
                          rotate_helper + '.up', force=True)
@@ -76,8 +98,12 @@ def create_surface_u_nulls(surface, count=None, u_count=None, v_parameter=0.5,
                      attributeType='double', keyable=True)
         cmds.addAttr(null, longName='parameterV', shortName='pv',
                      attributeType='double', keyable=True)
-        cmds.setAttr(null + '.parameterU', u_value)
-        cmds.setAttr(null + '.parameterV', float(v_parameter))
+        if axis == 'U':
+            cmds.setAttr(null + '.parameterU', varying_value)
+            cmds.setAttr(null + '.parameterV', fixed_value)
+        else:
+            cmds.setAttr(null + '.parameterU', fixed_value)
+            cmds.setAttr(null + '.parameterV', varying_value)
         cmds.connectAttr(null + '.parameterU', psi + '.parameterU', force=True)
         cmds.connectAttr(null + '.parameterV', psi + '.parameterV', force=True)
 
@@ -118,11 +144,11 @@ def add_child_joints(objects=None):
 
 
 def create_from_selection(**kwargs):
-    """Create U nulls for exactly one selected NURBS surface."""
+    """Create U/V nulls for exactly one selected NURBS surface."""
     selection = cmds.ls(selection=True, long=False) or []
     if len(selection) != 1:
         raise RuntimeError('Select exactly one NURBS surface')
-    return create_surface_u_nulls(selection[0], **kwargs)
+    return create_surface_nulls(selection[0], **kwargs)
 
 
 def reload_and_create(**kwargs):

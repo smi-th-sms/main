@@ -592,6 +592,110 @@ def load_asset_caches(shot: ShotSimConfig, parent: str = "/obj",
             "parked_stage_hda": stage_hda["parked"] if stage_hda else {}}
 
 
+def configure_rest_sources(shot: ShotSimConfig, parent: str = "/obj",
+                           use_hda: bool = False,
+                           hda_version: str | None = None) -> dict[str, Any]:
+    """Create non-destructive Cache/HDA switches for the shot REST interfaces.
+
+    Input 0 of every switch preserves the rest-cache LOAD result. Input 1 reads
+    the published asset-stage HDA chain. ``REST_COLLISION`` uses a separate
+    rest-pose Collision HDA instance; the shot's existing ``collision_hda`` is
+    animated and must not be reused as a REST source.
+    """
+
+    hou = _require_hou()
+    geo = _shot_geo(shot, parent)
+    requested = hda_version or shot.metadata.get("asset_version")
+
+    fbx = geo.node("fbx_hda")
+    corrective = geo.node("corrective_hda")
+    proxy = geo.node("proxy_hda")
+    missing_hdas = [name for name, node in (
+        ("fbx_hda", fbx), ("corrective_hda", corrective),
+        ("proxy_hda", proxy)) if node is None]
+
+    collision_type = _resolve_stage_hda(
+        shot.show, shot.asset, "collision", requested)
+    if collision_type is None:
+        missing_hdas.append("published Collision HDA")
+    if use_hda and missing_hdas:
+        raise RuntimeError(
+            "Asset HDA REST source is incomplete: %s"
+            % ", ".join(missing_hdas))
+
+    rest_collision_hda = None
+    if collision_type is not None and corrective is not None:
+        rest_collision_hda = _child(
+            geo, "rest_collision_hda", collision_type)
+        rest_collision_hda.setInput(0, corrective, 0)
+
+    if use_hda:
+        for node in (fbx, corrective, proxy, rest_collision_hda):
+            if node is not None and node.isBypassed():
+                node.bypass(False)
+
+    specs = (
+        ("REST_PROXY", "rest_proxy_source", proxy, 0),
+        ("REST_CORRECTIVE", "rest_corrective_source", corrective, 0),
+        ("REST_COLLISION", "rest_collision_source", rest_collision_hda, 0),
+        ("REST_SKEL", "rest_skel_source", fbx, 1),
+    )
+    configured = []
+    warnings = []
+    for rest_name, switch_name, hda_source, hda_output in specs:
+        rest = geo.node(rest_name)
+        if rest is None:
+            warnings.append("%s is missing" % rest_name)
+            continue
+        switch = geo.node(switch_name)
+        # Preserve the original LOAD connection on repeat calls. If a switch
+        # already exists, its input 0 remains the authoritative cache source.
+        cache_source = switch.input(0) if switch is not None else rest.input(0)
+        cache_output = 0
+        if switch is None:
+            connections = rest.inputConnections()
+            if connections:
+                cache_output = connections[0].outputIndex()
+            switch = geo.createNode("switch", switch_name)
+            switch.setPosition(rest.position() + hou.Vector2(0.0, 1.0))
+        elif switch.inputConnections():
+            for connection in switch.inputConnections():
+                if connection.inputIndex() == 0:
+                    cache_output = connection.outputIndex()
+                    break
+        if cache_source is None:
+            raise RuntimeError(
+                "%s has no rest-cache source to preserve" % rest_name)
+        switch.setInput(0, cache_source, cache_output)
+        if hda_source is not None:
+            switch.setInput(1, hda_source, hda_output)
+        else:
+            # Cache mode remains usable even when a stage HDA is unpublished.
+            switch.setInput(1, cache_source, cache_output)
+            warnings.append("%s HDA source unavailable; using cache fallback"
+                            % rest_name)
+        selector = switch.parm("input")
+        selector.deleteAllKeyframes()
+        selector.setExpression(
+            'ch("../../rest_source_mode")', hou.exprLanguage.Hscript)
+        rest.setInput(0, switch, 0)
+        configured.append({
+            "rest": rest.path(), "switch": switch.path(),
+            "cache": cache_source.path(),
+            "hda": hda_source.path() if hda_source is not None else None,
+            "hda_output": hda_output,
+        })
+
+    return {
+        "mode": "hda" if use_hda else "cache",
+        "configured": configured,
+        "rest_collision_hda": (
+            rest_collision_hda.path() if rest_collision_hda is not None
+            else None),
+        "warnings": warnings,
+    }
+
+
 # ---------------------------------------------------------------------------
 # Stage 3.2b — animation alignment (reconstructs the studio FBX/anim_subnet1)
 # ---------------------------------------------------------------------------
