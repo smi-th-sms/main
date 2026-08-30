@@ -5,6 +5,12 @@ import importlib
 import sys
 
 
+def _reload_module(module):
+    if hasattr(importlib, 'reload'):
+        return importlib.reload(module)
+    return reload(module)
+
+
 def _surface_shape(node):
     if not cmds.objExists(node):
         return None
@@ -153,5 +159,5 @@ def create_from_selection(**kwargs):
 
 def reload_and_create(**kwargs):
     """Reload this module, then create U nulls from the current selection."""
-    module = importlib.reload(sys.modules[__name__])
+    module = _reload_module(sys.modules[__name__])
     return module.create_from_selection(**kwargs)
