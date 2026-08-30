@@ -1,0 +1,209 @@
+================================================================================
+ ASSETS NODE - COMPLETE SCRIPT SUMMARY
+================================================================================
+
+Node: /obj/assets
+Type: Cinematic::assets::1.0
+HDA: Z:/inhouse/Houdini/otls/object_Cinematic.assets.1.0.hda
+
+================================================================================
+ IDENTIFIED SCRIPTS
+================================================================================
+
+--------------------------------------------------------------------------------
+1. project_dir (Menu Script)
+--------------------------------------------------------------------------------
+
+Purpose:
+  - Dynamically generate project path menu
+  - Reference external tool path: d:/Antigravity/houdini_tools
+  - Load project list from external source
+
+Dependencies:
+  - External module: project_list (from houdini_tools)
+  - System path: d:/Antigravity/houdini_tools
+
+Usage:
+  - Provides list of available projects for selection
+  - Used as base path for all file operations
+
+--------------------------------------------------------------------------------
+2. auto_setup_btn (Button Callback)
+--------------------------------------------------------------------------------
+
+Purpose:
+  - Automated asset loading and setup
+  - FBX file processing
+  - Proxy geometry splitting
+
+Key Functions:
+  1) Standard Asset Load:
+     - Imports asset_loader_v2 module
+     - Calls load_assets(node)
+
+  2) FBX Setup:
+     - Extracts asset name from FBX filename
+     - Updates root/pelvis bone names
+     - Cooks FBX output nodes
+
+  3) Proxy Split:
+     - Reads @proxy_path attribute
+     - Creates blast nodes for each unique path
+     - Removes old blast nodes
+     - Filters geometry by proxy_path value
+
+Dependencies:
+  - asset_loader_v2 module
+  - d:/Antigravity/houdini_tools path
+  - FBX/output2 node
+  - Constraint/proxy_path node
+  - @proxy_path primitive attribute
+
+Related Workflow:
+  - This is the OLD workflow for proxy splitting
+  - NEW workflow: Parts_Deform auto-sync (via sim_filecache)
+
+--------------------------------------------------------------------------------
+3. check_create_dir (Button Callback)
+--------------------------------------------------------------------------------
+
+Purpose:
+  - Validate and create directory structure
+  - Construct full path from parameters
+
+Path Construction:
+  Project/SeqSub/SeqName/ShotName/ShotSub
+  Example: Z:/projects/sequences/SEQ01/SHOT_0010/SIM/wip/houdini
+
+Required Parameters:
+  - project_dir: Project root path
+  - seq_subdir: Sequence subdirectory (default: sequences/)
+  - seq_name: Sequence name
+  - shot_name: Shot name
+  - shot_subdir: Shot subdirectory (default: SIM/wip/houdini)
+
+Behavior:
+  - If path exists: Display message
+  - If path missing: Prompt to create
+
+--------------------------------------------------------------------------------
+4. Parts_Deform Auto-Sync (NEW - sim_filecache Pre-Render)
+--------------------------------------------------------------------------------
+
+Purpose:
+  - Automatically sync Parts_Deform nodes with @proxy_path
+  - Triggered before cache save
+
+Location:
+  /obj/assets/Constraint/sim_filecache
+  Pre-Render Script parameter
+
+Functionality:
+  1) Read @proxy_path attribute from proxy_path node
+  2) Compare with existing Parts_Deform_* nodes
+  3) Create missing nodes
+  4) Update existing nodes
+  5) Delete obsolete nodes
+  6) Set group parameters (@proxy_path)
+  7) Set blast2 parameters (@geo_path)
+
+Script Location:
+  z:\inhouse\Maya\scripts\2025\cosmos\scripts\python3\parts_deform_sync_callback.py
+
+Advantages over auto_setup_btn:
+  - Automatic execution (no manual button press)
+  - Incremental updates (not full recreation)
+  - Safe handling of missing attributes
+  - Integrated with cache workflow
+
+================================================================================
+ EXTERNAL DEPENDENCIES
+================================================================================
+
+Python Modules:
+  1. asset_loader_v2
+     Path: d:/Antigravity/houdini_tools
+     Used by: auto_setup_btn
+
+  2. project_list (assumed)
+     Path: d:/Antigravity/houdini_tools
+     Used by: project_dir menu script
+
+  3. parts_deform_sync_callback
+     Path: z:\inhouse\Maya\scripts\2025\cosmos\scripts\python3
+     Used by: sim_filecache Pre-Render Script
+
+Required Nodes:
+  - /obj/assets/FBX (or /obj/assets/fbx_anim)
+  - /obj/assets/FBX/output2
+  - /obj/assets/Constraint
+  - /obj/assets/Constraint/proxy_path
+  - /obj/assets/Constraint/sim_filecache
+  - /obj/assets/Deform/Parts_Deform (template)
+
+Required Attributes:
+  - @proxy_path (primitive, string)
+  - @geo_path (primitive, string)
+  - name (point, string) - on FBX skeleton
+
+================================================================================
+ RECOMMENDED WORKFLOW
+================================================================================
+
+1. Initial Setup:
+   - Set project_dir from menu
+   - Set sequence and shot names
+   - Click 'Check/Create Dir' to create directory structure
+
+2. Asset Loading:
+   Option A (Automatic):
+     - Click 'Auto Setup (Load & Split)' button
+     - This runs asset_loader_v2 and creates blast nodes
+
+   Option B (Manual):
+     - Set FBX file paths manually
+     - Verify proxy_path node has @proxy_path attribute
+
+3. Parts_Deform Sync (NEW METHOD):
+   - Go to /obj/assets/Constraint/sim_filecache
+   - Click 'Save to Disk'
+   - Pre-Render Script automatically syncs Parts_Deform nodes
+   - Cache is saved
+
+4. Simulation:
+   - Each Parts_Deform_* node processes specific geometry
+   - blast2 filters by @geo_path
+   - Results are cached per-part
+
+================================================================================
+ SCRIPT MAINTENANCE
+================================================================================
+
+Key Files:
+  1. HDA Definition:
+     Z:/inhouse/Houdini/otls/object_Cinematic.assets.1.0.hda
+     - Contains all parameter definitions
+     - Contains button callback scripts
+
+  2. Python Callbacks:
+     z:\inhouse\Maya\scripts\2025\cosmos\scripts\python3\
+     - parts_deform_sync_callback.py (Parts_Deform sync)
+
+  3. External Tools:
+     d:/Antigravity/houdini_tools/
+     - asset_loader_v2.py (asset loading)
+     - project_list.py (project menu, assumed)
+
+Update Checklist:
+  - When modifying HDA:
+    1) Unlock HDA definition
+    2) Edit parameter callbacks
+    3) Save and lock HDA
+    4) Test in new scene
+
+  - When modifying Python callbacks:
+    1) Edit .py file
+    2) Reload module in Houdini (importlib.reload)
+    3) Test functionality
+
+================================================================================

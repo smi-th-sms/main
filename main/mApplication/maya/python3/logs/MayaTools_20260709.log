@@ -1,0 +1,17 @@
+2026-07-09 16:00:28 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-07-09 16:00:29 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-07-09 16:00:29 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 1266 items to A list
+2026-07-09 16:00:36 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-07-09 16:00:36 - MayaTools.CNTManager3 - WARNING - [CNTManager3] 실패 - torso_root_pivot.drawStyle: setAttr: No object matches name: torso_root_pivot.drawStyle
+
+2026-07-09 16:00:36 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-07-09 16:00:36 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 1265/1266 오브젝트 처리됨
+2026-07-09 16:00:37 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed
+2026-07-09 17:33:59 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-07-09 17:34:03 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-07-09 17:34:03 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 3 items to A list
+2026-07-09 17:34:24 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-07-09 17:34:24 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 1 items to A list
+2026-07-09 17:34:27 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-07-09 17:34:27 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 1 items to B list
+2026-07-09 17:34:31 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed

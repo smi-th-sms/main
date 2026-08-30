@@ -1,0 +1,30 @@
+(dp0
+Vid
+p1
+V3f73ce2c5b038a
+p2
+sVname
+p3
+VfindSkinJoint
+p4
+sVinfo
+p5
+Vsc joint find script
+p6
+sVtags
+p7
+Vscript
+p8
+sVicon
+p9
+V
+p10
+sVcommand
+p11
+Vimport maya.cmds as cmds\u000a\u000adef bindJoint(object_):\u000a    shapes_ = cmds.listRelatives(object_, shapes=True, fullPath=True) or []\u000a    scls_ = None\u000a    if shapes_:\u000a        shape_ = shapes_[0]\u000a        connectionList_ = cmds.listHistory(shape_, groupLevels=True, pruneDagObjects=True) or []\u000a        for cnt_ in connectionList_:\u000a            if cmds.nodeType(cnt_) == 'skinCluster':\u000a                scls_ = cnt_\u000a                break\u000a    if scls_ is None:\u000a        return []\u000a    return cmds.listConnections(scls_ + '.matrix', d=False, s=True, type='joint') or []\u000a\u000asel = cmds.ls(sl=True, r=True, fl=True)\u000acmds.select(bindJoint(sel[0]))
+p12
+sVsyntax
+p13
+Vpython
+p14
+s.

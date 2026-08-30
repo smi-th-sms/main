@@ -1,0 +1,55 @@
+2026-04-07 11:13:42 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-04-07 11:13:43 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-07 11:13:43 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 5 items to A list
+2026-04-07 11:13:46 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-07 11:13:46 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 5 items to B list
+2026-04-07 11:13:51 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: List Connect
+2026-04-07 11:13:51 - MayaTools.CNTManager3 - ERROR - [CNTManager3] Error in list connect: '<' not supported between instances of 'str' and 'int'
+2026-04-07 11:13:51 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation List Connect completed
+2026-04-07 11:14:01 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: List Connect
+2026-04-07 11:14:01 - MayaTools.CNTManager3 - ERROR - [CNTManager3] Error in list connect: '<' not supported between instances of 'str' and 'int'
+2026-04-07 11:14:01 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation List Connect completed
+2026-04-07 11:14:20 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: List Connect
+2026-04-07 11:14:20 - MayaTools.CNTManager3 - ERROR - [CNTManager3] Error in list connect: '<' not supported between instances of 'str' and 'int'
+2026-04-07 11:14:20 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation List Connect completed
+2026-04-07 11:35:22 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: List Connect
+2026-04-07 11:35:22 - MayaTools.CNTManager3 - ERROR - [CNTManager3] Error in list connect: '<' not supported between instances of 'str' and 'int'
+2026-04-07 11:35:22 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation List Connect completed
+2026-04-07 11:35:34 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: List Connect
+2026-04-07 11:35:34 - MayaTools.CNTManager3 - ERROR - [CNTManager3] Error in list connect: '<' not supported between instances of 'str' and 'int'
+2026-04-07 11:35:34 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation List Connect completed
+2026-04-07 11:38:05 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed
+2026-04-07 11:38:08 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-04-07 11:38:13 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-07 11:38:13 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 5 items to A list
+2026-04-07 11:38:15 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-07 11:38:15 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 5 items to B list
+2026-04-07 11:38:21 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: List Connect
+2026-04-07 11:38:21 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation List Connect completed
+2026-04-07 11:38:33 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-07 11:38:33 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 1 items to B list
+2026-04-07 11:38:37 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-07 11:38:37 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 1 items to A list
+2026-04-07 11:38:44 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Apply Constraints
+2026-04-07 11:38:44 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Apply Constraints completed
+2026-04-07 11:40:59 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-07 11:40:59 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 1 items to A list
+2026-04-07 11:41:00 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-07 11:41:00 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 1 items to B list
+2026-04-07 11:41:04 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: List Connect
+2026-04-07 11:41:04 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation List Connect completed
+2026-04-07 11:49:47 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed
+2026-04-07 15:59:08 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-04-07 15:59:16 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-07 15:59:16 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 4 items to A list
+2026-04-07 15:59:24 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-07 15:59:24 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 4 items to B list
+2026-04-07 15:59:33 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Match Transform
+2026-04-07 15:59:33 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Match Transform completed
+2026-04-07 16:00:11 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-04-07 16:00:11 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 23 items to A list
+2026-04-07 16:00:34 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-04-07 16:00:34 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 23 items to B list
+2026-04-07 16:00:42 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Match Transform
+2026-04-07 16:00:42 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Match Transform completed
+2026-04-07 16:03:40 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed
