@@ -1,0 +1,12 @@
+# Blender 5.2.0 LTS MTL File: 'c130_pattern_components.blend'
+# www.blender.org
+
+newmtl C130_Pattern_Alpha_Texture
+Ns 39.999996
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+illum 2
+map_Kd c130_pattern_components_texture.png
+map_d c130_pattern_components_texture.png

@@ -21,7 +21,7 @@ V
 p10
 sVcommand
 p11
-V# Maya 2024 uses PySide2. This module is in python2.tools.\u000afrom importlib import reload\u000afrom python2.tools import reNamer\u000areload(reNamer)
+Vfrom importlib import reload\u000afrom python3.tools import reNamer\u000areload(reNamer)
 p12
 sVsyntax
 p13

@@ -16,6 +16,7 @@ from __future__ import print_function
 import math
 
 import maya.cmds as cmds
+from maya.api import OpenMaya as om
 
 
 WIN_ID = "curveToMeshToolWin"
@@ -132,43 +133,17 @@ def _mesh_transforms_from_nodes(nodes):
     return result
 
 
-def _vector_add(a, b):
-    return (a[0] + b[0], a[1] + b[1], a[2] + b[2])
-
-
-def _vector_sub(a, b):
-    return (a[0] - b[0], a[1] - b[1], a[2] - b[2])
-
-
-def _vector_scale(vector, scale):
-    return (vector[0] * scale, vector[1] * scale, vector[2] * scale)
-
-
-def _dot(a, b):
-    return a[0] * b[0] + a[1] * b[1] + a[2] * b[2]
-
-
-def _cross(a, b):
-    return (
-        a[1] * b[2] - a[2] * b[1],
-        a[2] * b[0] - a[0] * b[2],
-        a[0] * b[1] - a[1] * b[0],
-    )
-
-
-def _length(vector):
-    return math.sqrt(max(0.0, _dot(vector, vector)))
-
-
 def _normalize(vector):
-    length = _length(vector)
+    if vector is None:
+        return None
+    length = vector.length()
     if length < 0.000001:
         return None
-    return _vector_scale(vector, 1.0 / length)
+    return vector / length
 
 
 def _project_off_axis(vector, axis):
-    return _vector_sub(vector, _vector_scale(axis, _dot(vector, axis)))
+    return vector - axis * (vector * axis)
 
 
 def _node_without_component(node):
@@ -204,12 +179,12 @@ def _transform_axis_vector(transform, axis_label):
     sign = -1.0 if axis_label.startswith("-") else 1.0
     clean_axis = axis_label[-1].upper()
     if clean_axis == "X":
-        vector = (matrix[0], matrix[1], matrix[2])
+        vector = om.MVector(matrix[0], matrix[1], matrix[2])
     elif clean_axis == "Y":
-        vector = (matrix[4], matrix[5], matrix[6])
+        vector = om.MVector(matrix[4], matrix[5], matrix[6])
     else:
-        vector = (matrix[8], matrix[9], matrix[10])
-    return _normalize(_vector_scale(vector, sign))
+        vector = om.MVector(matrix[8], matrix[9], matrix[10])
+    return _normalize(vector * sign)
 
 
 def _mesh_shapes(node):
@@ -251,7 +226,6 @@ def _average_face_component_normal(face_component):
         return None
 
     try:
-        from maya.api import OpenMaya as om
         normal = om.MVector()
         count = 0
         for face in faces:
@@ -265,7 +239,7 @@ def _average_face_component_normal(face_component):
                 count += 1
         if count:
             normal /= float(count)
-        return _normalize((normal.x, normal.y, normal.z))
+        return _normalize(normal)
     except Exception:
         return None
 
@@ -280,7 +254,6 @@ def _average_mesh_normal(mesh_or_transform):
         return None
 
     try:
-        from maya.api import OpenMaya as om
         selection = om.MSelectionList()
         selection.add(shapes[0])
         dag_path = selection.getDagPath(0)
@@ -291,7 +264,7 @@ def _average_mesh_normal(mesh_or_transform):
             normal += mesh_fn.getPolygonNormal(index, om.MSpace.kWorld)
         if polygon_count:
             normal /= float(polygon_count)
-        return _normalize((normal.x, normal.y, normal.z))
+        return _normalize(normal)
     except Exception:
         return None
 
@@ -324,17 +297,16 @@ def _curve_tangent_vector(curve):
     try:
         count = cmds.getAttr(shape + ".controlPoints", size=True)
         if count >= 2:
-            start = cmds.pointPosition("{}.cv[0]".format(shape), world=True)
-            end = cmds.pointPosition("{}.cv[{}]".format(shape, count - 1),
-                                     world=True)
-            tangent = _normalize(_vector_sub(end, start))
+            start = om.MVector(cmds.pointPosition("{}.cv[0]".format(shape), world=True))
+            end = om.MVector(cmds.pointPosition(
+                "{}.cv[{}]".format(shape, count - 1), world=True))
+            tangent = _normalize(end - start)
             if tangent:
                 return tangent
     except Exception:
         pass
 
     try:
-        from maya.api import OpenMaya as om
         selection = om.MSelectionList()
         selection.add(shape)
         dag_path = selection.getDagPath(0)
@@ -342,7 +314,7 @@ def _curve_tangent_vector(curve):
         param_min, param_max = curve_fn.knotDomain
         tangent = curve_fn.tangent((param_min + param_max) * 0.5,
                                    om.MSpace.kWorld)
-        return _normalize((tangent.x, tangent.y, tangent.z))
+        return _normalize(tangent)
     except Exception:
         return None
 
@@ -377,8 +349,8 @@ def _align_plane_normal_to_guide(creator, mesh, curve, normal_object,
         return
 
     angle = math.degrees(math.atan2(
-        _dot(tangent, _cross(current_normal, guide_normal)),
-        _dot(current_normal, guide_normal),
+        tangent * (current_normal ^ guide_normal),
+        current_normal * guide_normal,
     ))
     try:
         current_angle = cmds.getAttr(creator + ".rotateProfile")
@@ -396,8 +368,8 @@ def _align_plane_normal_to_guide(creator, mesh, curve, normal_object,
         return
 
     refine_angle = math.degrees(math.atan2(
-        _dot(tangent, _cross(updated_normal, guide_normal)),
-        _dot(updated_normal, guide_normal),
+        tangent * (updated_normal ^ guide_normal),
+        updated_normal * guide_normal,
     ))
     if abs(refine_angle) > 0.01:
         _safe_set_attr(creator, "rotateProfile", current_angle + angle + refine_angle)

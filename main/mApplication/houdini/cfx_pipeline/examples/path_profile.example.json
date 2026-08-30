@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "name": "studio-default",
+  "context": {
+    "asset_subpath": "assets/Character",
+    "seq_subpath": "sequences"
+  },
+  "templates": {
+    "asset_work": "{asset_root}/Sim/wip/houdini",
+    "shot_work": "{shot_root}/SIM/wip/houdini"
+  }
+}

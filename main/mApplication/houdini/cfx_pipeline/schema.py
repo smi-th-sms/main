@@ -28,6 +28,7 @@ class FbxSetup:
     asset_name: str
     root_name: str = "root"
     pelvis_name: str = "pelvis"
+    head_name: str = "head"
     character_import: str | None = None
     hair_import: str | None = None
     animation_import: str | None = None  # shot-only; None at asset setup time
@@ -56,6 +57,7 @@ class FbxSetup:
             asset_name=str(data.get("asset_name", "")),
             root_name=str(data.get("root_name", "root")),
             pelvis_name=str(data.get("pelvis_name", "pelvis")),
+            head_name=str(data.get("head_name", "head")),
             character_import=data.get("character_import"),
             hair_import=data.get("hair_import"),
             animation_import=data.get("animation_import"),
@@ -75,6 +77,7 @@ class FbxSetup:
             "asset_name": self.asset_name,
             "root_name": self.root_name,
             "pelvis_name": self.pelvis_name,
+            "head_name": self.head_name,
             "character_import": self.character_import,
             "hair_import": self.hair_import,
             "animation_import": self.animation_import,
@@ -151,7 +154,10 @@ class ProxyPart:
 
         if not self.geo_path:
             return ""
-        return " ".join(f"@geo_path={g}" for g in self.geo_path)
+        # Preserve a complete artist-authored group token instead of producing
+        # ``@geo_path=@geo_path=...`` on a later rebuild.
+        return " ".join(g if str(g).startswith("@") else "@geo_path=%s" % g
+                        for g in self.geo_path)
 
 
 @dataclass(frozen=True)
@@ -167,6 +173,11 @@ class CacheOutConfig:
     ue_rotate: tuple[float, float, float] = (-90.0, 0.0, 0.0)  # Y-up -> Z-up
     export_cloth: bool = True
     export_hair: bool = False
+    frame_padding: int = 5
+    # Optional post-process for Deform HDAs that return hair in their cloth
+    # output. Empty values preserve the legacy builder behavior.
+    hair_split_geo_path: str = ""
+    hair_uv_source: str = ""
 
     @classmethod
     def from_dict(cls, data: dict[str, Any] | None) -> "CacheOutConfig":
@@ -182,6 +193,9 @@ class CacheOutConfig:
             ue_rotate=(float(rot[0]), float(rot[1]), float(rot[2])),
             export_cloth=bool(data.get("export_cloth", True)),
             export_hair=bool(data.get("export_hair", False)),
+            frame_padding=max(0, int(data.get("frame_padding", 5))),
+            hair_split_geo_path=str(data.get("hair_split_geo_path", "") or ""),
+            hair_uv_source=str(data.get("hair_uv_source", "") or ""),
         )
 
     def as_dict(self) -> dict[str, Any]:
@@ -192,6 +206,9 @@ class CacheOutConfig:
             "ue_rotate": list(self.ue_rotate),
             "export_cloth": self.export_cloth,
             "export_hair": self.export_hair,
+            "frame_padding": self.frame_padding,
+            "hair_split_geo_path": self.hair_split_geo_path,
+            "hair_uv_source": self.hair_uv_source,
         }
 
 
