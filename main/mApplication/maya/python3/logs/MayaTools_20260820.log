@@ -1,0 +1,210 @@
+2026-08-20 11:20:28 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-08-20 11:20:31 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-08-20 11:20:31 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 148 items to B list
+2026-08-20 11:20:35 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Swap A and B lists
+2026-08-20 11:20:35 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 11:20:35 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 148 items to A list
+2026-08-20 11:20:35 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-08-20 11:20:35 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 0 items to B list
+2026-08-20 11:20:35 - MayaTools.CNTManager3 - INFO - [CNTManager3] Lists swapped
+2026-08-20 11:21:05 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 11:21:05 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 11:21:05 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 148/148 오브젝트 처리됨
+2026-08-20 11:21:50 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 11:21:50 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 11:21:50 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 148/148 오브젝트 처리됨
+2026-08-20 11:21:58 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 11:21:58 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 2 items to A list
+2026-08-20 11:22:01 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 11:22:01 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 11:22:01 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 2/2 오브젝트 처리됨
+2026-08-20 11:22:11 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 11:22:11 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 6 items to A list
+2026-08-20 11:22:15 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 11:22:15 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 11:22:15 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 6/6 오브젝트 처리됨
+2026-08-20 11:22:42 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 11:22:42 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 1 items to A list
+2026-08-20 11:22:44 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 11:22:44 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 11:22:44 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 1/1 오브젝트 처리됨
+2026-08-20 11:23:26 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 11:23:26 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 64 items to A list
+2026-08-20 11:23:31 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 11:23:31 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 11:23:31 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 64/64 오브젝트 처리됨
+2026-08-20 11:23:35 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 11:23:35 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 1 items to A list
+2026-08-20 11:23:37 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 11:23:37 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 11:23:37 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 1/1 오브젝트 처리됨
+2026-08-20 11:23:44 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 11:23:44 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 2 items to A list
+2026-08-20 11:23:46 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 11:23:46 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 11:23:46 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 2/2 오브젝트 처리됨
+2026-08-20 11:23:51 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 11:23:51 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 1 items to A list
+2026-08-20 11:23:52 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 11:23:52 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 11:23:52 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 1/1 오브젝트 처리됨
+2026-08-20 11:24:39 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 11:24:39 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 3 items to A list
+2026-08-20 11:24:41 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 11:24:41 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 11:24:41 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 3/3 오브젝트 처리됨
+2026-08-20 11:24:49 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed
+2026-08-20 19:01:57 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-08-20 19:01:58 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 19:01:58 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 6 items to A list
+2026-08-20 19:02:01 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-08-20 19:02:01 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 6 items to B list
+2026-08-20 19:02:06 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Apply Constraints
+2026-08-20 19:02:06 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Apply Constraints completed
+2026-08-20 19:02:19 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 19:02:19 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 9 items to A list
+2026-08-20 19:02:25 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-08-20 19:02:25 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 9 items to B list
+2026-08-20 19:02:29 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Apply Constraints
+2026-08-20 19:02:29 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Apply Constraints completed
+2026-08-20 19:02:42 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed
+2026-08-20 21:31:46 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-08-20 21:31:47 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 21:31:47 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 4 items to A list
+2026-08-20 21:31:52 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-08-20 21:31:52 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 4 items to B list
+2026-08-20 21:31:55 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Apply Constraints
+2026-08-20 21:31:55 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Apply Constraints completed
+2026-08-20 21:31:56 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed
+2026-08-20 22:22:14 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-08-20 22:22:15 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 22:22:15 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 5 items to A list
+2026-08-20 22:22:47 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 22:22:47 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 22:22:47 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 5/5 오브젝트 처리됨
+2026-08-20 22:22:52 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 22:22:52 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 4 items to A list
+2026-08-20 22:22:57 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 22:22:57 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 22:22:57 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 4/4 오브젝트 처리됨
+2026-08-20 22:23:16 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 22:23:16 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 20 items to A list
+2026-08-20 22:23:20 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 22:23:20 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 22:23:20 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 20/20 오브젝트 처리됨
+2026-08-20 22:23:29 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 22:23:29 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 18 items to A list
+2026-08-20 22:23:33 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 22:23:33 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 22:23:33 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 18/18 오브젝트 처리됨
+2026-08-20 22:23:47 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 22:23:47 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 8 items to A list
+2026-08-20 22:23:50 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 22:23:50 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 22:23:50 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 8/8 오브젝트 처리됨
+2026-08-20 22:24:12 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 22:24:12 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 4 items to A list
+2026-08-20 22:24:14 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 22:24:14 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 22:24:14 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 4/4 오브젝트 처리됨
+2026-08-20 22:24:38 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 22:24:38 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 37 items to A list
+2026-08-20 22:24:41 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 22:24:41 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 22:24:41 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 37/37 오브젝트 처리됨
+2026-08-20 22:25:02 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 22:25:02 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 30 items to A list
+2026-08-20 22:25:05 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 22:25:05 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 22:25:05 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 30/30 오브젝트 처리됨
+2026-08-20 22:25:14 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 22:25:14 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 4 items to A list
+2026-08-20 22:25:16 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 22:25:16 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 22:25:16 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 4/4 오브젝트 처리됨
+2026-08-20 22:25:30 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 22:25:30 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 18 items to A list
+2026-08-20 22:25:35 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 22:25:35 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 22:25:35 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 18/18 오브젝트 처리됨
+2026-08-20 22:25:37 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 22:25:37 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 2 items to A list
+2026-08-20 22:25:40 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 22:25:40 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 22:25:40 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 2/2 오브젝트 처리됨
+2026-08-20 22:25:58 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 22:25:58 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 2 items to A list
+2026-08-20 22:26:00 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 22:26:00 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 22:26:00 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 2/2 오브젝트 처리됨
+2026-08-20 22:26:05 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 22:26:05 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 2 items to A list
+2026-08-20 22:26:07 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 22:26:07 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 22:26:07 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 2/2 오브젝트 처리됨
+2026-08-20 22:26:33 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 22:26:33 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 4 items to A list
+2026-08-20 22:26:35 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 22:26:35 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 22:26:35 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 4/4 오브젝트 처리됨
+2026-08-20 22:26:39 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 22:26:39 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 2 items to A list
+2026-08-20 22:26:41 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 22:26:41 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 22:26:41 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 2/2 오브젝트 처리됨
+2026-08-20 22:26:54 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 22:26:54 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 30 items to A list
+2026-08-20 22:26:59 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 22:26:59 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 22:26:59 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 30/30 오브젝트 처리됨
+2026-08-20 22:27:03 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 22:27:03 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 2 items to A list
+2026-08-20 22:27:06 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 22:27:06 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 22:27:06 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 2/2 오브젝트 처리됨
+2026-08-20 22:33:01 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 22:33:01 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 5 items to A list
+2026-08-20 22:33:03 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 22:33:03 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 22:33:03 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 5/5 오브젝트 처리됨
+2026-08-20 22:33:16 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 22:33:16 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 27 items to A list
+2026-08-20 22:33:19 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 22:33:19 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 22:33:19 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 27/27 오브젝트 처리됨
+2026-08-20 22:40:11 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 22:40:11 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 5 items to A list
+2026-08-20 22:40:13 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 22:40:13 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 22:40:13 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 5/5 오브젝트 처리됨
+2026-08-20 22:40:29 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 22:40:29 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 10 items to A list
+2026-08-20 22:40:32 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 22:40:32 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 22:40:32 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 10/10 오브젝트 처리됨
+2026-08-20 22:40:33 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 22:40:33 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 1 items to A list
+2026-08-20 22:40:35 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 22:40:35 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 22:40:35 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 1/1 오브젝트 처리됨
+2026-08-20 22:40:40 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 22:40:40 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 3 items to A list
+2026-08-20 22:40:41 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 22:40:41 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 22:40:41 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 3/3 오브젝트 처리됨
+2026-08-20 22:40:47 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 22:40:47 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 6 items to A list
+2026-08-20 22:40:50 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 22:40:50 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 22:40:50 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 6/6 오브젝트 처리됨
+2026-08-20 22:41:04 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 22:41:04 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 15 items to A list
+2026-08-20 22:41:07 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 22:41:07 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 22:41:07 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 15/15 오브젝트 처리됨
+2026-08-20 22:41:15 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-20 22:41:15 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 1 items to A list
+2026-08-20 22:41:16 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Batch Attr Set
+2026-08-20 22:41:16 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Batch Attr Set completed
+2026-08-20 22:41:16 - MayaTools.CNTManager3 - INFO - [CNTManager3] 완료: 1/1 오브젝트 처리됨
+2026-08-20 23:02:36 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed

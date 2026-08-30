@@ -14,6 +14,8 @@ Two path families:
 
 from __future__ import annotations
 
+import json
+import os
 import re
 import string
 from dataclasses import dataclass, field
@@ -24,6 +26,10 @@ from typing import Any, Mapping
 # Note the studio uses "Sim" (asset) vs "SIM" (shot) casing; kept as authored.
 DEFAULT_TEMPLATES: dict[str, str] = {
     "show_root": "{root}/{show}",
+    "asset_types_dir": "{show_root}/assets",
+    "asset_type_dir": "{asset_types_dir}/{asset_type}",
+    "sequences_dir": "{show_root}/{seq_subpath}",
+    "sequence_dir": "{sequences_dir}/{sequence}",
     # --- asset-centric (character, reusable across shots) -----------------
     "asset_root": "{root}/{show}/{asset_subpath}/{asset}",
     "asset_work": "{asset_root}/Sim/wip/houdini",
@@ -53,8 +59,11 @@ DEFAULT_TEMPLATES: dict[str, str] = {
 # Context keys with sensible studio defaults so callers need not repeat them.
 DEFAULT_CONTEXT: dict[str, str] = {
     "asset_subpath": "assets/Character",
+    "asset_type": "Character",
     "seq_subpath": "sequences",
 }
+
+PATH_PROFILE_SCHEMA_VERSION = 1
 
 _VERSION_RE = re.compile(r"^v(\d+)$")
 _FORMATTER = string.Formatter()
@@ -72,17 +81,69 @@ class PipelinePathRules:
     templates: dict[str, str] = field(default_factory=dict)
     context: dict[str, str] = field(default_factory=dict)
     version_padding: int = 3
+    profile_file: str = ""
+    profile_name: str = "default"
+    profile_schema_version: int = PATH_PROFILE_SCHEMA_VERSION
 
     @classmethod
     def from_dict(cls, data: Mapping[str, Any]) -> "PipelinePathRules":
-        if "root" not in data:
+        local = dict(data)
+        root_hint = str(local.get("root") or "").rstrip("/\\")
+        profile_file = str(local.get("profile_file") or "").strip()
+        if not profile_file and root_hint:
+            candidate = Path(root_hint) / "cfx_path_profile.json"
+            if candidate.is_file():
+                profile_file = candidate.as_posix()
+        if profile_file and not os.path.isabs(profile_file) and root_hint:
+            profile_file = (Path(root_hint) / profile_file).as_posix()
+
+        profile: dict[str, Any] = {}
+        if profile_file:
+            path = Path(profile_file)
+            if not path.is_file():
+                raise ValueError(f"path profile does not exist: {profile_file}")
+            payload = json.loads(path.read_text(encoding="utf-8"))
+            profile = dict(payload.get("path_rules") or payload)
+            schema_version = int(profile.get("schema_version", 1))
+            if schema_version > PATH_PROFILE_SCHEMA_VERSION:
+                raise ValueError(
+                    "unsupported path profile schema version: %s (supported: %s)"
+                    % (schema_version, PATH_PROFILE_SCHEMA_VERSION)
+                )
+
+        root = str(local.get("root") or profile.get("root") or "").rstrip("/\\")
+        if not root:
             raise ValueError("path_rules requires a 'root' key")
+        templates = dict(profile.get("templates", {}))
+        templates.update(dict(local.get("templates", {})))
+        context = dict(profile.get("context", {}))
+        context.update(dict(local.get("context", {})))
         return cls(
-            root=str(data["root"]).rstrip("/\\"),
-            templates=dict(data.get("templates", {})),
-            context=dict(data.get("context", {})),
-            version_padding=int(data.get("version_padding", 3)),
+            root=root,
+            templates=templates,
+            context=context,
+            version_padding=int(local.get(
+                "version_padding", profile.get("version_padding", 3))),
+            profile_file=profile_file,
+            profile_name=str(local.get(
+                "profile_name", profile.get("name", "default"))),
+            profile_schema_version=int(profile.get("schema_version", 1)),
         )
+
+    def as_dict(self) -> dict[str, Any]:
+        """Serializable authoring rules; resolved output paths stay elsewhere."""
+
+        result: dict[str, Any] = {"root": self.root}
+        if self.profile_file:
+            result["profile_file"] = self.profile_file
+            result["profile_name"] = self.profile_name
+        if self.templates:
+            result["templates"] = dict(self.templates)
+        if self.context:
+            result["context"] = dict(self.context)
+        if self.version_padding != 3:
+            result["version_padding"] = self.version_padding
+        return result
 
     # --- template access ---------------------------------------------------
     def _template_names(self) -> set[str]:

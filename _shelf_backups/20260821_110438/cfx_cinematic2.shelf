@@ -1,0 +1,29 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<shelfDocument>
+  <!-- This file contains definitions of shelves, toolbars, and tools.
+ It should not be hand-edited when it is being used by the application.
+ Note, that two definitions of the same element are not allowed in
+ a single file. -->
+
+  <tool name="cfx_asset_setup" label="CFX Asset" icon="SOP_subnet">
+    <script scriptType="python"><![CDATA[import sys
+root = r'E:\script\pythonWorkSpace'
+sys.path.insert(0, root) if root not in sys.path else None
+from main.mApplication.houdini.cfx_pipeline import ui_asset
+ui_asset.create_asset_tool()]]></script>
+  </tool>
+
+  <tool name="cfx_shot_setup" label="CFX Shot" icon="SOP_subnet">
+    <script scriptType="python"><![CDATA[import sys
+root = r'E:\script\pythonWorkSpace'
+sys.path.insert(0, root) if root not in sys.path else None
+from main.mApplication.houdini.cfx_pipeline import ui_shot
+ui_shot.create_shot_tool()]]></script>
+  </tool>
+
+  <toolshelf name="cinematic2" label="cinematic2">
+    <memberTool name="cfx_asset_setup"/>
+    <memberTool name="cfx_shot_setup"/>
+    <memberTool name="attribwrangle"/>
+  </toolshelf>
+</shelfDocument>

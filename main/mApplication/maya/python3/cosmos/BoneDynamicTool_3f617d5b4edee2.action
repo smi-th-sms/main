@@ -1,0 +1,30 @@
+(dp0
+Vid
+p1
+V3f617d5b4edee2
+p2
+sVname
+p3
+VBoneDynamicTool
+p4
+sVinfo
+p5
+Vbone dynamic
+p6
+sVtags
+p7
+Vtools
+p8
+sVicon
+p9
+V
+p10
+sVcommand
+p11
+Vimport importlib\u000afrom tools import bone_dynamics_tool\u000aimportlib.reload(bone_dynamics_tool)\u000abone_dynamics_tool.show()
+p12
+sVsyntax
+p13
+Vpython
+p14
+s.
