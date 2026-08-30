@@ -5,11 +5,11 @@ V3f602c0d97796e
 p2
 sVname
 p3
-Vtentacle_autorig
+Vtentacle_ribbon_rig
 p4
 sVinfo
 p5
-Vtentacle_autorig tool
+Vtentacle_ribbon_rig tool
 p6
 sVtags
 p7
@@ -21,7 +21,7 @@ V
 p10
 sVcommand
 p11
-Vfrom python3.rigging import tentacle_autorig_ui\u000aimport importlib\u000aimportlib.reload(tentacle_autorig_ui)\u000atentacle_autorig_ui.show()
+Vfrom python2.rigging import tentacle_ribbon_rig_ui\u000aimport importlib\u000aimportlib.reload(tentacle_ribbon_rig_ui)\u000atentacle_ribbon_rig_ui.show()
 p12
 sVsyntax
 p13

@@ -25,14 +25,6 @@ def Padding(rename_, num_):
     
     return newName_
 
-if '#' in rename_:
-    slot_ = rename_.count('#')
-    pad_ = str(num_+1).zfill(slot_)
-    name_ = rename_.replace(slot_*'#', pad_)
-if '@' in rename_:
-    pad_ = string.ascii_uppercase[num_]
-    name_ = rename_.replace('@', pad_)
-
 
 # prefix suffix %
 def PrefixSuffix(rename_,item_):

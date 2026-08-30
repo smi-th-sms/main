@@ -1,0 +1,8 @@
+2026-08-09 21:12:56 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-08-09 21:13:00 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-08-09 21:13:00 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 1 items to A list
+2026-08-09 21:13:01 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-08-09 21:13:01 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 1 items to B list
+2026-08-09 21:13:04 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Apply Constraints
+2026-08-09 21:13:04 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Apply Constraints completed
+2026-08-09 21:13:07 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed
