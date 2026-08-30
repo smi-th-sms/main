@@ -1,0 +1,3638 @@
+============================================================def _save_rl4_to_scene | line:87 | vars:['saved_conns', 'json', 'node']consts: ['rl4 connections 를 씬 transform 노드에 JSON 으로 백업.\n    모듈 리로드로 _state 가 초기화돼도 씬이 열려 있는 한 복원 가능.\n    ', 'transform', '.hiddenInOutliner', 'connectionData', 'string']names: ['json', '_RL4_BACKUP_NODE', 'cmds', 'objExists', 'createNode', 'setAttr', 'Exception', 'attributeQuery', 'addAttr', 'dumps', 'print', 'format', 'len'] 87           0 RESUME                   0
+
+ 91           2 LOAD_CONST               1 (0)
+              4 LOAD_CONST               2 (None)
+              6 IMPORT_NAME              0 (json)
+              8 STORE_FAST               1 (json)
+
+ 92          10 LOAD_GLOBAL              2 (_RL4_BACKUP_NODE)
+             22 STORE_FAST               2 (node)
+
+ 93          24 LOAD_GLOBAL              5 (NULL + cmds)
+             36 LOAD_ATTR                3 (objExists)
+             46 LOAD_FAST                2 (node)
+             48 PRECALL                  1
+             52 CALL                     1
+             62 POP_JUMP_FORWARD_IF_TRUE    64 (to 192)
+
+ 94          64 LOAD_GLOBAL              5 (NULL + cmds)
+             76 LOAD_ATTR                4 (createNode)
+             86 LOAD_CONST               3 ('transform')
+             88 LOAD_FAST                2 (node)
+             90 KW_NAMES                 4
+             92 PRECALL                  2
+             96 CALL                     2
+            106 POP_TOP
+
+ 95         108 NOP
+
+ 96         110 LOAD_GLOBAL              5 (NULL + cmds)
+            122 LOAD_ATTR                5 (setAttr)
+            132 LOAD_FAST                2 (node)
+            134 LOAD_CONST               5 ('.hiddenInOutliner')
+            136 BINARY_OP                0 (+)
+            140 LOAD_CONST               6 (True)
+            142 PRECALL                  2
+            146 CALL                     2
+            156 POP_TOP
+            158 JUMP_FORWARD            16 (to 192)
+        >>  160 PUSH_EXC_INFO
+
+ 97         162 LOAD_GLOBAL             12 (Exception)
+            174 CHECK_EXC_MATCH
+            176 POP_JUMP_FORWARD_IF_FALSE     3 (to 184)
+            178 POP_TOP
+
+ 98         180 POP_EXCEPT
+            182 JUMP_FORWARD             4 (to 192)
+
+ 97     >>  184 RERAISE                  0
+        >>  186 COPY                     3
+            188 POP_EXCEPT
+            190 RERAISE                  1
+
+ 99     >>  192 LOAD_GLOBAL              5 (NULL + cmds)
+            204 LOAD_ATTR                7 (attributeQuery)
+            214 LOAD_CONST               7 ('connectionData')
+            216 LOAD_FAST                2 (node)
+            218 LOAD_CONST               6 (True)
+            220 KW_NAMES                 8
+            222 PRECALL                  3
+            226 CALL                     3
+            236 POP_JUMP_FORWARD_IF_TRUE    23 (to 284)
+
+100         238 LOAD_GLOBAL              5 (NULL + cmds)
+            250 LOAD_ATTR                8 (addAttr)
+            260 LOAD_FAST                2 (node)
+            262 LOAD_CONST               7 ('connectionData')
+            264 LOAD_CONST               9 ('string')
+            266 KW_NAMES                10
+            268 PRECALL                  3
+            272 CALL                     3
+            282 POP_TOP
+
+101     >>  284 LOAD_GLOBAL              5 (NULL + cmds)
+            296 LOAD_ATTR                5 (setAttr)
+            306 LOAD_FAST                2 (node)
+            308 LOAD_CONST              11 ('.connectionData')
+            310 BINARY_OP                0 (+)
+
+102         314 LOAD_FAST                1 (json)
+            316 LOAD_METHOD              9 (dumps)
+            338 LOAD_CONST              12 (<code object <listcomp> at 0x0000027E30BCFC90, file "E:\script/pythonWorkSpace/main/mApplication/maya/python3/tools\mh_body_edit_mode.py", line 102>)
+            340 MAKE_FUNCTION            0
+            342 LOAD_FAST                0 (saved_conns)
+            344 GET_ITER
+            346 PRECALL                  0
+            350 CALL                     0
+            360 PRECALL                  1
+            364 CALL                     1
+
+103         374 LOAD_CONST               9 ('string')
+
+101         376 KW_NAMES                13
+            378 PRECALL                  3
+            382 CALL                     3
+            392 POP_TOP
+
+104         394 LOAD_GLOBAL             21 (NULL + print)
+            406 LOAD_CONST              14 ('[MHEdit] rl4 connections → scene backup ({} pairs).')
+            408 LOAD_METHOD             11 (format)
+            430 LOAD_GLOBAL             25 (NULL + len)
+            442 LOAD_FAST                0 (saved_conns)
+            444 PRECALL                  1
+            448 CALL                     1
+            458 PRECALL                  1
+            462 CALL                     1
+            472 PRECALL                  1
+            476 CALL                     1
+            486 POP_TOP
+            488 LOAD_CONST               2 (None)
+            490 RETURN_VALUE
+ExceptionTable:
+  110 to 156 -> 160 [0]
+  160 to 178 -> 186 [1] lasti
+  184 to 184 -> 186 [1] lasti
+============================================================def _load_rl4_from_scene | line:107 | vars:['json', 'node', 'raw']consts: ['씬 백업 노드에서 rl4 connections 복원. 없으면 빈 리스트 반환.', 'connectionData', '.connectionData', '']names: ['json', '_RL4_BACKUP_NODE', 'cmds', 'objExists', 'attributeQuery', 'getAttr', 'loads', 'Exception']107           0 RESUME                   0
+
+109           2 LOAD_CONST               1 (0)
+              4 LOAD_CONST               2 (None)
+              6 IMPORT_NAME              0 (json)
+              8 STORE_FAST               0 (json)
+
+110          10 LOAD_GLOBAL              2 (_RL4_BACKUP_NODE)
+             22 STORE_FAST               1 (node)
+
+111          24 LOAD_GLOBAL              5 (NULL + cmds)
+             36 LOAD_ATTR                3 (objExists)
+             46 LOAD_FAST                1 (node)
+             48 PRECALL                  1
+             52 CALL                     1
+             62 POP_JUMP_FORWARD_IF_TRUE     2 (to 68)
+
+112          64 BUILD_LIST               0
+             66 RETURN_VALUE
+
+113     >>   68 LOAD_GLOBAL              5 (NULL + cmds)
+             80 LOAD_ATTR                4 (attributeQuery)
+             90 LOAD_CONST               3 ('connectionData')
+             92 LOAD_FAST                1 (node)
+             94 LOAD_CONST               4 (True)
+             96 KW_NAMES                 5
+             98 PRECALL                  3
+            102 CALL                     3
+            112 POP_JUMP_FORWARD_IF_TRUE     2 (to 118)
+
+114         114 BUILD_LIST               0
+            116 RETURN_VALUE
+
+115     >>  118 LOAD_GLOBAL              5 (NULL + cmds)
+            130 LOAD_ATTR                5 (getAttr)
+            140 LOAD_FAST                1 (node)
+            142 LOAD_CONST               6 ('.connectionData')
+            144 BINARY_OP                0 (+)
+            148 PRECALL                  1
+            152 CALL                     1
+            162 JUMP_IF_TRUE_OR_POP      1 (to 166)
+            164 LOAD_CONST               7 ('')
+        >>  166 STORE_FAST               2 (raw)
+
+116         168 NOP
+
+117         170 LOAD_CONST               8 (<code object <listcomp> at 0x0000027E30BCF830, file "E:\script/pythonWorkSpace/main/mApplication/maya/python3/tools\mh_body_edit_mode.py", line 117>)
+            172 MAKE_FUNCTION            0
+            174 LOAD_FAST                0 (json)
+            176 LOAD_METHOD              6 (loads)
+            198 LOAD_FAST                2 (raw)
+            200 PRECALL                  1
+            204 CALL                     1
+            214 GET_ITER
+            216 PRECALL                  0
+            220 CALL                     0
+            230 RETURN_VALUE
+        >>  232 PUSH_EXC_INFO
+
+118         234 LOAD_GLOBAL             14 (Exception)
+            246 CHECK_EXC_MATCH
+            248 POP_JUMP_FORWARD_IF_FALSE     5 (to 260)
+            250 POP_TOP
+
+119         252 BUILD_LIST               0
+            254 SWAP                     2
+            256 POP_EXCEPT
+            258 RETURN_VALUE
+
+118     >>  260 RERAISE                  0
+        >>  262 COPY                     3
+            264 POP_EXCEPT
+            266 RERAISE                  1
+ExceptionTable:
+  170 to 228 -> 232 [0]
+  232 to 254 -> 262 [1] lasti
+  260 to 260 -> 262 [1] lasti
+============================================================def _delete_rl4_backup | line:122 | vars:[]consts: ['백업 노드 삭제 (reconnect 완료 후 정리).', '[MHEdit] rl4 backup node deleted.']names: ['cmds', 'objExists', '_RL4_BACKUP_NODE', 'delete', 'print']122           0 RESUME                   0
+
+124           2 LOAD_GLOBAL              1 (NULL + cmds)
+             14 LOAD_ATTR                1 (objExists)
+             24 LOAD_GLOBAL              4 (_RL4_BACKUP_NODE)
+             36 PRECALL                  1
+             40 CALL                     1
+             50 POP_JUMP_FORWARD_IF_FALSE    42 (to 136)
+
+125          52 LOAD_GLOBAL              1 (NULL + cmds)
+             64 LOAD_ATTR                3 (delete)
+             74 LOAD_GLOBAL              4 (_RL4_BACKUP_NODE)
+             86 PRECALL                  1
+             90 CALL                     1
+            100 POP_TOP
+
+126         102 LOAD_GLOBAL              9 (NULL + print)
+            114 LOAD_CONST               1 ('[MHEdit] rl4 backup node deleted.')
+            116 PRECALL                  1
+            120 CALL                     1
+            130 POP_TOP
+            132 LOAD_CONST               2 (None)
+            134 RETURN_VALUE
+
+124     >>  136 LOAD_CONST               2 (None)
+            138 RETURN_VALUE
+============================================================def _is_secondary | line:170 | vars:['name', 'short', 'pat']consts: ['joint 이름이 secondary joint 패턴에 해당하면 True.', ':', '_in_l', '_in_r', '_out_l']names: ['split', '_SECONDARY_PATTERNS', 'endswith']170           0 RESUME                   0
+
+172           2 LOAD_FAST                0 (name)
+              4 LOAD_METHOD              0 (split)
+             26 LOAD_CONST               1 (':')
+             28 PRECALL                  1
+             32 CALL                     1
+             42 LOAD_CONST               2 (-1)
+             44 BINARY_SUBSCR
+             54 STORE_FAST               1 (short)
+
+173          56 LOAD_GLOBAL              2 (_SECONDARY_PATTERNS)
+             68 GET_ITER
+        >>   70 FOR_ITER                 9 (to 90)
+             72 STORE_FAST               2 (pat)
+
+174          74 LOAD_FAST                2 (pat)
+             76 LOAD_FAST                1 (short)
+             78 CONTAINS_OP              0
+             80 POP_JUMP_FORWARD_IF_FALSE     3 (to 88)
+
+175          82 POP_TOP
+             84 LOAD_CONST               3 (True)
+             86 RETURN_VALUE
+
+174     >>   88 JUMP_BACKWARD           10 (to 70)
+
+176     >>   90 LOAD_FAST                1 (short)
+             92 LOAD_METHOD              2 (endswith)
+            114 LOAD_CONST               4 ('_in_l')
+            116 PRECALL                  1
+            120 CALL                     1
+            130 POP_JUMP_FORWARD_IF_TRUE    21 (to 174)
+            132 LOAD_FAST                1 (short)
+            134 LOAD_METHOD              2 (endswith)
+            156 LOAD_CONST               5 ('_in_r')
+            158 PRECALL                  1
+            162 CALL                     1
+            172 POP_JUMP_FORWARD_IF_FALSE     2 (to 178)
+
+177     >>  174 LOAD_CONST               3 (True)
+            176 RETURN_VALUE
+
+178     >>  178 LOAD_FAST                1 (short)
+            180 LOAD_METHOD              2 (endswith)
+            202 LOAD_CONST               6 ('_out_l')
+            204 PRECALL                  1
+            208 CALL                     1
+            218 POP_JUMP_FORWARD_IF_TRUE    21 (to 262)
+            220 LOAD_FAST                1 (short)
+            222 LOAD_METHOD              2 (endswith)
+            244 LOAD_CONST               7 ('_out_r')
+            246 PRECALL                  1
+            250 CALL                     1
+            260 POP_JUMP_FORWARD_IF_FALSE     2 (to 266)
+
+179     >>  262 LOAD_CONST               3 (True)
+            264 RETURN_VALUE
+
+180     >>  266 LOAD_CONST               8 (False)
+            268 RETURN_VALUE
+============================================================def _is_snap | line:183 | vars:['name']consts: ['re-parent 후 local t=(0,0,0) snap 이 필요한 joint 이면 True.', ':']names: ['split', 'any', '_SNAP_PATTERNS']              0 MAKE_CELL                1 (short)
+
+183           2 RESUME                   0
+
+185           4 LOAD_FAST                0 (name)
+              6 LOAD_METHOD              0 (split)
+             28 LOAD_CONST               1 (':')
+             30 PRECALL                  1
+             34 CALL                     1
+             44 LOAD_CONST               2 (-1)
+             46 BINARY_SUBSCR
+             56 STORE_DEREF              1 (short)
+
+186          58 LOAD_GLOBAL              3 (NULL + any)
+             70 LOAD_CLOSURE             1 (short)
+             72 BUILD_TUPLE              1
+             74 LOAD_CONST               3 (<code object <genexpr> at 0x0000027E30BCF130, file "E:\script/pythonWorkSpace/main/mApplication/maya/python3/tools\mh_body_edit_mode.py", line 186>)
+             76 MAKE_FUNCTION            8 (closure)
+             78 LOAD_GLOBAL              4 (_SNAP_PATTERNS)
+             90 GET_ITER
+             92 PRECALL                  0
+             96 CALL                     0
+            106 PRECALL                  1
+            110 CALL                     1
+            120 RETURN_VALUE
+============================================================def _is_twist | line:189 | vars:['name']consts: ['twist joint 이면 True.', 'twist', ':']names: ['split', 'lower']189           0 RESUME                   0
+
+191           2 LOAD_CONST               1 ('twist')
+              4 LOAD_FAST                0 (name)
+              6 LOAD_METHOD              0 (split)
+             28 LOAD_CONST               2 (':')
+             30 PRECALL                  1
+             34 CALL                     1
+             44 LOAD_CONST               3 (-1)
+             46 BINARY_SUBSCR
+             56 LOAD_METHOD              1 (lower)
+             78 PRECALL                  0
+             82 CALL                     0
+             92 CONTAINS_OP              0
+             94 RETURN_VALUE
+============================================================def _get_next_primary_child | line:194 | vars:['joint', 'children', 'ch']consts: ["\n    joint 의 직계 자식 중 첫 번째 primary joint 를 반환.\n    twist joint 배치의 '다음 관절 조인트' 기준점으로 사용.\n    ", 'joint']names: ['cmds', 'listRelatives', '_is_secondary']194           0 RESUME                   0
+
+199           2 LOAD_GLOBAL              1 (NULL + cmds)
+             14 LOAD_ATTR                1 (listRelatives)
+             24 LOAD_FAST                0 (joint)
+             26 LOAD_CONST               1 (True)
+             28 LOAD_CONST               2 ('joint')
+             30 KW_NAMES                 3
+             32 PRECALL                  3
+             36 CALL                     3
+             46 JUMP_IF_TRUE_OR_POP      1 (to 50)
+             48 BUILD_LIST               0
+        >>   50 STORE_FAST               1 (children)
+
+200          52 LOAD_FAST                1 (children)
+             54 GET_ITER
+        >>   56 FOR_ITER                21 (to 100)
+             58 STORE_FAST               2 (ch)
+
+201          60 LOAD_GLOBAL              5 (NULL + _is_secondary)
+             72 LOAD_FAST                2 (ch)
+             74 PRECALL                  1
+             78 CALL                     1
+             88 POP_JUMP_FORWARD_IF_TRUE     4 (to 98)
+
+202          90 LOAD_FAST                2 (ch)
+             92 SWAP                     2
+             94 POP_TOP
+             96 RETURN_VALUE
+
+201     >>   98 JUMP_BACKWARD           22 (to 56)
+
+203     >>  100 LOAD_CONST               4 (None)
+            102 RETURN_VALUE
+============================================================def _recalibrate_twist_joints | line:206 | vars:['parent_map', 'twist_groups', 'j', 'par', 'twist_total', 'child_total', 'par_jnt', 'twists', 'next_jnt', 'twists_sorted', 'n', 'i', 'twist_jnt', 'wp', 'e', 'children', 'ch']consts: ['\n    World Transform 유지 모드 후 twist joints 를 재배치.\n\n    parent joint 와 next primary joint 사이를 균등 분할:\n      twist 1개 → 1/2 지점\n      twist 2개 → 1/3, 2/3 지점\n      twist N개 → i/(N+1) 지점  (i = 1..N, 이름 순 정렬)\n\n    twist 의 모든 직계 자식 → translate + jointOrient 제로화 (twist 위치에 snap)\n\n    keep_world_pos 설정과 무관하게 restore_structure 에서 항상 호출됨.\n    ', '[MHEdit] twist 재배치 스킵 — next primary 없음: {}', '[MHEdit] WARN twist reposition {}: {}', '.jointOrient', 'double3']names: ['_is_twist', '_is_secondary', 'setdefault', 'append', 'items', 'cmds', 'objExists', '_get_next_primary_child', 'warning', 'format', 'xform', 'sorted', 'len', 'enumerate', 'range', 'Exception', 'print', 'setAttr', 'listRelatives']              0 MAKE_CELL               17 (next_wp)
+              2 MAKE_CELL               18 (par_wp)
+              4 MAKE_CELL               19 (t)
+
+206           6 RESUME                   0
+
+221           8 BUILD_MAP                0
+             10 STORE_FAST               1 (twist_groups)
+
+222          12 LOAD_FAST                0 (parent_map)
+             14 GET_ITER
+        >>   16 FOR_ITER                85 (to 188)
+             18 STORE_FAST               2 (j)
+
+223          20 LOAD_GLOBAL              1 (NULL + _is_twist)
+             32 LOAD_FAST                2 (j)
+             34 PRECALL                  1
+             38 CALL                     1
+             48 POP_JUMP_FORWARD_IF_TRUE     1 (to 52)
+
+224          50 JUMP_BACKWARD           18 (to 16)
+
+225     >>   52 LOAD_FAST                0 (parent_map)
+             54 LOAD_FAST                2 (j)
+             56 BINARY_SUBSCR
+             66 STORE_FAST               3 (par)
+
+226          68 LOAD_FAST                3 (par)
+             70 POP_JUMP_FORWARD_IF_NONE    15 (to 102)
+             72 LOAD_GLOBAL              3 (NULL + _is_secondary)
+             84 LOAD_FAST                3 (par)
+             86 PRECALL                  1
+             90 CALL                     1
+            100 POP_JUMP_FORWARD_IF_FALSE     1 (to 104)
+
+227     >>  102 JUMP_BACKWARD           44 (to 16)
+
+228     >>  104 LOAD_FAST                1 (twist_groups)
+            106 LOAD_METHOD              2 (setdefault)
+            128 LOAD_FAST                3 (par)
+            130 BUILD_LIST               0
+            132 PRECALL                  2
+            136 CALL                     2
+            146 LOAD_METHOD              3 (append)
+            168 LOAD_FAST                2 (j)
+            170 PRECALL                  1
+            174 CALL                     1
+            184 POP_TOP
+            186 JUMP_BACKWARD           86 (to 16)
+
+230     >>  188 LOAD_CONST               2 (0)
+            190 STORE_FAST               4 (twist_total)
+
+231         192 LOAD_CONST               2 (0)
+            194 STORE_FAST               5 (child_total)
+
+233         196 LOAD_FAST                1 (twist_groups)
+            198 LOAD_METHOD              4 (items)
+            220 PRECALL                  0
+            224 CALL                     0
+            234 GET_ITER
+        >>  236 EXTENDED_ARG             2
+            238 FOR_ITER               644 (to 1528)
+            240 UNPACK_SEQUENCE          2
+            244 STORE_FAST               6 (par_jnt)
+            246 STORE_FAST               7 (twists)
+
+234         248 LOAD_GLOBAL             11 (NULL + cmds)
+            260 LOAD_ATTR                6 (objExists)
+            270 LOAD_FAST                6 (par_jnt)
+            272 PRECALL                  1
+            276 CALL                     1
+            286 POP_JUMP_FORWARD_IF_TRUE     1 (to 290)
+
+235         288 JUMP_BACKWARD           27 (to 236)
+
+236     >>  290 LOAD_GLOBAL             15 (NULL + _get_next_primary_child)
+            302 LOAD_FAST                6 (par_jnt)
+            304 PRECALL                  1
+            308 CALL                     1
+            318 STORE_FAST               8 (next_jnt)
+
+237         320 LOAD_FAST                8 (next_jnt)
+            322 POP_JUMP_FORWARD_IF_FALSE    20 (to 364)
+            324 LOAD_GLOBAL             11 (NULL + cmds)
+            336 LOAD_ATTR                6 (objExists)
+            346 LOAD_FAST                8 (next_jnt)
+            348 PRECALL                  1
+            352 CALL                     1
+            362 POP_JUMP_FORWARD_IF_TRUE    40 (to 444)
+
+238     >>  364 LOAD_GLOBAL             11 (NULL + cmds)
+            376 LOAD_ATTR                8 (warning)
+            386 LOAD_CONST               3 ('[MHEdit] twist 재배치 스킵 — next primary 없음: {}')
+            388 LOAD_METHOD              9 (format)
+            410 LOAD_FAST                6 (par_jnt)
+            412 PRECALL                  1
+            416 CALL                     1
+            426 PRECALL                  1
+            430 CALL                     1
+            440 POP_TOP
+
+239         442 JUMP_BACKWARD          104 (to 236)
+
+241     >>  444 LOAD_GLOBAL             11 (NULL + cmds)
+            456 LOAD_ATTR               10 (xform)
+            466 LOAD_FAST                6 (par_jnt)
+            468 LOAD_CONST               4 (True)
+            470 LOAD_CONST               4 (True)
+            472 LOAD_CONST               4 (True)
+            474 KW_NAMES                 5
+            476 PRECALL                  4
+            480 CALL                     4
+            490 STORE_DEREF             18 (par_wp)
+
+242         492 LOAD_GLOBAL             11 (NULL + cmds)
+            504 LOAD_ATTR               10 (xform)
+            514 LOAD_FAST                8 (next_jnt)
+            516 LOAD_CONST               4 (True)
+            518 LOAD_CONST               4 (True)
+            520 LOAD_CONST               4 (True)
+            522 KW_NAMES                 5
+            524 PRECALL                  4
+            528 CALL                     4
+            538 STORE_DEREF             17 (next_wp)
+
+245         540 LOAD_GLOBAL             23 (NULL + sorted)
+            552 LOAD_FAST                7 (twists)
+            554 LOAD_CONST               6 (<code object <lambda> at 0x0000027E3D721C50, file "E:\script/pythonWorkSpace/main/mApplication/maya/python3/tools\mh_body_edit_mode.py", line 245>)
+            556 MAKE_FUNCTION            0
+            558 KW_NAMES                 7
+            560 PRECALL                  2
+            564 CALL                     2
+            574 STORE_FAST               9 (twists_sorted)
+
+246         576 LOAD_GLOBAL             25 (NULL + len)
+            588 LOAD_FAST                9 (twists_sorted)
+            590 PRECALL                  1
+            594 CALL                     1
+            604 STORE_FAST              10 (n)
+
+248         606 LOAD_GLOBAL             27 (NULL + enumerate)
+            618 LOAD_FAST                9 (twists_sorted)
+            620 PRECALL                  1
+            624 CALL                     1
+            634 GET_ITER
+        >>  636 EXTENDED_ARG             1
+            638 FOR_ITER               442 (to 1524)
+            640 UNPACK_SEQUENCE          2
+            644 STORE_FAST              11 (i)
+            646 STORE_FAST              12 (twist_jnt)
+
+249         648 LOAD_GLOBAL             11 (NULL + cmds)
+            660 LOAD_ATTR                6 (objExists)
+            670 LOAD_FAST               12 (twist_jnt)
+            672 PRECALL                  1
+            676 CALL                     1
+            686 POP_JUMP_FORWARD_IF_TRUE     1 (to 690)
+
+250         688 JUMP_BACKWARD           27 (to 636)
+
+251     >>  690 LOAD_FAST               11 (i)
+            692 LOAD_CONST               8 (1.0)
+            694 BINARY_OP                0 (+)
+            698 LOAD_FAST               10 (n)
+            700 LOAD_CONST               8 (1.0)
+            702 BINARY_OP                0 (+)
+            706 BINARY_OP               11 (/)
+            710 STORE_DEREF             19 (t)
+
+252         712 LOAD_CLOSURE            17 (next_wp)
+            714 LOAD_CLOSURE            18 (par_wp)
+            716 LOAD_CLOSURE            19 (t)
+            718 BUILD_TUPLE              3
+            720 LOAD_CONST               9 (<code object <listcomp> at 0x0000027E2FE2C580, file "E:\script/pythonWorkSpace/main/mApplication/maya/python3/tools\mh_body_edit_mode.py", line 252>)
+            722 MAKE_FUNCTION            8 (closure)
+            724 LOAD_GLOBAL             29 (NULL + range)
+            736 LOAD_CONST              10 (3)
+            738 PRECALL                  1
+            742 CALL                     1
+            752 GET_ITER
+            754 PRECALL                  0
+            758 CALL                     0
+            768 STORE_FAST              13 (wp)
+
+253         770 NOP
+
+254         772 LOAD_GLOBAL             11 (NULL + cmds)
+            784 LOAD_ATTR               10 (xform)
+            794 LOAD_FAST               12 (twist_jnt)
+            796 LOAD_CONST               4 (True)
+            798 LOAD_FAST               13 (wp)
+            800 KW_NAMES                11
+            802 PRECALL                  3
+            806 CALL                     3
+            816 POP_TOP
+
+255         818 LOAD_FAST                4 (twist_total)
+            820 LOAD_CONST              12 (1)
+            822 BINARY_OP               13 (+=)
+            826 STORE_FAST               4 (twist_total)
+            828 JUMP_FORWARD            58 (to 946)
+        >>  830 PUSH_EXC_INFO
+
+256         832 LOAD_GLOBAL             30 (Exception)
+            844 CHECK_EXC_MATCH
+            846 POP_JUMP_FORWARD_IF_FALSE    45 (to 938)
+            848 STORE_FAST              14 (e)
+
+257         850 LOAD_GLOBAL             33 (NULL + print)
+            862 LOAD_CONST              13 ('[MHEdit] WARN twist reposition {}: {}')
+            864 LOAD_METHOD              9 (format)
+            886 LOAD_FAST               12 (twist_jnt)
+            888 LOAD_FAST               14 (e)
+            890 PRECALL                  2
+            894 CALL                     2
+            904 PRECALL                  1
+            908 CALL                     1
+            918 POP_TOP
+            920 POP_EXCEPT
+            922 LOAD_CONST               1 (None)
+            924 STORE_FAST              14 (e)
+            926 DELETE_FAST             14 (e)
+            928 JUMP_FORWARD             8 (to 946)
+        >>  930 LOAD_CONST               1 (None)
+            932 STORE_FAST              14 (e)
+            934 DELETE_FAST             14 (e)
+            936 RERAISE                  1
+
+256     >>  938 RERAISE                  0
+        >>  940 COPY                     3
+            942 POP_EXCEPT
+            944 RERAISE                  1
+
+260     >>  946 NOP
+
+261         948 LOAD_GLOBAL             11 (NULL + cmds)
+            960 LOAD_ATTR               17 (setAttr)
+            970 LOAD_FAST               12 (twist_jnt)
+            972 LOAD_CONST              14 ('.jointOrient')
+            974 BINARY_OP                0 (+)
+            978 LOAD_CONST              15 (0.0)
+            980 LOAD_CONST              15 (0.0)
+            982 LOAD_CONST              15 (0.0)
+            984 LOAD_CONST              16 ('double3')
+            986 KW_NAMES                17
+            988 PRECALL                  5
+            992 CALL                     5
+           1002 POP_TOP
+
+262        1004 LOAD_GLOBAL             11 (NULL + cmds)
+           1016 LOAD_ATTR               17 (setAttr)
+           1026 LOAD_FAST               12 (twist_jnt)
+           1028 LOAD_CONST              18 ('.rotate')
+           1030 BINARY_OP                0 (+)
+           1034 LOAD_CONST              15 (0.0)
+           1036 LOAD_CONST              15 (0.0)
+           1038 LOAD_CONST              15 (0.0)
+           1040 LOAD_CONST              16 ('double3')
+           1042 KW_NAMES                17
+           1044 PRECALL                  5
+           1048 CALL                     5
+           1058 POP_TOP
+           1060 JUMP_FORWARD            58 (to 1178)
+        >> 1062 PUSH_EXC_INFO
+
+263        1064 LOAD_GLOBAL             30 (Exception)
+           1076 CHECK_EXC_MATCH
+           1078 POP_JUMP_FORWARD_IF_FALSE    45 (to 1170)
+           1080 STORE_FAST              14 (e)
+
+264        1082 LOAD_GLOBAL             33 (NULL + print)
+           1094 LOAD_CONST              19 ('[MHEdit] WARN twist orient {}: {}')
+           1096 LOAD_METHOD              9 (format)
+           1118 LOAD_FAST               12 (twist_jnt)
+           1120 LOAD_FAST               14 (e)
+           1122 PRECALL                  2
+           1126 CALL                     2
+           1136 PRECALL                  1
+           1140 CALL                     1
+           1150 POP_TOP
+           1152 POP_EXCEPT
+           1154 LOAD_CONST               1 (None)
+           1156 STORE_FAST              14 (e)
+           1158 DELETE_FAST             14 (e)
+           1160 JUMP_FORWARD             8 (to 1178)
+        >> 1162 LOAD_CONST               1 (None)
+           1164 STORE_FAST              14 (e)
+           1166 DELETE_FAST             14 (e)
+           1168 RERAISE                  1
+
+263     >> 1170 RERAISE                  0
+        >> 1172 COPY                     3
+           1174 POP_EXCEPT
+           1176 RERAISE                  1
+
+267     >> 1178 LOAD_GLOBAL             11 (NULL + cmds)
+           1190 LOAD_ATTR               18 (listRelatives)
+           1200 LOAD_FAST               12 (twist_jnt)
+           1202 LOAD_CONST               4 (True)
+           1204 LOAD_CONST              20 ('joint')
+           1206 KW_NAMES                21
+           1208 PRECALL                  3
+           1212 CALL                     3
+           1222 JUMP_IF_TRUE_OR_POP      1 (to 1226)
+           1224 BUILD_LIST               0
+        >> 1226 STORE_FAST              15 (children)
+
+268        1228 LOAD_FAST               15 (children)
+           1230 GET_ITER
+        >> 1232 FOR_ITER               143 (to 1520)
+           1234 STORE_FAST              16 (ch)
+
+269        1236 LOAD_GLOBAL             11 (NULL + cmds)
+           1248 LOAD_ATTR                6 (objExists)
+           1258 LOAD_FAST               16 (ch)
+           1260 PRECALL                  1
+           1264 CALL                     1
+           1274 POP_JUMP_FORWARD_IF_TRUE     1 (to 1278)
+
+270        1276 JUMP_BACKWARD           23 (to 1232)
+
+271     >> 1278 NOP
+
+272        1280 LOAD_GLOBAL             11 (NULL + cmds)
+           1292 LOAD_ATTR               17 (setAttr)
+           1302 LOAD_FAST               16 (ch)
+           1304 LOAD_CONST              22 ('.translate')
+           1306 BINARY_OP                0 (+)
+           1310 LOAD_CONST              15 (0.0)
+           1312 LOAD_CONST              15 (0.0)
+           1314 LOAD_CONST              15 (0.0)
+           1316 LOAD_CONST              16 ('double3')
+           1318 KW_NAMES                17
+           1320 PRECALL                  5
+           1324 CALL                     5
+           1334 POP_TOP
+
+273        1336 LOAD_GLOBAL             11 (NULL + cmds)
+           1348 LOAD_ATTR               17 (setAttr)
+           1358 LOAD_FAST               16 (ch)
+           1360 LOAD_CONST              14 ('.jointOrient')
+           1362 BINARY_OP                0 (+)
+           1366 LOAD_CONST              15 (0.0)
+           1368 LOAD_CONST              15 (0.0)
+           1370 LOAD_CONST              15 (0.0)
+           1372 LOAD_CONST              16 ('double3')
+           1374 KW_NAMES                17
+           1376 PRECALL                  5
+           1380 CALL                     5
+           1390 POP_TOP
+
+274        1392 LOAD_FAST                5 (child_total)
+           1394 LOAD_CONST              12 (1)
+           1396 BINARY_OP               13 (+=)
+           1400 STORE_FAST               5 (child_total)
+           1402 JUMP_BACKWARD           86 (to 1232)
+        >> 1404 PUSH_EXC_INFO
+
+275        1406 LOAD_GLOBAL             30 (Exception)
+           1418 CHECK_EXC_MATCH
+           1420 POP_JUMP_FORWARD_IF_FALSE    45 (to 1512)
+           1422 STORE_FAST              14 (e)
+
+276        1424 LOAD_GLOBAL             33 (NULL + print)
+           1436 LOAD_CONST              23 ('[MHEdit] WARN twist child snap {}: {}')
+           1438 LOAD_METHOD              9 (format)
+           1460 LOAD_FAST               16 (ch)
+           1462 LOAD_FAST               14 (e)
+           1464 PRECALL                  2
+           1468 CALL                     2
+           1478 PRECALL                  1
+           1482 CALL                     1
+           1492 POP_TOP
+           1494 POP_EXCEPT
+           1496 LOAD_CONST               1 (None)
+           1498 STORE_FAST              14 (e)
+           1500 DELETE_FAST             14 (e)
+           1502 JUMP_BACKWARD          136 (to 1232)
+        >> 1504 LOAD_CONST               1 (None)
+           1506 STORE_FAST              14 (e)
+           1508 DELETE_FAST             14 (e)
+           1510 RERAISE                  1
+
+275     >> 1512 RERAISE                  0
+        >> 1514 COPY                     3
+           1516 POP_EXCEPT
+           1518 RERAISE                  1
+
+268     >> 1520 EXTENDED_ARG             1
+           1522 JUMP_BACKWARD          444 (to 636)
+
+248     >> 1524 EXTENDED_ARG             2
+           1526 JUMP_BACKWARD          646 (to 236)
+
+278     >> 1528 LOAD_GLOBAL             33 (NULL + print)
+           1540 LOAD_CONST              24 ('[MHEdit] Twist recalibrated: {} joints / {} child snaps ({} groups).')
+           1542 LOAD_METHOD              9 (format)
+
+279        1564 LOAD_FAST                4 (twist_total)
+           1566 LOAD_FAST                5 (child_total)
+           1568 LOAD_GLOBAL             25 (NULL + len)
+           1580 LOAD_FAST                1 (twist_groups)
+           1582 PRECALL                  1
+           1586 CALL                     1
+
+278        1596 PRECALL                  3
+           1600 CALL                     3
+           1610 PRECALL                  1
+           1614 CALL                     1
+           1624 POP_TOP
+           1626 LOAD_CONST               1 (None)
+           1628 RETURN_VALUE
+ExceptionTable:
+  772 to 826 -> 830 [2]
+  830 to 848 -> 940 [3] lasti
+  850 to 918 -> 930 [3] lasti
+  930 to 938 -> 940 [3] lasti
+  948 to 1058 -> 1062 [2]
+  1062 to 1080 -> 1172 [3] lasti
+  1082 to 1150 -> 1162 [3] lasti
+  1162 to 1170 -> 1172 [3] lasti
+  1280 to 1400 -> 1404 [3]
+  1404 to 1422 -> 1514 [4] lasti
+  1424 to 1492 -> 1504 [4] lasti
+  1504 to 1512 -> 1514 [4] lasti
+============================================================def _sort_by_depth | line:282 | vars:['parent_map']consts: ['parent_map 내 joints 를 parent-before-child 순으로 정렬.']names: ['sorted', 'keys']              0 MAKE_CELL                0 (parent_map)
+              2 MAKE_CELL                1 (depth)
+
+282           4 RESUME                   0
+
+284           6 LOAD_CONST               4 ((None,))
+              8 LOAD_CLOSURE             1 (depth)
+             10 LOAD_CLOSURE             0 (parent_map)
+             12 BUILD_TUPLE              2
+             14 LOAD_CONST               2 (<code object depth at 0x0000027E3629B560, file "E:\script/pythonWorkSpace/main/mApplication/maya/python3/tools\mh_body_edit_mode.py", line 284>)
+             16 MAKE_FUNCTION            9 (defaults, closure)
+             18 STORE_DEREF              1 (depth)
+
+292          20 LOAD_GLOBAL              1 (NULL + sorted)
+             32 LOAD_DEREF               0 (parent_map)
+             34 LOAD_METHOD              1 (keys)
+             56 PRECALL                  0
+             60 CALL                     0
+             70 LOAD_DEREF               1 (depth)
+             72 KW_NAMES                 3
+             74 PRECALL                  2
+             78 CALL                     2
+             88 RETURN_VALUE
+============================================================def _get_primary_joints | line:295 | vars:[]consts: ['씬의 모든 joint 중 secondary 가 아닌 것만 반환.', 'joint']names: ['cmds', 'ls']295           0 RESUME                   0
+
+297           2 LOAD_CONST               1 (<code object <listcomp> at 0x0000027E3D7224C0, file "E:\script/pythonWorkSpace/main/mApplication/maya/python3/tools\mh_body_edit_mode.py", line 297>)
+              4 MAKE_FUNCTION            0
+              6 LOAD_GLOBAL              1 (NULL + cmds)
+             18 LOAD_ATTR                1 (ls)
+             28 LOAD_CONST               2 ('joint')
+             30 KW_NAMES                 3
+             32 PRECALL                  1
+             36 CALL                     1
+             46 GET_ITER
+             48 PRECALL                  0
+             52 CALL                     0
+             62 RETURN_VALUE
+============================================================def _collect_sc_info | line:300 | vars:['info', 'i', 'sc', 'mesh']consts: ['body_lod*_mesh_skinCluster 의 mesh 이름과 influence 목록을 수집.', 'body_lod{}_mesh_skinCluster', 'body_lod{}_mesh']names: ['range', 'LOD_COUNT', 'format', 'cmds', 'objExists', 'skinCluster']300           0 RESUME                   0
+
+302           2 BUILD_MAP                0
+              4 STORE_FAST               0 (info)
+
+303           6 LOAD_GLOBAL              1 (NULL + range)
+             18 LOAD_GLOBAL              2 (LOD_COUNT)
+             30 PRECALL                  1
+             34 CALL                     1
+             44 GET_ITER
+        >>   46 FOR_ITER                96 (to 240)
+             48 STORE_FAST               1 (i)
+
+304          50 LOAD_CONST               1 ('body_lod{}_mesh_skinCluster')
+             52 LOAD_METHOD              2 (format)
+             74 LOAD_FAST                1 (i)
+             76 PRECALL                  1
+             80 CALL                     1
+             90 STORE_FAST               2 (sc)
+
+305          92 LOAD_CONST               2 ('body_lod{}_mesh')
+             94 LOAD_METHOD              2 (format)
+            116 LOAD_FAST                1 (i)
+            118 PRECALL                  1
+            122 CALL                     1
+            132 STORE_FAST               3 (mesh)
+
+306         134 LOAD_GLOBAL              7 (NULL + cmds)
+            146 LOAD_ATTR                4 (objExists)
+            156 LOAD_FAST                2 (sc)
+            158 PRECALL                  1
+            162 CALL                     1
+            172 POP_JUMP_FORWARD_IF_TRUE     1 (to 176)
+
+307         174 JUMP_BACKWARD           65 (to 46)
+
+309     >>  176 LOAD_FAST                3 (mesh)
+
+310         178 LOAD_GLOBAL              7 (NULL + cmds)
+            190 LOAD_ATTR                5 (skinCluster)
+            200 LOAD_FAST                2 (sc)
+            202 LOAD_CONST               3 (True)
+            204 LOAD_CONST               3 (True)
+            206 KW_NAMES                 4
+            208 PRECALL                  3
+            212 CALL                     3
+            222 JUMP_IF_TRUE_OR_POP      1 (to 226)
+            224 BUILD_LIST               0
+
+308     >>  226 LOAD_CONST               5 (('mesh', 'influences'))
+            228 BUILD_CONST_KEY_MAP      2
+            230 LOAD_FAST                0 (info)
+            232 LOAD_FAST                2 (sc)
+            234 STORE_SUBSCR
+            238 JUMP_BACKWARD           97 (to 46)
+
+312     >>  240 LOAD_FAST                0 (info)
+            242 RETURN_VALUE
+============================================================def _get_sc_influences | line:315 | vars:['sc_name', 'pm', 'sc_node']consts: ['\n    sc 의 matrix 연결에서 influence joint 목록을 반환합니다.\n    PyMEL 을 우선 사용하고, 실패 시 cmds.skinCluster 로 fallback.\n    ', 'matrix', 'joint']names: ['pymel.core', 'core', 'PyNode', 'attr', 'listConnections', 'Exception', 'cmds', 'skinCluster']315           0 RESUME                   0
+
+320           2 NOP
+
+321           4 LOAD_CONST               1 (0)
+              6 LOAD_CONST               2 (None)
+              8 IMPORT_NAME              0 (pymel.core)
+             10 IMPORT_FROM              1 (core)
+             12 STORE_FAST               1 (pm)
+             14 POP_TOP
+
+322          16 LOAD_FAST                1 (pm)
+             18 LOAD_METHOD              2 (PyNode)
+             40 LOAD_FAST                0 (sc_name)
+             42 PRECALL                  1
+             46 CALL                     1
+             56 STORE_FAST               2 (sc_node)
+
+323          58 LOAD_CONST               3 (<code object <listcomp> at 0x0000027E3D721D40, file "E:\script/pythonWorkSpace/main/mApplication/maya/python3/tools\mh_body_edit_mode.py", line 323>)
+             60 MAKE_FUNCTION            0
+             62 LOAD_FAST                2 (sc_node)
+             64 LOAD_METHOD              3 (attr)
+             86 LOAD_CONST               4 ('matrix')
+             88 PRECALL                  1
+             92 CALL                     1
+            102 LOAD_METHOD              4 (listConnections)
+
+324         124 LOAD_CONST               5 (False)
+            126 LOAD_CONST               6 (True)
+            128 LOAD_CONST               7 ('joint')
+
+323         130 KW_NAMES                 8
+            132 PRECALL                  3
+            136 CALL                     3
+            146 GET_ITER
+            148 PRECALL                  0
+            152 CALL                     0
+            162 RETURN_VALUE
+        >>  164 PUSH_EXC_INFO
+
+326         166 LOAD_GLOBAL             10 (Exception)
+            178 CHECK_EXC_MATCH
+            180 POP_JUMP_FORWARD_IF_FALSE    28 (to 238)
+            182 POP_TOP
+
+327         184 LOAD_GLOBAL             13 (NULL + cmds)
+            196 LOAD_ATTR                7 (skinCluster)
+            206 LOAD_FAST                0 (sc_name)
+            208 LOAD_CONST               6 (True)
+            210 LOAD_CONST               6 (True)
+            212 KW_NAMES                 9
+            214 PRECALL                  3
+            218 CALL                     3
+            228 JUMP_IF_TRUE_OR_POP      1 (to 232)
+            230 BUILD_LIST               0
+        >>  232 SWAP                     2
+            234 POP_EXCEPT
+            236 RETURN_VALUE
+
+326     >>  238 RERAISE                  0
+        >>  240 COPY                     3
+            242 POP_EXCEPT
+            244 RERAISE                  1
+ExceptionTable:
+  4 to 160 -> 164 [0]
+  164 to 232 -> 240 [1] lasti
+  238 to 238 -> 240 [1] lasti
+============================================================def enter_edit_mode | line:334 | vars:['rl4_node', 'force', 'sc_info', 'sc', 'e', 'saved', 'src', 'dst', 'pat_secondary', 'secondary_set', 'j', 'secondary', 'parent_map', 'local_transforms', 'par', 't', '_om2', 'snapshot', '_sel', '_fn', '_plug']consts: ['\n    joint 편집 준비 단계.\n\n    1) body_lod*_mesh_skinCluster 정보 저장 → envelope = 0  (mesh shape 고정)\n    2) rl4 output connections 전체 저장 → disconnect\n    3) secondary joints parent 저장 → world unparent\n\n    Parameters\n    ----------\n    force : bool\n        True 이면 active 상태 체크를 무시하고 강제 실행합니다.\n        이전 실행이 중단되어 _state 가 꼬인 경우에 사용하세요.\n    ', 'active', '[MHEdit] Already in edit mode. (force=True 로 강제 실행 가능)', '[MHEdit] force=True: active 상태를 무시하고 재실행합니다.', 'rl4_node']names: ['_state', 'print', 'reset_state', '_collect_sc_info', 'cmds', 'undoInfo', 'setAttr', 'Exception', 'format', 'len', 'objExists', 'get', 'listConnections', 'range', 'disconnectAttr', '_save_rl4_to_scene', 'ls', 'set', 'update', 'listRelatives']              0 MAKE_CELL               21 (_mat)
+              2 MAKE_CELL               22 (out_conns)
+
+334           4 RESUME                   0
+
+348           6 LOAD_GLOBAL              0 (_state)
+             18 LOAD_CONST               1 ('active')
+             20 BINARY_SUBSCR
+             30 POP_JUMP_FORWARD_IF_FALSE    19 (to 70)
+             32 LOAD_FAST                1 (force)
+             34 POP_JUMP_FORWARD_IF_TRUE    17 (to 70)
+
+349          36 LOAD_GLOBAL              3 (NULL + print)
+             48 LOAD_CONST               2 ('[MHEdit] Already in edit mode. (force=True 로 강제 실행 가능)')
+             50 PRECALL                  1
+             54 CALL                     1
+             64 POP_TOP
+
+350          66 LOAD_CONST               3 (None)
+             68 RETURN_VALUE
+
+351     >>   70 LOAD_GLOBAL              0 (_state)
+             82 LOAD_CONST               1 ('active')
+             84 BINARY_SUBSCR
+             94 POP_JUMP_FORWARD_IF_FALSE    31 (to 158)
+             96 LOAD_FAST                1 (force)
+             98 POP_JUMP_FORWARD_IF_FALSE    29 (to 158)
+
+352         100 LOAD_GLOBAL              3 (NULL + print)
+            112 LOAD_CONST               4 ('[MHEdit] force=True: active 상태를 무시하고 재실행합니다.')
+            114 PRECALL                  1
+            118 CALL                     1
+            128 POP_TOP
+
+353         130 LOAD_GLOBAL              5 (NULL + reset_state)
+            142 PRECALL                  0
+            146 CALL                     0
+            156 POP_TOP
+
+355     >>  158 LOAD_FAST                0 (rl4_node)
+            160 LOAD_GLOBAL              0 (_state)
+            172 LOAD_CONST               5 ('rl4_node')
+            174 STORE_SUBSCR
+
+358         178 LOAD_GLOBAL              7 (NULL + _collect_sc_info)
+            190 PRECALL                  0
+            194 CALL                     0
+            204 STORE_FAST               2 (sc_info)
+
+359         206 LOAD_FAST                2 (sc_info)
+            208 LOAD_GLOBAL              0 (_state)
+            220 LOAD_CONST               6 ('sc_info')
+            222 STORE_SUBSCR
+
+361         226 LOAD_GLOBAL              9 (NULL + cmds)
+            238 LOAD_ATTR                5 (undoInfo)
+            248 LOAD_CONST               7 (True)
+            250 LOAD_CONST               8 ('MHEdit_envelopeOff')
+            252 KW_NAMES                 9
+            254 PRECALL                  2
+            258 CALL                     2
+            268 POP_TOP
+
+362         270 NOP
+
+363         272 LOAD_FAST                2 (sc_info)
+            274 GET_ITER
+        >>  276 FOR_ITER                85 (to 448)
+            278 STORE_FAST               3 (sc)
+
+364         280 NOP
+
+365         282 LOAD_GLOBAL              9 (NULL + cmds)
+            294 LOAD_ATTR                6 (setAttr)
+            304 LOAD_FAST                3 (sc)
+            306 LOAD_CONST              10 ('.envelope')
+            308 BINARY_OP                0 (+)
+            312 LOAD_CONST              11 (0.0)
+            314 PRECALL                  2
+            318 CALL                     2
+            328 POP_TOP
+            330 JUMP_BACKWARD           28 (to 276)
+        >>  332 PUSH_EXC_INFO
+
+366         334 LOAD_GLOBAL             14 (Exception)
+            346 CHECK_EXC_MATCH
+            348 POP_JUMP_FORWARD_IF_FALSE    45 (to 440)
+            350 STORE_FAST               4 (e)
+
+367         352 LOAD_GLOBAL              3 (NULL + print)
+            364 LOAD_CONST              12 ('[MHEdit] WARN envelope {}: {}')
+            366 LOAD_METHOD              8 (format)
+            388 LOAD_FAST                3 (sc)
+            390 LOAD_FAST                4 (e)
+            392 PRECALL                  2
+            396 CALL                     2
+            406 PRECALL                  1
+            410 CALL                     1
+            420 POP_TOP
+            422 POP_EXCEPT
+            424 LOAD_CONST               3 (None)
+            426 STORE_FAST               4 (e)
+            428 DELETE_FAST              4 (e)
+            430 JUMP_BACKWARD           78 (to 276)
+        >>  432 LOAD_CONST               3 (None)
+            434 STORE_FAST               4 (e)
+            436 DELETE_FAST              4 (e)
+            438 RERAISE                  1
+
+366     >>  440 RERAISE                  0
+        >>  442 COPY                     3
+            444 POP_EXCEPT
+            446 RERAISE                  1
+
+363     >>  448 NOP
+
+369         450 LOAD_GLOBAL              9 (NULL + cmds)
+            462 LOAD_ATTR                5 (undoInfo)
+            472 LOAD_CONST               7 (True)
+            474 KW_NAMES                13
+            476 PRECALL                  1
+            480 CALL                     1
+            490 POP_TOP
+            492 JUMP_FORWARD            26 (to 546)
+        >>  494 PUSH_EXC_INFO
+            496 LOAD_GLOBAL              9 (NULL + cmds)
+            508 LOAD_ATTR                5 (undoInfo)
+            518 LOAD_CONST               7 (True)
+            520 KW_NAMES                13
+            522 PRECALL                  1
+            526 CALL                     1
+            536 POP_TOP
+            538 RERAISE                  0
+        >>  540 COPY                     3
+            542 POP_EXCEPT
+            544 RERAISE                  1
+
+370     >>  546 LOAD_GLOBAL              3 (NULL + print)
+            558 LOAD_CONST              14 ('[MHEdit] Set envelope=0 on {} skinClusters.')
+            560 LOAD_METHOD              8 (format)
+            582 LOAD_GLOBAL             19 (NULL + len)
+            594 LOAD_FAST                2 (sc_info)
+            596 PRECALL                  1
+            600 CALL                     1
+            610 PRECALL                  1
+            614 CALL                     1
+            624 PRECALL                  1
+            628 CALL                     1
+            638 POP_TOP
+
+373         640 LOAD_GLOBAL              9 (NULL + cmds)
+            652 LOAD_ATTR               10 (objExists)
+            662 LOAD_FAST                0 (rl4_node)
+            664 PRECALL                  1
+            668 CALL                     1
+            678 POP_JUMP_FORWARD_IF_TRUE    46 (to 772)
+
+374         680 LOAD_GLOBAL              3 (NULL + print)
+            692 LOAD_CONST              15 ('[MHEdit] WARNING: {} not found.')
+            694 LOAD_METHOD              8 (format)
+            716 LOAD_FAST                0 (rl4_node)
+            718 PRECALL                  1
+            722 CALL                     1
+            732 PRECALL                  1
+            736 CALL                     1
+            746 POP_TOP
+
+375         748 BUILD_LIST               0
+            750 LOAD_GLOBAL              0 (_state)
+            762 LOAD_CONST              16 ('rl4_connections')
+            764 STORE_SUBSCR
+            768 EXTENDED_ARG             1
+            770 JUMP_FORWARD           388 (to 1548)
+
+376     >>  772 LOAD_GLOBAL              0 (_state)
+            784 LOAD_METHOD             11 (get)
+            806 LOAD_CONST              16 ('rl4_connections')
+            808 PRECALL                  1
+            812 CALL                     1
+            822 POP_JUMP_FORWARD_IF_FALSE    60 (to 944)
+
+379         824 LOAD_GLOBAL              3 (NULL + print)
+            836 LOAD_CONST              17 ('[MHEdit] rl4 already disconnected ({} conns), skipping.')
+            838 LOAD_METHOD              8 (format)
+
+380         860 LOAD_GLOBAL             19 (NULL + len)
+            872 LOAD_GLOBAL              0 (_state)
+            884 LOAD_CONST              16 ('rl4_connections')
+            886 BINARY_SUBSCR
+            896 PRECALL                  1
+            900 CALL                     1
+
+379         910 PRECALL                  1
+            914 CALL                     1
+            924 PRECALL                  1
+            928 CALL                     1
+            938 POP_TOP
+            940 EXTENDED_ARG             1
+            942 JUMP_FORWARD           302 (to 1548)
+
+382     >>  944 LOAD_GLOBAL              9 (NULL + cmds)
+            956 LOAD_ATTR               12 (listConnections)
+
+383         966 LOAD_FAST                0 (rl4_node)
+            968 LOAD_CONST              18 (False)
+            970 LOAD_CONST               7 (True)
+
+384         972 LOAD_CONST               7 (True)
+            974 LOAD_CONST               7 (True)
+
+382         976 KW_NAMES                19
+            978 PRECALL                  5
+            982 CALL                     5
+            992 JUMP_IF_TRUE_OR_POP      1 (to 996)
+
+385         994 BUILD_LIST               0
+
+382     >>  996 STORE_DEREF             22 (out_conns)
+
+386         998 LOAD_CLOSURE            22 (out_conns)
+           1000 BUILD_TUPLE              1
+           1002 LOAD_CONST              20 (<code object <listcomp> at 0x0000027E3D7226A0, file "E:\script/pythonWorkSpace/main/mApplication/maya/python3/tools\mh_body_edit_mode.py", line 386>)
+           1004 MAKE_FUNCTION            8 (closure)
+           1006 LOAD_GLOBAL             27 (NULL + range)
+           1018 LOAD_CONST              21 (0)
+           1020 LOAD_GLOBAL             19 (NULL + len)
+           1032 LOAD_DEREF              22 (out_conns)
+           1034 PRECALL                  1
+           1038 CALL                     1
+           1048 LOAD_CONST              22 (2)
+           1050 PRECALL                  3
+           1054 CALL                     3
+           1064 GET_ITER
+           1066 PRECALL                  0
+           1070 CALL                     0
+           1080 STORE_FAST               5 (saved)
+
+388        1082 LOAD_GLOBAL              9 (NULL + cmds)
+           1094 LOAD_ATTR                5 (undoInfo)
+           1104 LOAD_CONST               7 (True)
+           1106 LOAD_CONST              23 ('MHEdit_disconnectRL4')
+           1108 KW_NAMES                 9
+           1110 PRECALL                  2
+           1114 CALL                     2
+           1124 POP_TOP
+
+389        1126 NOP
+
+390        1128 LOAD_FAST                5 (saved)
+           1130 GET_ITER
+        >> 1132 FOR_ITER                85 (to 1304)
+           1134 UNPACK_SEQUENCE          2
+           1138 STORE_FAST               6 (src)
+           1140 STORE_FAST               7 (dst)
+
+391        1142 NOP
+
+392        1144 LOAD_GLOBAL              9 (NULL + cmds)
+           1156 LOAD_ATTR               14 (disconnectAttr)
+           1166 LOAD_FAST                6 (src)
+           1168 LOAD_FAST                7 (dst)
+           1170 PRECALL                  2
+           1174 CALL                     2
+           1184 POP_TOP
+           1186 JUMP_BACKWARD           28 (to 1132)
+        >> 1188 PUSH_EXC_INFO
+
+393        1190 LOAD_GLOBAL             14 (Exception)
+           1202 CHECK_EXC_MATCH
+           1204 POP_JUMP_FORWARD_IF_FALSE    45 (to 1296)
+           1206 STORE_FAST               4 (e)
+
+394        1208 LOAD_GLOBAL              3 (NULL + print)
+           1220 LOAD_CONST              24 ('[MHEdit] WARN disconnect {}: {}')
+           1222 LOAD_METHOD              8 (format)
+           1244 LOAD_FAST                6 (src)
+           1246 LOAD_FAST                4 (e)
+           1248 PRECALL                  2
+           1252 CALL                     2
+           1262 PRECALL                  1
+           1266 CALL                     1
+           1276 POP_TOP
+           1278 POP_EXCEPT
+           1280 LOAD_CONST               3 (None)
+           1282 STORE_FAST               4 (e)
+           1284 DELETE_FAST              4 (e)
+           1286 JUMP_BACKWARD           78 (to 1132)
+        >> 1288 LOAD_CONST               3 (None)
+           1290 STORE_FAST               4 (e)
+           1292 DELETE_FAST              4 (e)
+           1294 RERAISE                  1
+
+393     >> 1296 RERAISE                  0
+        >> 1298 COPY                     3
+           1300 POP_EXCEPT
+           1302 RERAISE                  1
+
+390     >> 1304 NOP
+
+396        1306 LOAD_GLOBAL              9 (NULL + cmds)
+           1318 LOAD_ATTR                5 (undoInfo)
+           1328 LOAD_CONST               7 (True)
+           1330 KW_NAMES                13
+           1332 PRECALL                  1
+           1336 CALL                     1
+           1346 POP_TOP
+           1348 JUMP_FORWARD            26 (to 1402)
+        >> 1350 PUSH_EXC_INFO
+           1352 LOAD_GLOBAL              9 (NULL + cmds)
+           1364 LOAD_ATTR                5 (undoInfo)
+           1374 LOAD_CONST               7 (True)
+           1376 KW_NAMES                13
+           1378 PRECALL                  1
+           1382 CALL                     1
+           1392 POP_TOP
+           1394 RERAISE                  0
+        >> 1396 COPY                     3
+           1398 POP_EXCEPT
+           1400 RERAISE                  1
+
+398     >> 1402 LOAD_FAST                5 (saved)
+           1404 LOAD_GLOBAL              0 (_state)
+           1416 LOAD_CONST              16 ('rl4_connections')
+           1418 STORE_SUBSCR
+
+399        1422 LOAD_GLOBAL              3 (NULL + print)
+           1434 LOAD_CONST              25 ('[MHEdit] Disconnected {} connections from {}.')
+           1436 LOAD_METHOD              8 (format)
+           1458 LOAD_GLOBAL             19 (NULL + len)
+           1470 LOAD_FAST                5 (saved)
+           1472 PRECALL                  1
+           1476 CALL                     1
+           1486 LOAD_FAST                0 (rl4_node)
+           1488 PRECALL                  2
+           1492 CALL                     2
+           1502 PRECALL                  1
+           1506 CALL                     1
+           1516 POP_TOP
+
+400        1518 LOAD_GLOBAL             31 (NULL + _save_rl4_to_scene)
+           1530 LOAD_FAST                5 (saved)
+           1532 PRECALL                  1
+           1536 CALL                     1
+           1546 POP_TOP
+
+405     >> 1548 LOAD_CONST              26 (<code object <listcomp> at 0x0000027E2211A4C0, file "E:\script/pythonWorkSpace/main/mApplication/maya/python3/tools\mh_body_edit_mode.py", line 405>)
+           1550 MAKE_FUNCTION            0
+           1552 LOAD_GLOBAL              9 (NULL + cmds)
+           1564 LOAD_ATTR               16 (ls)
+           1574 LOAD_CONST              27 ('joint')
+           1576 KW_NAMES                28
+           1578 PRECALL                  1
+           1582 CALL                     1
+           1592 GET_ITER
+           1594 PRECALL                  0
+           1598 CALL                     0
+           1608 STORE_FAST               8 (pat_secondary)
+
+406        1610 LOAD_GLOBAL             35 (NULL + set)
+           1622 LOAD_FAST                8 (pat_secondary)
+           1624 PRECALL                  1
+           1628 CALL                     1
+           1638 STORE_FAST               9 (secondary_set)
+
+407        1640 LOAD_FAST                8 (pat_secondary)
+           1642 GET_ITER
+        >> 1644 FOR_ITER                46 (to 1738)
+           1646 STORE_FAST              10 (j)
+
+408        1648 LOAD_FAST                9 (secondary_set)
+           1650 LOAD_METHOD             18 (update)
+           1672 LOAD_GLOBAL              9 (NULL + cmds)
+           1684 LOAD_ATTR               19 (listRelatives)
+           1694 LOAD_FAST               10 (j)
+           1696 LOAD_CONST               7 (True)
+           1698 LOAD_CONST              27 ('joint')
+           1700 KW_NAMES                29
+           1702 PRECALL                  3
+           1706 CALL                     3
+           1716 JUMP_IF_TRUE_OR_POP      1 (to 1720)
+           1718 BUILD_LIST               0
+        >> 1720 PRECALL                  1
+           1724 CALL                     1
+           1734 POP_TOP
+           1736 JUMP_BACKWARD           47 (to 1644)
+
+410     >> 1738 LOAD_GLOBAL             41 (NULL + list)
+           1750 LOAD_FAST                9 (secondary_set)
+           1752 PRECALL                  1
+           1756 CALL                     1
+           1766 STORE_FAST              11 (secondary)
+
+411        1768 BUILD_MAP                0
+           1770 STORE_FAST              12 (parent_map)
+
+412        1772 BUILD_MAP                0
+           1774 STORE_FAST              13 (local_transforms)
+
+414        1776 LOAD_GLOBAL              9 (NULL + cmds)
+           1788 LOAD_ATTR                5 (undoInfo)
+           1798 LOAD_CONST               7 (True)
+           1800 LOAD_CONST              30 ('MHEdit_unparent')
+           1802 KW_NAMES                 9
+           1804 PRECALL                  2
+           1808 CALL                     2
+           1818 POP_TOP
+
+415        1820 NOP
+
+416        1822 LOAD_FAST               11 (secondary)
+           1824 GET_ITER
+        >> 1826 FOR_ITER               196 (to 2220)
+           1828 STORE_FAST              10 (j)
+
+417        1830 LOAD_GLOBAL              9 (NULL + cmds)
+           1842 LOAD_ATTR               19 (listRelatives)
+           1852 LOAD_FAST               10 (j)
+           1854 LOAD_CONST               7 (True)
+           1856 LOAD_CONST              18 (False)
+           1858 KW_NAMES                31
+           1860 PRECALL                  3
+           1864 CALL                     3
+           1874 STORE_FAST              14 (par)
+
+418        1876 LOAD_FAST               14 (par)
+           1878 POP_JUMP_FORWARD_IF_FALSE     8 (to 1896)
+           1880 LOAD_FAST               14 (par)
+           1882 LOAD_CONST              21 (0)
+           1884 BINARY_SUBSCR
+           1894 JUMP_FORWARD             1 (to 1898)
+        >> 1896 LOAD_CONST               3 (None)
+        >> 1898 LOAD_FAST               12 (parent_map)
+           1900 LOAD_FAST               10 (j)
+           1902 STORE_SUBSCR
+
+421        1906 NOP
+
+422        1908 LOAD_GLOBAL              9 (NULL + cmds)
+           1920 LOAD_ATTR               21 (getAttr)
+           1930 LOAD_FAST               10 (j)
+           1932 LOAD_CONST              32 ('.translate')
+           1934 BINARY_OP                0 (+)
+           1938 PRECALL                  1
+           1942 CALL                     1
+           1952 LOAD_CONST              21 (0)
+           1954 BINARY_SUBSCR
+           1964 STORE_FAST              15 (t)
+
+423        1966 LOAD_GLOBAL             41 (NULL + list)
+           1978 LOAD_FAST               15 (t)
+           1980 PRECALL                  1
+           1984 CALL                     1
+           1994 LOAD_FAST               13 (local_transforms)
+           1996 LOAD_FAST               10 (j)
+           1998 STORE_SUBSCR
+           2002 JUMP_FORWARD            23 (to 2050)
+        >> 2004 PUSH_EXC_INFO
+
+424        2006 LOAD_GLOBAL             14 (Exception)
+           2018 CHECK_EXC_MATCH
+           2020 POP_JUMP_FORWARD_IF_FALSE    10 (to 2042)
+           2022 POP_TOP
+
+425        2024 BUILD_LIST               0
+           2026 LOAD_CONST              33 ((0.0, 0.0, 0.0))
+           2028 LIST_EXTEND              1
+           2030 LOAD_FAST               13 (local_transforms)
+           2032 LOAD_FAST               10 (j)
+           2034 STORE_SUBSCR
+           2038 POP_EXCEPT
+           2040 JUMP_FORWARD             4 (to 2050)
+
+424     >> 2042 RERAISE                  0
+        >> 2044 COPY                     3
+           2046 POP_EXCEPT
+           2048 RERAISE                  1
+
+427     >> 2050 LOAD_FAST               14 (par)
+           2052 POP_JUMP_FORWARD_IF_FALSE    82 (to 2218)
+
+428        2054 NOP
+
+429        2056 LOAD_GLOBAL              9 (NULL + cmds)
+           2068 LOAD_ATTR               22 (parent)
+           2078 LOAD_FAST               10 (j)
+           2080 LOAD_CONST               7 (True)
+           2082 KW_NAMES                34
+           2084 PRECALL                  2
+           2088 CALL                     2
+           2098 POP_TOP
+           2100 JUMP_BACKWARD          138 (to 1826)
+        >> 2102 PUSH_EXC_INFO
+
+430        2104 LOAD_GLOBAL             14 (Exception)
+           2116 CHECK_EXC_MATCH
+           2118 POP_JUMP_FORWARD_IF_FALSE    45 (to 2210)
+           2120 STORE_FAST               4 (e)
+
+431        2122 LOAD_GLOBAL              3 (NULL + print)
+           2134 LOAD_CONST              35 ('[MHEdit] WARN unparent {}: {}')
+           2136 LOAD_METHOD              8 (format)
+           2158 LOAD_FAST               10 (j)
+           2160 LOAD_FAST                4 (e)
+           2162 PRECALL                  2
+           2166 CALL                     2
+           2176 PRECALL                  1
+           2180 CALL                     1
+           2190 POP_TOP
+           2192 POP_EXCEPT
+           2194 LOAD_CONST               3 (None)
+           2196 STORE_FAST               4 (e)
+           2198 DELETE_FAST              4 (e)
+           2200 JUMP_BACKWARD          188 (to 1826)
+        >> 2202 LOAD_CONST               3 (None)
+           2204 STORE_FAST               4 (e)
+           2206 DELETE_FAST              4 (e)
+           2208 RERAISE                  1
+
+430     >> 2210 RERAISE                  0
+        >> 2212 COPY                     3
+           2214 POP_EXCEPT
+           2216 RERAISE                  1
+
+427     >> 2218 JUMP_BACKWARD          197 (to 1826)
+
+416     >> 2220 NOP
+
+433        2222 LOAD_GLOBAL              9 (NULL + cmds)
+           2234 LOAD_ATTR                5 (undoInfo)
+           2244 LOAD_CONST               7 (True)
+           2246 KW_NAMES                13
+           2248 PRECALL                  1
+           2252 CALL                     1
+           2262 POP_TOP
+           2264 JUMP_FORWARD            26 (to 2318)
+        >> 2266 PUSH_EXC_INFO
+           2268 LOAD_GLOBAL              9 (NULL + cmds)
+           2280 LOAD_ATTR                5 (undoInfo)
+           2290 LOAD_CONST               7 (True)
+           2292 KW_NAMES                13
+           2294 PRECALL                  1
+           2298 CALL                     1
+           2308 POP_TOP
+           2310 RERAISE                  0
+        >> 2312 COPY                     3
+           2314 POP_EXCEPT
+           2316 RERAISE                  1
+
+435     >> 2318 LOAD_FAST               12 (parent_map)
+           2320 LOAD_GLOBAL              0 (_state)
+           2332 LOAD_CONST              36 ('parent_map')
+           2334 STORE_SUBSCR
+
+436        2338 LOAD_FAST               13 (local_transforms)
+           2340 LOAD_GLOBAL              0 (_state)
+           2352 LOAD_CONST              37 ('local_transforms')
+           2354 STORE_SUBSCR
+
+437        2358 LOAD_CONST               7 (True)
+           2360 LOAD_GLOBAL              0 (_state)
+           2372 LOAD_CONST               1 ('active')
+           2374 STORE_SUBSCR
+
+440        2378 LOAD_CONST              21 (0)
+           2380 LOAD_CONST               3 (None)
+           2382 IMPORT_NAME             23 (maya.api.OpenMaya)
+           2384 IMPORT_FROM             24 (api)
+           2386 SWAP                     2
+           2388 POP_TOP
+           2390 IMPORT_FROM             25 (OpenMaya)
+           2392 STORE_FAST              16 (_om2)
+           2394 POP_TOP
+
+441        2396 BUILD_MAP                0
+           2398 STORE_FAST              17 (snapshot)
+
+442        2400 LOAD_FAST               16 (_om2)
+           2402 LOAD_METHOD             26 (MSelectionList)
+           2424 PRECALL                  0
+           2428 CALL                     0
+           2438 STORE_FAST              18 (_sel)
+
+443        2440 LOAD_GLOBAL              9 (NULL + cmds)
+           2452 LOAD_ATTR               16 (ls)
+           2462 LOAD_CONST              27 ('joint')
+           2464 KW_NAMES                28
+           2466 PRECALL                  1
+           2470 CALL                     1
+           2480 GET_ITER
+        >> 2482 FOR_ITER               228 (to 2940)
+           2484 STORE_FAST              10 (j)
+
+444        2486 NOP
+
+445        2488 LOAD_FAST               18 (_sel)
+           2490 LOAD_METHOD             27 (clear)
+           2512 PRECALL                  0
+           2516 CALL                     0
+           2526 POP_TOP
+
+446        2528 LOAD_FAST               18 (_sel)
+           2530 LOAD_METHOD             28 (add)
+           2552 LOAD_FAST               10 (j)
+           2554 PRECALL                  1
+           2558 CALL                     1
+           2568 POP_TOP
+
+447        2570 LOAD_FAST               16 (_om2)
+           2572 LOAD_METHOD             29 (MFnDependencyNode)
+           2594 LOAD_FAST               18 (_sel)
+           2596 LOAD_METHOD             30 (getDependNode)
+           2618 LOAD_CONST              21 (0)
+           2620 PRECALL                  1
+           2624 CALL                     1
+           2634 PRECALL                  1
+           2638 CALL                     1
+           2648 STORE_FAST              19 (_fn)
+
+448        2650 LOAD_FAST               19 (_fn)
+           2652 LOAD_METHOD             31 (findPlug)
+           2674 LOAD_CONST              38 ('worldMatrix')
+           2676 LOAD_CONST              18 (False)
+           2678 PRECALL                  2
+           2682 CALL                     2
+           2692 LOAD_METHOD             32 (elementByLogicalIndex)
+           2714 LOAD_CONST              21 (0)
+           2716 PRECALL                  1
+           2720 CALL                     1
+           2730 STORE_FAST              20 (_plug)
+
+449        2732 LOAD_FAST               16 (_om2)
+           2734 LOAD_METHOD             33 (MFnMatrixData)
+           2756 LOAD_FAST               20 (_plug)
+           2758 LOAD_METHOD             34 (asMObject)
+           2780 PRECALL                  0
+           2784 CALL                     0
+           2794 PRECALL                  1
+           2798 CALL                     1
+           2808 LOAD_METHOD             35 (matrix)
+           2830 PRECALL                  0
+           2834 CALL                     0
+           2844 STORE_DEREF             21 (_mat)
+
+450        2846 LOAD_CLOSURE            21 (_mat)
+           2848 BUILD_TUPLE              1
+           2850 LOAD_CONST              39 (<code object <listcomp> at 0x0000027E30BCEDB0, file "E:\script/pythonWorkSpace/main/mApplication/maya/python3/tools\mh_body_edit_mode.py", line 450>)
+           2852 MAKE_FUNCTION            8 (closure)
+           2854 LOAD_GLOBAL             27 (NULL + range)
+           2866 LOAD_CONST              40 (16)
+           2868 PRECALL                  1
+           2872 CALL                     1
+           2882 GET_ITER
+           2884 PRECALL                  0
+           2888 CALL                     0
+           2898 LOAD_FAST               17 (snapshot)
+           2900 LOAD_FAST               10 (j)
+           2902 STORE_SUBSCR
+           2906 JUMP_BACKWARD          213 (to 2482)
+        >> 2908 PUSH_EXC_INFO
+
+451        2910 LOAD_GLOBAL             14 (Exception)
+           2922 CHECK_EXC_MATCH
+           2924 POP_JUMP_FORWARD_IF_FALSE     3 (to 2932)
+           2926 POP_TOP
+
+452        2928 POP_EXCEPT
+           2930 JUMP_BACKWARD          225 (to 2482)
+
+451     >> 2932 RERAISE                  0
+        >> 2934 COPY                     3
+           2936 POP_EXCEPT
+           2938 RERAISE                  1
+
+453     >> 2940 LOAD_FAST               17 (snapshot)
+           2942 LOAD_GLOBAL              0 (_state)
+           2954 LOAD_CONST              41 ('joint_snapshot')
+           2956 STORE_SUBSCR
+
+454        2960 LOAD_GLOBAL              3 (NULL + print)
+           2972 LOAD_CONST              42 ('[MHEdit] Snapshot: {} joints recorded.')
+           2974 LOAD_METHOD              8 (format)
+           2996 LOAD_GLOBAL             19 (NULL + len)
+           3008 LOAD_FAST               17 (snapshot)
+           3010 PRECALL                  1
+           3014 CALL                     1
+           3024 PRECALL                  1
+           3028 CALL                     1
+           3038 PRECALL                  1
+           3042 CALL                     1
+           3052 POP_TOP
+
+457        3054 LOAD_FAST               11 (secondary)
+           3056 GET_ITER
+        >> 3058 FOR_ITER                64 (to 3188)
+           3060 STORE_FAST              10 (j)
+
+458        3062 LOAD_GLOBAL              9 (NULL + cmds)
+           3074 LOAD_ATTR               10 (objExists)
+           3084 LOAD_FAST               10 (j)
+           3086 PRECALL                  1
+           3090 CALL                     1
+           3100 POP_JUMP_FORWARD_IF_FALSE    42 (to 3186)
+
+459        3102 NOP
+
+460        3104 LOAD_GLOBAL              9 (NULL + cmds)
+           3116 LOAD_ATTR                6 (setAttr)
+           3126 LOAD_FAST               10 (j)
+           3128 LOAD_CONST              43 ('.visibility')
+           3130 BINARY_OP                0 (+)
+           3134 LOAD_CONST              21 (0)
+           3136 PRECALL                  2
+           3140 CALL                     2
+           3150 POP_TOP
+           3152 JUMP_BACKWARD           48 (to 3058)
+        >> 3154 PUSH_EXC_INFO
+
+461        3156 LOAD_GLOBAL             14 (Exception)
+           3168 CHECK_EXC_MATCH
+           3170 POP_JUMP_FORWARD_IF_FALSE     3 (to 3178)
+           3172 POP_TOP
+
+462        3174 POP_EXCEPT
+           3176 JUMP_BACKWARD           60 (to 3058)
+
+461     >> 3178 RERAISE                  0
+        >> 3180 COPY                     3
+           3182 POP_EXCEPT
+           3184 RERAISE                  1
+
+458     >> 3186 JUMP_BACKWARD           65 (to 3058)
+
+464     >> 3188 LOAD_GLOBAL              3 (NULL + print)
+           3200 LOAD_CONST              44 ('[MHEdit] Unparented {} secondary joints.')
+           3202 LOAD_METHOD              8 (format)
+           3224 LOAD_GLOBAL             19 (NULL + len)
+           3236 LOAD_FAST               11 (secondary)
+           3238 PRECALL                  1
+           3242 CALL                     1
+           3252 PRECALL                  1
+           3256 CALL                     1
+           3266 PRECALL                  1
+           3270 CALL                     1
+           3280 POP_TOP
+
+465        3282 LOAD_GLOBAL              3 (NULL + print)
+           3294 LOAD_CONST              45 ('[MHEdit] Primary joints in tree: {}.')
+           3296 LOAD_METHOD              8 (format)
+           3318 LOAD_GLOBAL             19 (NULL + len)
+           3330 LOAD_GLOBAL             73 (NULL + _get_primary_joints)
+           3342 PRECALL                  0
+           3346 CALL                     0
+           3356 PRECALL                  1
+           3360 CALL                     1
+           3370 PRECALL                  1
+           3374 CALL                     1
+           3384 PRECALL                  1
+           3388 CALL                     1
+           3398 POP_TOP
+
+466        3400 LOAD_GLOBAL              3 (NULL + print)
+           3412 LOAD_CONST              46 ('[MHEdit] >>> EDIT MODE ACTIVE - modify primary joint transforms now. <<<')
+           3414 PRECALL                  1
+           3418 CALL                     1
+           3428 POP_TOP
+           3430 LOAD_CONST               3 (None)
+           3432 RETURN_VALUE
+ExceptionTable:
+  272 to 278 -> 494 [0]
+  282 to 328 -> 332 [1]
+  330 to 330 -> 494 [0]
+  332 to 350 -> 442 [2] lasti
+  352 to 420 -> 432 [2] lasti
+  422 to 430 -> 494 [0]
+  432 to 440 -> 442 [2] lasti
+  442 to 446 -> 494 [0]
+  494 to 538 -> 540 [1] lasti
+  1128 to 1140 -> 1350 [0]
+  1144 to 1184 -> 1188 [1]
+  1186 to 1186 -> 1350 [0]
+  1188 to 1206 -> 1298 [2] lasti
+  1208 to 1276 -> 1288 [2] lasti
+  1278 to 1286 -> 1350 [0]
+  1288 to 1296 -> 1298 [2] lasti
+  1298 to 1302 -> 1350 [0]
+  1350 to 1394 -> 1396 [1] lasti
+  1822 to 1904 -> 2266 [0]
+  1908 to 2000 -> 2004 [1]
+  2002 to 2002 -> 2266 [0]
+  2004 to 2036 -> 2044 [2] lasti
+  2038 to 2040 -> 2266 [0]
+  2042 to 2042 -> 2044 [2] lasti
+  2044 to 2052 -> 2266 [0]
+  2056 to 2098 -> 2102 [1]
+  2100 to 2100 -> 2266 [0]
+  2102 to 2120 -> 2212 [2] lasti
+  2122 to 2190 -> 2202 [2] lasti
+  2192 to 2200 -> 2266 [0]
+  2202 to 2210 -> 2212 [2] lasti
+  2212 to 2218 -> 2266 [0]
+  2266 to 2310 -> 2312 [1] lasti
+  2488 to 2904 -> 2908 [1]
+  2908 to 2926 -> 2934 [2] lasti
+  2932 to 2932 -> 2934 [2] lasti
+  3104 to 3150 -> 3154 [1]
+  3154 to 3172 -> 3180 [2] lasti
+  3178 to 3178 -> 3180 [2] lasti
+============================================================def restore_structure | line:473 | vars:['keep_world_pos', 'parent_map', 'local_transforms', 'sorted_joints', 'snap_count', 'errors', 'j', 'orig_par', 'e', 'lt', 'msg']consts: ['\n    secondary joints 를 원래 parent 로 re-parent 합니다.\n\n    Parameters\n    ----------\n    keep_world_pos : bool (default True)\n        True  — re-parent 시 Maya 가 world transform (position + rotation) 을 유지합니다.\n                 primary joint 이동 후에도 secondary joint 의 world transform 이 변하지 않습니다.\n        False — re-parent 후 enter_edit_mode 직전의 local translate 를 복원합니다.\n                 secondary joint 가 상위 조인트의 이동에 따라 함께 이동합니다.\n\n    공통 예외\n    ---------\n    - correctiveRoot / half : keep_world_pos 와 무관하게 local translate = (0,0,0) snap\n\n    이 시점에서 rl4 는 아직 미연결 상태입니다.\n    다음 단계: export_dna_from_scene() → reconnect_rl4()\n    ', 'active', '[MHEdit] Not in edit mode.', 'parent_map', 'local_transforms']names: ['_state', 'print', 'get', '_sort_by_depth', 'cmds', 'undoInfo', 'objExists', 'format', 'parent', 'Exception', 'append', 'str', '_is_snap', 'setAttr', 'len', '_recalibrate_twist_joints']473           0 RESUME                   0
+
+492           2 LOAD_GLOBAL              0 (_state)
+             14 LOAD_CONST               1 ('active')
+             16 BINARY_SUBSCR
+             26 POP_JUMP_FORWARD_IF_TRUE    17 (to 62)
+
+493          28 LOAD_GLOBAL              3 (NULL + print)
+             40 LOAD_CONST               2 ('[MHEdit] Not in edit mode.')
+             42 PRECALL                  1
+             46 CALL                     1
+             56 POP_TOP
+
+494          58 LOAD_CONST               3 (None)
+             60 RETURN_VALUE
+
+496     >>   62 LOAD_GLOBAL              0 (_state)
+             74 LOAD_CONST               4 ('parent_map')
+             76 BINARY_SUBSCR
+             86 STORE_FAST               1 (parent_map)
+
+497          88 LOAD_GLOBAL              0 (_state)
+            100 LOAD_METHOD              2 (get)
+            122 LOAD_CONST               5 ('local_transforms')
+            124 BUILD_MAP                0
+            126 PRECALL                  2
+            130 CALL                     2
+            140 STORE_FAST               2 (local_transforms)
+
+498         142 LOAD_GLOBAL              7 (NULL + _sort_by_depth)
+            154 LOAD_FAST                1 (parent_map)
+            156 PRECALL                  1
+            160 CALL                     1
+            170 STORE_FAST               3 (sorted_joints)
+
+499         172 LOAD_CONST               6 (0)
+            174 STORE_FAST               4 (snap_count)
+
+500         176 BUILD_LIST               0
+            178 STORE_FAST               5 (errors)
+
+502         180 LOAD_GLOBAL              9 (NULL + cmds)
+            192 LOAD_ATTR                5 (undoInfo)
+            202 LOAD_CONST               7 (True)
+            204 LOAD_CONST               8 ('MHEdit_restoreStructure')
+            206 KW_NAMES                 9
+            208 PRECALL                  2
+            212 CALL                     2
+            222 POP_TOP
+
+503         224 NOP
+
+504         226 LOAD_FAST                3 (sorted_joints)
+            228 GET_ITER
+        >>  230 EXTENDED_ARG             1
+            232 FOR_ITER               477 (to 1188)
+            234 STORE_FAST               6 (j)
+
+505         236 LOAD_FAST                1 (parent_map)
+            238 LOAD_FAST                6 (j)
+            240 BINARY_SUBSCR
+            250 STORE_FAST               7 (orig_par)
+
+506         252 LOAD_GLOBAL              9 (NULL + cmds)
+            264 LOAD_ATTR                6 (objExists)
+            274 LOAD_FAST                6 (j)
+            276 PRECALL                  1
+            280 CALL                     1
+            290 POP_JUMP_FORWARD_IF_TRUE    35 (to 362)
+
+507         292 LOAD_GLOBAL              3 (NULL + print)
+            304 LOAD_CONST              10 ('[MHEdit] WARN: {} missing.')
+            306 LOAD_METHOD              7 (format)
+            328 LOAD_FAST                6 (j)
+            330 PRECALL                  1
+            334 CALL                     1
+            344 PRECALL                  1
+            348 CALL                     1
+            358 POP_TOP
+
+508         360 JUMP_BACKWARD           66 (to 230)
+
+509     >>  362 NOP
+
+510         364 LOAD_FAST                7 (orig_par)
+            366 POP_JUMP_FORWARD_IF_FALSE    41 (to 450)
+            368 LOAD_GLOBAL              9 (NULL + cmds)
+            380 LOAD_ATTR                6 (objExists)
+            390 LOAD_FAST                7 (orig_par)
+            392 PRECALL                  1
+            396 CALL                     1
+            406 POP_JUMP_FORWARD_IF_FALSE    21 (to 450)
+
+511         408 LOAD_GLOBAL              9 (NULL + cmds)
+            420 LOAD_ATTR                8 (parent)
+            430 LOAD_FAST                6 (j)
+            432 LOAD_FAST                7 (orig_par)
+            434 PRECALL                  2
+            438 CALL                     2
+            448 POP_TOP
+        >>  450 JUMP_FORWARD            59 (to 570)
+        >>  452 PUSH_EXC_INFO
+
+512         454 LOAD_GLOBAL             18 (Exception)
+            466 CHECK_EXC_MATCH
+            468 POP_JUMP_FORWARD_IF_FALSE    46 (to 562)
+            470 STORE_FAST               8 (e)
+
+513         472 LOAD_FAST                5 (errors)
+            474 LOAD_METHOD             10 (append)
+            496 LOAD_FAST                6 (j)
+            498 LOAD_GLOBAL             23 (NULL + str)
+            510 LOAD_FAST                8 (e)
+            512 PRECALL                  1
+            516 CALL                     1
+            526 BUILD_TUPLE              2
+            528 PRECALL                  1
+            532 CALL                     1
+            542 POP_TOP
+
+514         544 POP_EXCEPT
+            546 LOAD_CONST               3 (None)
+            548 STORE_FAST               8 (e)
+            550 DELETE_FAST              8 (e)
+            552 JUMP_BACKWARD          162 (to 230)
+        >>  554 LOAD_CONST               3 (None)
+            556 STORE_FAST               8 (e)
+            558 DELETE_FAST              8 (e)
+            560 RERAISE                  1
+
+512     >>  562 RERAISE                  0
+        >>  564 COPY                     3
+            566 POP_EXCEPT
+            568 RERAISE                  1
+
+516     >>  570 LOAD_GLOBAL             25 (NULL + _is_snap)
+            582 LOAD_FAST                6 (j)
+            584 PRECALL                  1
+            588 CALL                     1
+            598 POP_JUMP_FORWARD_IF_FALSE   155 (to 910)
+
+519         600 NOP
+
+520         602 LOAD_GLOBAL              9 (NULL + cmds)
+            614 LOAD_ATTR               13 (setAttr)
+            624 LOAD_FAST                6 (j)
+            626 LOAD_CONST              11 ('.translate')
+            628 BINARY_OP                0 (+)
+            632 LOAD_CONST              12 (0.0)
+            634 LOAD_CONST              12 (0.0)
+            636 LOAD_CONST              12 (0.0)
+            638 LOAD_CONST              13 ('double3')
+            640 KW_NAMES                14
+            642 PRECALL                  5
+            646 CALL                     5
+            656 POP_TOP
+
+521         658 LOAD_GLOBAL              9 (NULL + cmds)
+            670 LOAD_ATTR               13 (setAttr)
+            680 LOAD_FAST                6 (j)
+            682 LOAD_CONST              15 ('.rotate')
+            684 BINARY_OP                0 (+)
+            688 LOAD_CONST              12 (0.0)
+            690 LOAD_CONST              12 (0.0)
+            692 LOAD_CONST              12 (0.0)
+            694 LOAD_CONST              13 ('double3')
+            696 KW_NAMES                14
+            698 PRECALL                  5
+            702 CALL                     5
+            712 POP_TOP
+
+522         714 LOAD_GLOBAL              9 (NULL + cmds)
+            726 LOAD_ATTR               13 (setAttr)
+            736 LOAD_FAST                6 (j)
+            738 LOAD_CONST              16 ('.jointOrient')
+            740 BINARY_OP                0 (+)
+            744 LOAD_CONST              12 (0.0)
+            746 LOAD_CONST              12 (0.0)
+            748 LOAD_CONST              12 (0.0)
+            750 LOAD_CONST              13 ('double3')
+            752 KW_NAMES                14
+            754 PRECALL                  5
+            758 CALL                     5
+            768 POP_TOP
+
+523         770 LOAD_FAST                4 (snap_count)
+            772 LOAD_CONST              17 (1)
+            774 BINARY_OP               13 (+=)
+            778 STORE_FAST               4 (snap_count)
+            780 EXTENDED_ARG             1
+            782 JUMP_BACKWARD          277 (to 230)
+        >>  784 PUSH_EXC_INFO
+
+524         786 LOAD_GLOBAL             18 (Exception)
+            798 CHECK_EXC_MATCH
+            800 POP_JUMP_FORWARD_IF_FALSE    50 (to 902)
+            802 STORE_FAST               8 (e)
+
+525         804 LOAD_FAST                5 (errors)
+            806 LOAD_METHOD             10 (append)
+            828 LOAD_FAST                6 (j)
+            830 LOAD_CONST              18 ('snap: ')
+            832 LOAD_GLOBAL             23 (NULL + str)
+            844 LOAD_FAST                8 (e)
+            846 PRECALL                  1
+            850 CALL                     1
+            860 BINARY_OP                0 (+)
+            864 BUILD_TUPLE              2
+            866 PRECALL                  1
+            870 CALL                     1
+            880 POP_TOP
+            882 POP_EXCEPT
+            884 LOAD_CONST               3 (None)
+            886 STORE_FAST               8 (e)
+            888 DELETE_FAST              8 (e)
+            890 EXTENDED_ARG             1
+            892 JUMP_BACKWARD          332 (to 230)
+        >>  894 LOAD_CONST               3 (None)
+            896 STORE_FAST               8 (e)
+            898 DELETE_FAST              8 (e)
+            900 RERAISE                  1
+
+524     >>  902 RERAISE                  0
+        >>  904 COPY                     3
+            906 POP_EXCEPT
+            908 RERAISE                  1
+
+526     >>  910 LOAD_FAST                0 (keep_world_pos)
+            912 POP_JUMP_FORWARD_IF_TRUE   135 (to 1184)
+
+528         914 LOAD_FAST                2 (local_transforms)
+            916 LOAD_METHOD              2 (get)
+            938 LOAD_FAST                6 (j)
+            940 PRECALL                  1
+            944 CALL                     1
+            954 STORE_FAST               9 (lt)
+
+529         956 LOAD_FAST                9 (lt)
+            958 POP_JUMP_FORWARD_IF_NONE   112 (to 1184)
+
+530         960 NOP
+
+531         962 LOAD_GLOBAL              9 (NULL + cmds)
+            974 LOAD_ATTR               13 (setAttr)
+            984 LOAD_FAST                6 (j)
+            986 LOAD_CONST              11 ('.translate')
+            988 BINARY_OP                0 (+)
+            992 LOAD_FAST                9 (lt)
+            994 LOAD_CONST               6 (0)
+            996 BINARY_SUBSCR
+           1006 LOAD_FAST                9 (lt)
+           1008 LOAD_CONST              17 (1)
+           1010 BINARY_SUBSCR
+           1020 LOAD_FAST                9 (lt)
+           1022 LOAD_CONST              19 (2)
+           1024 BINARY_SUBSCR
+           1034 LOAD_CONST              13 ('double3')
+           1036 KW_NAMES                14
+           1038 PRECALL                  5
+           1042 CALL                     5
+           1052 POP_TOP
+           1054 EXTENDED_ARG             1
+           1056 JUMP_BACKWARD          414 (to 230)
+        >> 1058 PUSH_EXC_INFO
+
+532        1060 LOAD_GLOBAL             18 (Exception)
+           1072 CHECK_EXC_MATCH
+           1074 POP_JUMP_FORWARD_IF_FALSE    50 (to 1176)
+           1076 STORE_FAST               8 (e)
+
+533        1078 LOAD_FAST                5 (errors)
+           1080 LOAD_METHOD             10 (append)
+           1102 LOAD_FAST                6 (j)
+           1104 LOAD_CONST              20 ('restore_local: ')
+           1106 LOAD_GLOBAL             23 (NULL + str)
+           1118 LOAD_FAST                8 (e)
+           1120 PRECALL                  1
+           1124 CALL                     1
+           1134 BINARY_OP                0 (+)
+           1138 BUILD_TUPLE              2
+           1140 PRECALL                  1
+           1144 CALL                     1
+           1154 POP_TOP
+           1156 POP_EXCEPT
+           1158 LOAD_CONST               3 (None)
+           1160 STORE_FAST               8 (e)
+           1162 DELETE_FAST              8 (e)
+           1164 EXTENDED_ARG             1
+           1166 JUMP_BACKWARD          469 (to 230)
+        >> 1168 LOAD_CONST               3 (None)
+           1170 STORE_FAST               8 (e)
+           1172 DELETE_FAST              8 (e)
+           1174 RERAISE                  1
+
+532     >> 1176 RERAISE                  0
+        >> 1178 COPY                     3
+           1180 POP_EXCEPT
+           1182 RERAISE                  1
+        >> 1184 EXTENDED_ARG             1
+           1186 JUMP_BACKWARD          479 (to 230)
+
+504     >> 1188 NOP
+
+537        1190 LOAD_GLOBAL              9 (NULL + cmds)
+           1202 LOAD_ATTR                5 (undoInfo)
+           1212 LOAD_CONST               7 (True)
+           1214 KW_NAMES                21
+           1216 PRECALL                  1
+           1220 CALL                     1
+           1230 POP_TOP
+           1232 JUMP_FORWARD            26 (to 1286)
+        >> 1234 PUSH_EXC_INFO
+           1236 LOAD_GLOBAL              9 (NULL + cmds)
+           1248 LOAD_ATTR                5 (undoInfo)
+           1258 LOAD_CONST               7 (True)
+           1260 KW_NAMES                21
+           1262 PRECALL                  1
+           1266 CALL                     1
+           1276 POP_TOP
+           1278 RERAISE                  0
+        >> 1280 COPY                     3
+           1282 POP_EXCEPT
+           1284 RERAISE                  1
+
+539     >> 1286 LOAD_FAST                5 (errors)
+           1288 POP_JUMP_FORWARD_IF_FALSE    90 (to 1470)
+
+540        1290 LOAD_GLOBAL              3 (NULL + print)
+           1302 LOAD_CONST              22 ('[MHEdit] Errors ({})')
+           1304 LOAD_METHOD              7 (format)
+           1326 LOAD_GLOBAL             29 (NULL + len)
+           1338 LOAD_FAST                5 (errors)
+           1340 PRECALL                  1
+           1344 CALL                     1
+           1354 PRECALL                  1
+           1358 CALL                     1
+           1368 PRECALL                  1
+           1372 CALL                     1
+           1382 POP_TOP
+
+541        1384 LOAD_FAST                5 (errors)
+           1386 GET_ITER
+        >> 1388 FOR_ITER                40 (to 1470)
+           1390 UNPACK_SEQUENCE          2
+           1394 STORE_FAST               6 (j)
+           1396 STORE_FAST              10 (msg)
+
+542        1398 LOAD_GLOBAL              3 (NULL + print)
+           1410 LOAD_CONST              23 ('  {}: {}')
+           1412 LOAD_METHOD              7 (format)
+           1434 LOAD_FAST                6 (j)
+           1436 LOAD_FAST               10 (msg)
+           1438 PRECALL                  2
+           1442 CALL                     2
+           1452 PRECALL                  1
+           1456 CALL                     1
+           1466 POP_TOP
+           1468 JUMP_BACKWARD           41 (to 1388)
+
+545     >> 1470 LOAD_FAST                3 (sorted_joints)
+           1472 GET_ITER
+        >> 1474 FOR_ITER                64 (to 1604)
+           1476 STORE_FAST               6 (j)
+
+546        1478 LOAD_GLOBAL              9 (NULL + cmds)
+           1490 LOAD_ATTR                6 (objExists)
+           1500 LOAD_FAST                6 (j)
+           1502 PRECALL                  1
+           1506 CALL                     1
+           1516 POP_JUMP_FORWARD_IF_FALSE    42 (to 1602)
+
+547        1518 NOP
+
+548        1520 LOAD_GLOBAL              9 (NULL + cmds)
+           1532 LOAD_ATTR               13 (setAttr)
+           1542 LOAD_FAST                6 (j)
+           1544 LOAD_CONST              24 ('.visibility')
+           1546 BINARY_OP                0 (+)
+           1550 LOAD_CONST              17 (1)
+           1552 PRECALL                  2
+           1556 CALL                     2
+           1566 POP_TOP
+           1568 JUMP_BACKWARD           48 (to 1474)
+        >> 1570 PUSH_EXC_INFO
+
+549        1572 LOAD_GLOBAL             18 (Exception)
+           1584 CHECK_EXC_MATCH
+           1586 POP_JUMP_FORWARD_IF_FALSE     3 (to 1594)
+           1588 POP_TOP
+
+550        1590 POP_EXCEPT
+           1592 JUMP_BACKWARD           60 (to 1474)
+
+549     >> 1594 RERAISE                  0
+        >> 1596 COPY                     3
+           1598 POP_EXCEPT
+           1600 RERAISE                  1
+
+546     >> 1602 JUMP_BACKWARD           65 (to 1474)
+
+552     >> 1604 LOAD_GLOBAL              3 (NULL + print)
+           1616 LOAD_CONST              25 ('[MHEdit] Restored {} joints (snap: {}).')
+           1618 LOAD_METHOD              7 (format)
+           1640 LOAD_GLOBAL             29 (NULL + len)
+           1652 LOAD_FAST                1 (parent_map)
+           1654 PRECALL                  1
+           1658 CALL                     1
+           1668 LOAD_FAST                4 (snap_count)
+           1670 PRECALL                  2
+           1674 CALL                     2
+           1684 PRECALL                  1
+           1688 CALL                     1
+           1698 POP_TOP
+
+555        1700 LOAD_GLOBAL             31 (NULL + _recalibrate_twist_joints)
+           1712 LOAD_FAST                1 (parent_map)
+           1714 PRECALL                  1
+           1718 CALL                     1
+           1728 POP_TOP
+
+559        1730 LOAD_CONST              26 (False)
+           1732 LOAD_GLOBAL              0 (_state)
+           1744 LOAD_CONST               1 ('active')
+           1746 STORE_SUBSCR
+
+561        1750 LOAD_GLOBAL              3 (NULL + print)
+           1762 LOAD_CONST              27 ('[MHEdit] >>> Call export_dna_from_scene(), then reconnect_rl4(). <<<')
+           1764 PRECALL                  1
+           1768 CALL                     1
+           1778 POP_TOP
+           1780 LOAD_CONST               3 (None)
+           1782 RETURN_VALUE
+ExceptionTable:
+  226 to 360 -> 1234 [0]
+  364 to 448 -> 452 [1]
+  450 to 450 -> 1234 [0]
+  452 to 470 -> 564 [2] lasti
+  472 to 542 -> 554 [2] lasti
+  544 to 552 -> 1234 [0]
+  554 to 562 -> 564 [2] lasti
+  564 to 598 -> 1234 [0]
+  602 to 778 -> 784 [1]
+  780 to 782 -> 1234 [0]
+  784 to 802 -> 904 [2] lasti
+  804 to 880 -> 894 [2] lasti
+  882 to 892 -> 1234 [0]
+  894 to 902 -> 904 [2] lasti
+  904 to 958 -> 1234 [0]
+  962 to 1052 -> 1058 [1]
+  1054 to 1056 -> 1234 [0]
+  1058 to 1076 -> 1178 [2] lasti
+  1078 to 1154 -> 1168 [2] lasti
+  1156 to 1166 -> 1234 [0]
+  1168 to 1176 -> 1178 [2] lasti
+  1178 to 1186 -> 1234 [0]
+  1234 to 1278 -> 1280 [1] lasti
+  1520 to 1566 -> 1570 [1]
+  1570 to 1588 -> 1596 [2] lasti
+  1594 to 1594 -> 1596 [2] lasti
+============================================================def export_dna_from_scene | line:568 | vars:['output_dna_path', 'input_dna_path', 'namespace', 'p', 'dna', 'dnacalib2', 'stream', 'bin_reader', 'reader', 'count', 'xs', 'ys', 'zs', 'rxs', 'rys', 'rzs', 'updated', 'skipped', 'i', 'maya_name', 't', 'jo', 't_cmd', 'r_cmd', 'out_stream', 'writer']consts: ['\n    씬의 joint translate / rotate 값을 읽어 DNA neutral joint 값으로 저장합니다.\n    restore_structure() 후 (rl4 미연결 상태) 에 호출하세요.\n\n    Parameters\n    ----------\n    output_dna_path : str   저장할 .dna 경로\n    input_dna_path  : str   기준이 되는 원본 .dna 경로\n    namespace       : str   씬의 MetaHuman namespace (기본값 "MHBody")\n\n    저장 경로는 _state["last_exported_dna"] 에 기록되어\n    reconnect_rl4() 에서 dnaFilePath 설정에 자동으로 사용됩니다.\n    ', '/PyDNA/9.4.7/platform-windows/.sanitizers-off/.json-0/', '/lib', '/PyDNACalib2/3.2.4/platform-windows/.sanitizers-off/', ':']names: ['MH_LIB_ROOT', 'MH_PY_VER', 'sys', 'path', 'insert', 'dna', 'dnacalib2', 'FileStream', 'AccessMode_Read', 'OpenMode_Binary', 'BinaryStreamReader', 'DataLayer_All', 'read', 'DNACalibDNAReader', 'getJointCount', 'list', 'getNeutralJointTranslationXs', 'getNeutralJointTranslationYs', 'getNeutralJointTranslationZs', 'getNeutralJointRotationXs']568           0 RESUME                   0
+
+588           2 LOAD_GLOBAL              0 (MH_LIB_ROOT)
+             14 LOAD_CONST               1 ('/PyDNA/9.4.7/platform-windows/.sanitizers-off/.json-0/')
+             16 BINARY_OP                0 (+)
+             20 LOAD_GLOBAL              2 (MH_PY_VER)
+             32 BINARY_OP                0 (+)
+             36 LOAD_CONST               2 ('/lib')
+             38 BINARY_OP                0 (+)
+
+589          42 LOAD_GLOBAL              0 (MH_LIB_ROOT)
+             54 LOAD_CONST               3 ('/PyDNACalib2/3.2.4/platform-windows/.sanitizers-off/')
+             56 BINARY_OP                0 (+)
+             60 LOAD_GLOBAL              2 (MH_PY_VER)
+             72 BINARY_OP                0 (+)
+             76 LOAD_CONST               2 ('/lib')
+             78 BINARY_OP                0 (+)
+
+587          82 BUILD_TUPLE              2
+             84 GET_ITER
+        >>   86 FOR_ITER                48 (to 184)
+             88 STORE_FAST               3 (p)
+
+591          90 LOAD_FAST                3 (p)
+             92 LOAD_GLOBAL              4 (sys)
+            104 LOAD_ATTR                3 (path)
+            114 CONTAINS_OP              1
+            116 POP_JUMP_FORWARD_IF_FALSE    32 (to 182)
+
+592         118 LOAD_GLOBAL              4 (sys)
+            130 LOAD_ATTR                3 (path)
+            140 LOAD_METHOD              4 (insert)
+            162 LOAD_CONST               4 (0)
+            164 LOAD_FAST                3 (p)
+            166 PRECALL                  2
+            170 CALL                     2
+            180 POP_TOP
+        >>  182 JUMP_BACKWARD           49 (to 86)
+
+594     >>  184 LOAD_CONST               4 (0)
+            186 LOAD_CONST               5 (None)
+            188 IMPORT_NAME              5 (dna)
+            190 STORE_FAST               4 (dna)
+
+595         192 LOAD_CONST               4 (0)
+            194 LOAD_CONST               5 (None)
+            196 IMPORT_NAME              6 (dnacalib2)
+            198 STORE_FAST               5 (dnacalib2)
+
+598         200 LOAD_FAST                4 (dna)
+            202 LOAD_METHOD              7 (FileStream)
+            224 LOAD_FAST                1 (input_dna_path)
+            226 LOAD_FAST                4 (dna)
+            228 LOAD_ATTR                7 (FileStream)
+            238 LOAD_ATTR                8 (AccessMode_Read)
+            248 LOAD_FAST                4 (dna)
+            250 LOAD_ATTR                7 (FileStream)
+            260 LOAD_ATTR                9 (OpenMode_Binary)
+            270 PRECALL                  3
+            274 CALL                     3
+            284 STORE_FAST               6 (stream)
+
+599         286 LOAD_FAST                4 (dna)
+            288 LOAD_METHOD             10 (BinaryStreamReader)
+            310 LOAD_FAST                6 (stream)
+            312 LOAD_FAST                4 (dna)
+            314 LOAD_ATTR               11 (DataLayer_All)
+            324 PRECALL                  2
+            328 CALL                     2
+            338 STORE_FAST               7 (bin_reader)
+
+600         340 LOAD_FAST                7 (bin_reader)
+            342 LOAD_METHOD             12 (read)
+            364 PRECALL                  0
+            368 CALL                     0
+            378 POP_TOP
+
+601         380 LOAD_FAST                5 (dnacalib2)
+            382 LOAD_METHOD             13 (DNACalibDNAReader)
+            404 LOAD_FAST                7 (bin_reader)
+            406 PRECALL                  1
+            410 CALL                     1
+            420 STORE_FAST               8 (reader)
+
+603         422 LOAD_FAST                8 (reader)
+            424 LOAD_METHOD             14 (getJointCount)
+            446 PRECALL                  0
+            450 CALL                     0
+            460 STORE_FAST               9 (count)
+
+604         462 LOAD_GLOBAL             31 (NULL + list)
+            474 LOAD_FAST                8 (reader)
+            476 LOAD_METHOD             16 (getNeutralJointTranslationXs)
+            498 PRECALL                  0
+            502 CALL                     0
+            512 PRECALL                  1
+            516 CALL                     1
+            526 STORE_FAST              10 (xs)
+
+605         528 LOAD_GLOBAL             31 (NULL + list)
+            540 LOAD_FAST                8 (reader)
+            542 LOAD_METHOD             17 (getNeutralJointTranslationYs)
+            564 PRECALL                  0
+            568 CALL                     0
+            578 PRECALL                  1
+            582 CALL                     1
+            592 STORE_FAST              11 (ys)
+
+606         594 LOAD_GLOBAL             31 (NULL + list)
+            606 LOAD_FAST                8 (reader)
+            608 LOAD_METHOD             18 (getNeutralJointTranslationZs)
+            630 PRECALL                  0
+            634 CALL                     0
+            644 PRECALL                  1
+            648 CALL                     1
+            658 STORE_FAST              12 (zs)
+
+607         660 LOAD_GLOBAL             31 (NULL + list)
+            672 LOAD_FAST                8 (reader)
+            674 LOAD_METHOD             19 (getNeutralJointRotationXs)
+            696 PRECALL                  0
+            700 CALL                     0
+            710 PRECALL                  1
+            714 CALL                     1
+            724 STORE_FAST              13 (rxs)
+
+608         726 LOAD_GLOBAL             31 (NULL + list)
+            738 LOAD_FAST                8 (reader)
+            740 LOAD_METHOD             20 (getNeutralJointRotationYs)
+            762 PRECALL                  0
+            766 CALL                     0
+            776 PRECALL                  1
+            780 CALL                     1
+            790 STORE_FAST              14 (rys)
+
+609         792 LOAD_GLOBAL             31 (NULL + list)
+            804 LOAD_FAST                8 (reader)
+            806 LOAD_METHOD             21 (getNeutralJointRotationZs)
+            828 PRECALL                  0
+            832 CALL                     0
+            842 PRECALL                  1
+            846 CALL                     1
+            856 STORE_FAST              15 (rzs)
+
+611         858 LOAD_CONST               4 (0)
+            860 COPY                     1
+            862 STORE_FAST              16 (updated)
+            864 STORE_FAST              17 (skipped)
+
+612         866 LOAD_GLOBAL             45 (NULL + range)
+            878 LOAD_FAST                9 (count)
+            880 PRECALL                  1
+            884 CALL                     1
+            894 GET_ITER
+        >>  896 FOR_ITER               186 (to 1270)
+            898 STORE_FAST              18 (i)
+
+613         900 LOAD_FAST                2 (namespace)
+            902 LOAD_CONST               6 (':')
+            904 BINARY_OP                0 (+)
+            908 LOAD_FAST                8 (reader)
+            910 LOAD_METHOD             23 (getJointName)
+            932 LOAD_FAST               18 (i)
+            934 PRECALL                  1
+            938 CALL                     1
+            948 BINARY_OP                0 (+)
+            952 STORE_FAST              19 (maya_name)
+
+614         954 LOAD_GLOBAL             49 (NULL + cmds)
+            966 LOAD_ATTR               25 (objExists)
+            976 LOAD_FAST               19 (maya_name)
+            978 PRECALL                  1
+            982 CALL                     1
+            992 POP_JUMP_FORWARD_IF_TRUE     6 (to 1006)
+
+615         994 LOAD_FAST               17 (skipped)
+            996 LOAD_CONST               7 (1)
+            998 BINARY_OP               13 (+=)
+           1002 STORE_FAST              17 (skipped)
+
+616        1004 JUMP_BACKWARD           55 (to 896)
+
+617     >> 1006 LOAD_GLOBAL             49 (NULL + cmds)
+           1018 LOAD_ATTR               26 (getAttr)
+           1028 LOAD_FAST               19 (maya_name)
+           1030 LOAD_CONST               8 ('.translate')
+           1032 BINARY_OP                0 (+)
+           1036 PRECALL                  1
+           1040 CALL                     1
+           1050 LOAD_CONST               4 (0)
+           1052 BINARY_SUBSCR
+           1062 STORE_FAST              20 (t)
+
+618        1064 LOAD_GLOBAL             49 (NULL + cmds)
+           1076 LOAD_ATTR               26 (getAttr)
+           1086 LOAD_FAST               19 (maya_name)
+           1088 LOAD_CONST               9 ('.jointOrient')
+           1090 BINARY_OP                0 (+)
+           1094 PRECALL                  1
+           1098 CALL                     1
+           1108 LOAD_CONST               4 (0)
+           1110 BINARY_SUBSCR
+           1120 STORE_FAST              21 (jo)
+
+619        1122 LOAD_FAST               20 (t)
+           1124 LOAD_CONST               4 (0)
+           1126 BINARY_SUBSCR
+           1136 LOAD_FAST               20 (t)
+           1138 LOAD_CONST               7 (1)
+           1140 BINARY_SUBSCR
+           1150 LOAD_FAST               20 (t)
+           1152 LOAD_CONST              10 (2)
+           1154 BINARY_SUBSCR
+           1164 SWAP                     3
+           1166 LOAD_FAST               10 (xs)
+           1168 LOAD_FAST               18 (i)
+           1170 STORE_SUBSCR
+           1174 LOAD_FAST               11 (ys)
+           1176 LOAD_FAST               18 (i)
+           1178 STORE_SUBSCR
+           1182 LOAD_FAST               12 (zs)
+           1184 LOAD_FAST               18 (i)
+           1186 STORE_SUBSCR
+
+625        1190 LOAD_FAST               21 (jo)
+           1192 LOAD_CONST               4 (0)
+           1194 BINARY_SUBSCR
+           1204 LOAD_FAST               21 (jo)
+           1206 LOAD_CONST               7 (1)
+           1208 BINARY_SUBSCR
+           1218 LOAD_FAST               21 (jo)
+           1220 LOAD_CONST              10 (2)
+           1222 BINARY_SUBSCR
+           1232 SWAP                     3
+           1234 LOAD_FAST               13 (rxs)
+           1236 LOAD_FAST               18 (i)
+           1238 STORE_SUBSCR
+           1242 LOAD_FAST               14 (rys)
+           1244 LOAD_FAST               18 (i)
+           1246 STORE_SUBSCR
+           1250 LOAD_FAST               15 (rzs)
+           1252 LOAD_FAST               18 (i)
+           1254 STORE_SUBSCR
+
+626        1258 LOAD_FAST               16 (updated)
+           1260 LOAD_CONST               7 (1)
+           1262 BINARY_OP               13 (+=)
+           1266 STORE_FAST              16 (updated)
+           1268 JUMP_BACKWARD          187 (to 896)
+
+629     >> 1270 LOAD_FAST                5 (dnacalib2)
+           1272 LOAD_METHOD             27 (SetNeutralJointTranslationsCommand)
+           1294 PRECALL                  0
+           1298 CALL                     0
+           1308 STORE_FAST              22 (t_cmd)
+
+630        1310 LOAD_FAST               22 (t_cmd)
+           1312 LOAD_METHOD             28 (setTranslations)
+           1334 LOAD_FAST               10 (xs)
+           1336 LOAD_FAST               11 (ys)
+           1338 LOAD_FAST               12 (zs)
+           1340 PRECALL                  3
+           1344 CALL                     3
+           1354 POP_TOP
+
+631        1356 LOAD_FAST               22 (t_cmd)
+           1358 LOAD_METHOD             29 (run)
+           1380 LOAD_FAST                8 (reader)
+           1382 PRECALL                  1
+           1386 CALL                     1
+           1396 POP_TOP
+
+633        1398 LOAD_FAST                5 (dnacalib2)
+           1400 LOAD_METHOD             30 (SetNeutralJointRotationsCommand)
+           1422 PRECALL                  0
+           1426 CALL                     0
+           1436 STORE_FAST              23 (r_cmd)
+
+634        1438 LOAD_FAST               23 (r_cmd)
+           1440 LOAD_METHOD             31 (setRotations)
+           1462 LOAD_FAST               13 (rxs)
+           1464 LOAD_FAST               14 (rys)
+           1466 LOAD_FAST               15 (rzs)
+           1468 PRECALL                  3
+           1472 CALL                     3
+           1482 POP_TOP
+
+635        1484 LOAD_FAST               23 (r_cmd)
+           1486 LOAD_METHOD             29 (run)
+           1508 LOAD_FAST                8 (reader)
+           1510 PRECALL                  1
+           1514 CALL                     1
+           1524 POP_TOP
+
+638        1526 LOAD_FAST                4 (dna)
+           1528 LOAD_METHOD              7 (FileStream)
+           1550 LOAD_FAST                0 (output_dna_path)
+           1552 LOAD_FAST                4 (dna)
+           1554 LOAD_ATTR                7 (FileStream)
+           1564 LOAD_ATTR               32 (AccessMode_Write)
+           1574 LOAD_FAST                4 (dna)
+           1576 LOAD_ATTR                7 (FileStream)
+           1586 LOAD_ATTR                9 (OpenMode_Binary)
+           1596 PRECALL                  3
+           1600 CALL                     3
+           1610 STORE_FAST              24 (out_stream)
+
+639        1612 LOAD_FAST                4 (dna)
+           1614 LOAD_METHOD             33 (BinaryStreamWriter)
+           1636 LOAD_FAST               24 (out_stream)
+           1638 PRECALL                  1
+           1642 CALL                     1
+           1652 STORE_FAST              25 (writer)
+
+640        1654 LOAD_FAST               25 (writer)
+           1656 LOAD_METHOD             34 (setFrom)
+           1678 LOAD_FAST                8 (reader)
+           1680 PRECALL                  1
+           1684 CALL                     1
+           1694 POP_TOP
+
+641        1696 LOAD_FAST               25 (writer)
+           1698 LOAD_METHOD             35 (write)
+           1720 PRECALL                  0
+           1724 CALL                     0
+           1734 POP_TOP
+
+643        1736 LOAD_FAST                0 (output_dna_path)
+           1738 LOAD_GLOBAL             72 (_state)
+           1750 LOAD_CONST              11 ('last_exported_dna')
+           1752 STORE_SUBSCR
+
+644        1756 LOAD_GLOBAL             75 (NULL + print)
+           1768 LOAD_CONST              12 ('[MHEdit] DNA export: updated={}, skipped={}.')
+           1770 LOAD_METHOD             38 (format)
+           1792 LOAD_FAST               16 (updated)
+           1794 LOAD_FAST               17 (skipped)
+           1796 PRECALL                  2
+           1800 CALL                     2
+           1810 PRECALL                  1
+           1814 CALL                     1
+           1824 POP_TOP
+
+645        1826 LOAD_GLOBAL             75 (NULL + print)
+           1838 LOAD_CONST              13 ('[MHEdit] Saved -> {} ({} bytes)')
+           1840 LOAD_METHOD             38 (format)
+           1862 LOAD_FAST                0 (output_dna_path)
+           1864 LOAD_GLOBAL             78 (os)
+           1876 LOAD_ATTR                3 (path)
+           1886 LOAD_METHOD             40 (getsize)
+           1908 LOAD_FAST                0 (output_dna_path)
+           1910 PRECALL                  1
+           1914 CALL                     1
+           1924 PRECALL                  2
+           1928 CALL                     2
+           1938 PRECALL                  1
+           1942 CALL                     1
+           1952 POP_TOP
+           1954 LOAD_CONST               5 (None)
+           1956 RETURN_VALUE
+============================================================def _rebuild_bind_pose_node | line:652 | vars:['mesh', 'influences', 'bp_nodes', 'e', 'valid']consts: ["\n    doDetachSkin 전에 dagPose 를 현재 계층 기준으로 재생성합니다.\n\n    fit chain 과정에서 helper joint 의 부모가 변경되면\n    기존 dagPose 에 저장된 parent 참조가 무효화됩니다.\n    dagPose 를 삭제 후 현재 상태로 재저장하면\n    doDetachSkin 내부의 'go to bind pose' 가 경고 없이 동작합니다.\n    ", '[MHEdit] WARN dagPose delete {}: {}', '[MHEdit] dagPose rebuilt for {}.', '[MHEdit] WARN dagPose save {}: {}']names: ['cmds', 'dagPose', 'delete', 'Exception', 'print', 'format']652           0 RESUME                   0
+
+661           2 NOP
+
+662           4 LOAD_GLOBAL              1 (NULL + cmds)
+             16 LOAD_ATTR                1 (dagPose)
+             26 LOAD_FAST                0 (mesh)
+             28 LOAD_CONST               1 (True)
+             30 LOAD_CONST               1 (True)
+             32 KW_NAMES                 2
+             34 PRECALL                  3
+             38 CALL                     3
+             48 JUMP_IF_TRUE_OR_POP      1 (to 52)
+             50 BUILD_LIST               0
+        >>   52 STORE_FAST               2 (bp_nodes)
+
+663          54 LOAD_FAST                2 (bp_nodes)
+             56 POP_JUMP_FORWARD_IF_FALSE    20 (to 98)
+
+664          58 LOAD_GLOBAL              1 (NULL + cmds)
+             70 LOAD_ATTR                2 (delete)
+             80 LOAD_FAST                2 (bp_nodes)
+             82 PRECALL                  1
+             86 CALL                     1
+             96 POP_TOP
+        >>   98 JUMP_FORWARD            58 (to 216)
+        >>  100 PUSH_EXC_INFO
+
+665         102 LOAD_GLOBAL              6 (Exception)
+            114 CHECK_EXC_MATCH
+            116 POP_JUMP_FORWARD_IF_FALSE    45 (to 208)
+            118 STORE_FAST               3 (e)
+
+666         120 LOAD_GLOBAL              9 (NULL + print)
+            132 LOAD_CONST               3 ('[MHEdit] WARN dagPose delete {}: {}')
+            134 LOAD_METHOD              5 (format)
+            156 LOAD_FAST                0 (mesh)
+            158 LOAD_FAST                3 (e)
+            160 PRECALL                  2
+            164 CALL                     2
+            174 PRECALL                  1
+            178 CALL                     1
+            188 POP_TOP
+            190 POP_EXCEPT
+            192 LOAD_CONST               4 (None)
+            194 STORE_FAST               3 (e)
+            196 DELETE_FAST              3 (e)
+            198 JUMP_FORWARD             8 (to 216)
+        >>  200 LOAD_CONST               4 (None)
+            202 STORE_FAST               3 (e)
+            204 DELETE_FAST              3 (e)
+            206 RERAISE                  1
+
+665     >>  208 RERAISE                  0
+        >>  210 COPY                     3
+            212 POP_EXCEPT
+            214 RERAISE                  1
+
+668     >>  216 NOP
+
+669         218 LOAD_CONST               5 (<code object <listcomp> at 0x0000027E3DC97430, file "E:\script/pythonWorkSpace/main/mApplication/maya/python3/tools\mh_body_edit_mode.py", line 669>)
+            220 MAKE_FUNCTION            0
+            222 LOAD_FAST                1 (influences)
+            224 LOAD_FAST                0 (mesh)
+            226 BUILD_LIST               1
+            228 BINARY_OP                0 (+)
+            232 GET_ITER
+            234 PRECALL                  0
+            238 CALL                     0
+            248 STORE_FAST               4 (valid)
+
+670         250 LOAD_FAST                4 (valid)
+            252 POP_JUMP_FORWARD_IF_FALSE    59 (to 372)
+
+671         254 LOAD_GLOBAL              1 (NULL + cmds)
+            266 LOAD_ATTR                1 (dagPose)
+            276 LOAD_FAST                4 (valid)
+            278 LOAD_CONST               1 (True)
+            280 LOAD_CONST               1 (True)
+            282 KW_NAMES                 6
+            284 PRECALL                  3
+            288 CALL                     3
+            298 POP_TOP
+
+672         300 LOAD_GLOBAL              9 (NULL + print)
+            312 LOAD_CONST               7 ('[MHEdit] dagPose rebuilt for {}.')
+            314 LOAD_METHOD              5 (format)
+            336 LOAD_FAST                0 (mesh)
+            338 PRECALL                  1
+            342 CALL                     1
+            352 PRECALL                  1
+            356 CALL                     1
+            366 POP_TOP
+            368 LOAD_CONST               4 (None)
+            370 RETURN_VALUE
+
+670     >>  372 LOAD_CONST               4 (None)
+            374 RETURN_VALUE
+        >>  376 PUSH_EXC_INFO
+
+673         378 LOAD_GLOBAL              6 (Exception)
+            390 CHECK_EXC_MATCH
+            392 POP_JUMP_FORWARD_IF_FALSE    46 (to 486)
+            394 STORE_FAST               3 (e)
+
+674         396 LOAD_GLOBAL              9 (NULL + print)
+            408 LOAD_CONST               8 ('[MHEdit] WARN dagPose save {}: {}')
+            410 LOAD_METHOD              5 (format)
+            432 LOAD_FAST                0 (mesh)
+            434 LOAD_FAST                3 (e)
+            436 PRECALL                  2
+            440 CALL                     2
+            450 PRECALL                  1
+            454 CALL                     1
+            464 POP_TOP
+            466 POP_EXCEPT
+            468 LOAD_CONST               4 (None)
+            470 STORE_FAST               3 (e)
+            472 DELETE_FAST              3 (e)
+            474 LOAD_CONST               4 (None)
+            476 RETURN_VALUE
+        >>  478 LOAD_CONST               4 (None)
+            480 STORE_FAST               3 (e)
+            482 DELETE_FAST              3 (e)
+            484 RERAISE                  1
+
+673     >>  486 RERAISE                  0
+        >>  488 COPY                     3
+            490 POP_EXCEPT
+            492 RERAISE                  1
+ExceptionTable:
+  4 to 96 -> 100 [0]
+  100 to 118 -> 210 [1] lasti
+  120 to 188 -> 200 [1] lasti
+  200 to 208 -> 210 [1] lasti
+  218 to 366 -> 376 [0]
+  376 to 394 -> 488 [1] lasti
+  396 to 464 -> 478 [1] lasti
+  478 to 486 -> 488 [1] lasti
+============================================================def _rebind_skin | line:677 | vars:['sc_name', 'info', 'mesh', 'pre_influences', 'q', 'e', 'influences']consts: ['\n    단일 skinCluster 에 대해 unbind (keep history) → rebind 를 수행합니다.\n\n    1) dagPose 재생성 (현재 계층 기준) → doDetachSkin 내 \'go to bind pose\' 오류 방지\n    2) doDetachSkin 3 {"2","1","1"}\n       → sc 노드가 유지된 채로 detach (weights 보존됨)\n    3) 유지된 sc 의 matrix 연결에서 influence joints 쿼리\n    4) joints + mesh 선택 후 skinCluster 재실행\n       → 기존 sc 재활성화 (bindPose 경고는 무시)\n    5) sc envelope = 1.0\n\n    Bind settings\n    -------------\n    toSelectedBones=True / bindMethod=1 (Closest in hierarchy) /\n    skinMethod=0 (Classic linear) / normalizeWeights=1 /\n    maximumInfluences=1 / obeyMaxInfluences=False /\n    rui=False / dropoffRate=4.0\n    ', 'mesh', '[MHEdit] WARN: mesh {} not found - skip.', '[MHEdit] WARN: sc {} not found - skip.', 'influences']names: ['cmds', 'objExists', 'print', 'format', '_get_sc_influences', '_rebuild_bind_pose_node', 'select', 'chr', 'mel', 'eval', 'Exception', 'skinCluster', 'str', 'setAttr', 'len']677           0 RESUME                   0
+
+696           2 LOAD_FAST                1 (info)
+              4 LOAD_CONST               1 ('mesh')
+              6 BINARY_SUBSCR
+             16 STORE_FAST               2 (mesh)
+
+698          18 LOAD_GLOBAL              1 (NULL + cmds)
+             30 LOAD_ATTR                1 (objExists)
+             40 LOAD_FAST                2 (mesh)
+             42 PRECALL                  1
+             46 CALL                     1
+             56 POP_JUMP_FORWARD_IF_TRUE    36 (to 130)
+
+699          58 LOAD_GLOBAL              5 (NULL + print)
+             70 LOAD_CONST               2 ('[MHEdit] WARN: mesh {} not found - skip.')
+             72 LOAD_METHOD              3 (format)
+             94 LOAD_FAST                2 (mesh)
+             96 PRECALL                  1
+            100 CALL                     1
+            110 PRECALL                  1
+            114 CALL                     1
+            124 POP_TOP
+
+700         126 LOAD_CONST               3 (False)
+            128 RETURN_VALUE
+
+701     >>  130 LOAD_GLOBAL              1 (NULL + cmds)
+            142 LOAD_ATTR                1 (objExists)
+            152 LOAD_FAST                0 (sc_name)
+            154 PRECALL                  1
+            158 CALL                     1
+            168 POP_JUMP_FORWARD_IF_TRUE    36 (to 242)
+
+702         170 LOAD_GLOBAL              5 (NULL + print)
+            182 LOAD_CONST               4 ('[MHEdit] WARN: sc {} not found - skip.')
+            184 LOAD_METHOD              3 (format)
+            206 LOAD_FAST                0 (sc_name)
+            208 PRECALL                  1
+            212 CALL                     1
+            222 PRECALL                  1
+            226 CALL                     1
+            236 POP_TOP
+
+703         238 LOAD_CONST               3 (False)
+            240 RETURN_VALUE
+
+706     >>  242 LOAD_GLOBAL              9 (NULL + _get_sc_influences)
+            254 LOAD_FAST                0 (sc_name)
+            256 PRECALL                  1
+            260 CALL                     1
+            270 JUMP_IF_TRUE_OR_POP      7 (to 286)
+            272 LOAD_FAST                1 (info)
+            274 LOAD_CONST               5 ('influences')
+            276 BINARY_SUBSCR
+        >>  286 STORE_FAST               3 (pre_influences)
+
+707         288 LOAD_GLOBAL             11 (NULL + _rebuild_bind_pose_node)
+            300 LOAD_FAST                2 (mesh)
+            302 LOAD_FAST                3 (pre_influences)
+            304 PRECALL                  2
+            308 CALL                     2
+            318 POP_TOP
+
+710         320 LOAD_GLOBAL              1 (NULL + cmds)
+            332 LOAD_ATTR                6 (select)
+            342 LOAD_FAST                2 (mesh)
+            344 LOAD_CONST               6 (True)
+            346 KW_NAMES                 7
+            348 PRECALL                  2
+            352 CALL                     2
+            362 POP_TOP
+
+711         364 LOAD_GLOBAL             15 (NULL + chr)
+            376 LOAD_CONST               8 (34)
+            378 PRECALL                  1
+            382 CALL                     1
+            392 STORE_FAST               4 (q)
+
+712         394 NOP
+
+713         396 LOAD_GLOBAL             17 (NULL + mel)
+            408 LOAD_ATTR                9 (eval)
+            418 LOAD_CONST               9 ('doDetachSkin 3 { ')
+            420 LOAD_FAST                4 (q)
+            422 BINARY_OP                0 (+)
+            426 LOAD_CONST              10 ('2')
+            428 BINARY_OP                0 (+)
+            432 LOAD_FAST                4 (q)
+            434 BINARY_OP                0 (+)
+            438 LOAD_CONST              11 (', ')
+            440 BINARY_OP                0 (+)
+            444 LOAD_FAST                4 (q)
+            446 BINARY_OP                0 (+)
+            450 LOAD_CONST              12 ('1')
+            452 BINARY_OP                0 (+)
+            456 LOAD_FAST                4 (q)
+            458 BINARY_OP                0 (+)
+            462 LOAD_CONST              11 (', ')
+            464 BINARY_OP                0 (+)
+            468 LOAD_FAST                4 (q)
+            470 BINARY_OP                0 (+)
+            474 LOAD_CONST              12 ('1')
+            476 BINARY_OP                0 (+)
+            480 LOAD_FAST                4 (q)
+            482 BINARY_OP                0 (+)
+            486 LOAD_CONST              13 (' }')
+            488 BINARY_OP                0 (+)
+            492 PRECALL                  1
+            496 CALL                     1
+            506 POP_TOP
+            508 JUMP_FORWARD            59 (to 628)
+        >>  510 PUSH_EXC_INFO
+
+714         512 LOAD_GLOBAL             20 (Exception)
+            524 CHECK_EXC_MATCH
+            526 POP_JUMP_FORWARD_IF_FALSE    46 (to 620)
+            528 STORE_FAST               5 (e)
+
+715         530 LOAD_GLOBAL              5 (NULL + print)
+            542 LOAD_CONST              14 ('[MHEdit] WARN doDetachSkin {}: {}')
+            544 LOAD_METHOD              3 (format)
+            566 LOAD_FAST                2 (mesh)
+            568 LOAD_FAST                5 (e)
+            570 PRECALL                  2
+            574 CALL                     2
+            584 PRECALL                  1
+            588 CALL                     1
+            598 POP_TOP
+
+716         600 POP_EXCEPT
+            602 LOAD_CONST              15 (None)
+            604 STORE_FAST               5 (e)
+            606 DELETE_FAST              5 (e)
+            608 LOAD_CONST               3 (False)
+            610 RETURN_VALUE
+        >>  612 LOAD_CONST              15 (None)
+            614 STORE_FAST               5 (e)
+            616 DELETE_FAST              5 (e)
+            618 RERAISE                  1
+
+714     >>  620 RERAISE                  0
+        >>  622 COPY                     3
+            624 POP_EXCEPT
+            626 RERAISE                  1
+
+719     >>  628 LOAD_GLOBAL              9 (NULL + _get_sc_influences)
+            640 LOAD_FAST                0 (sc_name)
+            642 PRECALL                  1
+            646 CALL                     1
+            656 STORE_FAST               6 (influences)
+
+720         658 LOAD_FAST                6 (influences)
+            660 POP_JUMP_FORWARD_IF_TRUE     8 (to 678)
+
+721         662 LOAD_FAST                1 (info)
+            664 LOAD_CONST               5 ('influences')
+            666 BINARY_SUBSCR
+            676 STORE_FAST               6 (influences)
+
+724     >>  678 LOAD_GLOBAL              1 (NULL + cmds)
+            690 LOAD_ATTR                6 (select)
+            700 LOAD_FAST                6 (influences)
+            702 LOAD_CONST               6 (True)
+            704 KW_NAMES                 7
+            706 PRECALL                  2
+            710 CALL                     2
+            720 POP_TOP
+
+725         722 LOAD_GLOBAL              1 (NULL + cmds)
+            734 LOAD_ATTR                6 (select)
+            744 LOAD_FAST                2 (mesh)
+            746 LOAD_CONST               6 (True)
+            748 KW_NAMES                16
+            750 PRECALL                  2
+            754 CALL                     2
+            764 POP_TOP
+
+726         766 NOP
+
+727         768 LOAD_GLOBAL              1 (NULL + cmds)
+            780 LOAD_ATTR               11 (skinCluster)
+
+728         790 LOAD_CONST               6 (True)
+
+729         792 LOAD_CONST              17 (1)
+
+730         794 LOAD_CONST              18 (0)
+
+731         796 LOAD_CONST              17 (1)
+
+732         798 LOAD_CONST              17 (1)
+
+733         800 LOAD_CONST               3 (False)
+
+734         802 LOAD_CONST               3 (False)
+
+735         804 LOAD_CONST              19 (4.0)
+
+727         806 KW_NAMES                20
+            808 PRECALL                  8
+            812 CALL                     8
+            822 POP_TOP
+            824 JUMP_FORWARD            81 (to 988)
+        >>  826 PUSH_EXC_INFO
+
+737         828 LOAD_GLOBAL             20 (Exception)
+            840 CHECK_EXC_MATCH
+            842 POP_JUMP_FORWARD_IF_FALSE    68 (to 980)
+            844 STORE_FAST               5 (e)
+
+738         846 LOAD_CONST              21 ('bindPose')
+            848 LOAD_GLOBAL             25 (NULL + str)
+            860 LOAD_FAST                5 (e)
+            862 PRECALL                  1
+            866 CALL                     1
+            876 CONTAINS_OP              1
+            878 POP_JUMP_FORWARD_IF_FALSE    41 (to 962)
+
+739         880 LOAD_GLOBAL              5 (NULL + print)
+            892 LOAD_CONST              22 ('[MHEdit] WARN rebind {}: {}')
+            894 LOAD_METHOD              3 (format)
+            916 LOAD_FAST                2 (mesh)
+            918 LOAD_FAST                5 (e)
+            920 PRECALL                  2
+            924 CALL                     2
+            934 PRECALL                  1
+            938 CALL                     1
+            948 POP_TOP
+
+740         950 POP_EXCEPT
+            952 LOAD_CONST              15 (None)
+            954 STORE_FAST               5 (e)
+            956 DELETE_FAST              5 (e)
+            958 LOAD_CONST               3 (False)
+            960 RETURN_VALUE
+
+738     >>  962 POP_EXCEPT
+            964 LOAD_CONST              15 (None)
+            966 STORE_FAST               5 (e)
+            968 DELETE_FAST              5 (e)
+            970 JUMP_FORWARD             8 (to 988)
+        >>  972 LOAD_CONST              15 (None)
+            974 STORE_FAST               5 (e)
+            976 DELETE_FAST              5 (e)
+            978 RERAISE                  1
+
+737     >>  980 RERAISE                  0
+        >>  982 COPY                     3
+            984 POP_EXCEPT
+            986 RERAISE                  1
+
+743     >>  988 LOAD_GLOBAL              1 (NULL + cmds)
+           1000 LOAD_ATTR                1 (objExists)
+           1010 LOAD_FAST                0 (sc_name)
+           1012 PRECALL                  1
+           1016 CALL                     1
+           1026 POP_JUMP_FORWARD_IF_FALSE    24 (to 1076)
+
+744        1028 LOAD_GLOBAL              1 (NULL + cmds)
+           1040 LOAD_ATTR               13 (setAttr)
+           1050 LOAD_FAST                0 (sc_name)
+           1052 LOAD_CONST              23 ('.envelope')
+           1054 BINARY_OP                0 (+)
+           1058 LOAD_CONST              24 (1.0)
+           1060 PRECALL                  2
+           1064 CALL                     2
+           1074 POP_TOP
+
+746     >> 1076 LOAD_GLOBAL              5 (NULL + print)
+           1088 LOAD_CONST              25 ('[MHEdit] Rebound {} ({} influences).')
+           1090 LOAD_METHOD              3 (format)
+           1112 LOAD_FAST                2 (mesh)
+           1114 LOAD_GLOBAL             29 (NULL + len)
+           1126 LOAD_FAST                6 (influences)
+           1128 PRECALL                  1
+           1132 CALL                     1
+           1142 PRECALL                  2
+           1146 CALL                     2
+           1156 PRECALL                  1
+           1160 CALL                     1
+           1170 POP_TOP
+
+747        1172 LOAD_CONST               6 (True)
+           1174 RETURN_VALUE
+ExceptionTable:
+  396 to 506 -> 510 [0]
+  510 to 528 -> 622 [1] lasti
+  530 to 598 -> 612 [1] lasti
+  612 to 620 -> 622 [1] lasti
+  768 to 822 -> 826 [0]
+  826 to 844 -> 982 [1] lasti
+  846 to 948 -> 972 [1] lasti
+  972 to 980 -> 982 [1] lasti
+============================================================def reconnect_rl4 | line:750 | vars:['do_rebind', 'rl4_node', 'exported', 'sc_info', 'saved_conns', 'e', 'sc_name', 'info', 'cur_out', 'reconn', 'src', 'dst', 'dst_node', 'cur']consts: ['\n    편집 완료 후 rig 를 복원합니다.\n\n    1) body_rl4Embedded.dnaFilePath = export 한 DNA 경로\n    2) 각 LOD mesh: unbind skin (keep history) → rebind  (do_rebind=True 일 때만)\n       ※ RL4 reconnect 전에 수행 - body_rl4Embedded 가 joints 를 드라이빙하기 전\n         dagPose \'go to bind pose\' 를 실행해야 clavicle_out/scap 등 driven 조인트\n         오류("Could not reach pose") 가 발생하지 않음\n    3) rl4 output connections 재연결\n    4) skinCluster envelope = 1.0\n\n    Parameters\n    ----------\n    do_rebind : bool (default True)\n        True  — unbind (keep history) → rebind 를 실행합니다.\n        False — rebind 를 건너뛰고 envelope 만 1.0 으로 복원합니다.\n                joint 이동이 없거나 skin weight 를 건드리고 싶지 않을 때 사용합니다.\n    ', 'rl4_node', 'last_exported_dna', '', 'sc_info']names: ['_state', 'get', 'cmds', 'objExists', 'setAttr', 'print', 'format', 'Exception', 'items', '_rebind_skin', '_load_rl4_from_scene', 'len', 'listConnections', 'undoInfo', 'split', '_is_secondary', 'getAttr', 'isinstance', 'list', 'tuple']750           0 RESUME                   0
+
+769           2 LOAD_GLOBAL              0 (_state)
+             14 LOAD_CONST               1 ('rl4_node')
+             16 BINARY_SUBSCR
+             26 STORE_FAST               1 (rl4_node)
+
+770          28 LOAD_GLOBAL              0 (_state)
+             40 LOAD_METHOD              1 (get)
+             62 LOAD_CONST               2 ('last_exported_dna')
+             64 LOAD_CONST               3 ('')
+             66 PRECALL                  2
+             70 CALL                     2
+             80 STORE_FAST               2 (exported)
+
+771          82 LOAD_GLOBAL              0 (_state)
+             94 LOAD_METHOD              1 (get)
+            116 LOAD_CONST               4 ('sc_info')
+            118 BUILD_MAP                0
+            120 PRECALL                  2
+            124 CALL                     2
+            134 STORE_FAST               3 (sc_info)
+
+772         136 LOAD_GLOBAL              0 (_state)
+            148 LOAD_CONST               5 ('rl4_connections')
+            150 BINARY_SUBSCR
+            160 STORE_FAST               4 (saved_conns)
+
+775         162 LOAD_FAST                2 (exported)
+            164 POP_JUMP_FORWARD_IF_FALSE   139 (to 444)
+            166 LOAD_GLOBAL              5 (NULL + cmds)
+            178 LOAD_ATTR                3 (objExists)
+            188 LOAD_FAST                1 (rl4_node)
+            190 PRECALL                  1
+            194 CALL                     1
+            204 POP_JUMP_FORWARD_IF_FALSE   119 (to 444)
+
+776         206 NOP
+
+777         208 LOAD_GLOBAL              5 (NULL + cmds)
+            220 LOAD_ATTR                4 (setAttr)
+            230 LOAD_FAST                1 (rl4_node)
+            232 LOAD_CONST               6 ('.dnaFilePath')
+            234 BINARY_OP                0 (+)
+            238 LOAD_FAST                2 (exported)
+            240 LOAD_CONST               7 ('string')
+            242 KW_NAMES                 8
+            244 PRECALL                  3
+            248 CALL                     3
+            258 POP_TOP
+
+778         260 LOAD_GLOBAL             11 (NULL + print)
+            272 LOAD_CONST               9 ('[MHEdit] dnaFilePath -> {}')
+            274 LOAD_METHOD              6 (format)
+            296 LOAD_FAST                2 (exported)
+            298 PRECALL                  1
+            302 CALL                     1
+            312 PRECALL                  1
+            316 CALL                     1
+            326 POP_TOP
+            328 JUMP_FORWARD            57 (to 444)
+        >>  330 PUSH_EXC_INFO
+
+779         332 LOAD_GLOBAL             14 (Exception)
+            344 CHECK_EXC_MATCH
+            346 POP_JUMP_FORWARD_IF_FALSE    44 (to 436)
+            348 STORE_FAST               5 (e)
+
+780         350 LOAD_GLOBAL             11 (NULL + print)
+            362 LOAD_CONST              10 ('[MHEdit] WARN dnaFilePath: {}')
+            364 LOAD_METHOD              6 (format)
+            386 LOAD_FAST                5 (e)
+            388 PRECALL                  1
+            392 CALL                     1
+            402 PRECALL                  1
+            406 CALL                     1
+            416 POP_TOP
+            418 POP_EXCEPT
+            420 LOAD_CONST              11 (None)
+            422 STORE_FAST               5 (e)
+            424 DELETE_FAST              5 (e)
+            426 JUMP_FORWARD             8 (to 444)
+        >>  428 LOAD_CONST              11 (None)
+            430 STORE_FAST               5 (e)
+            432 DELETE_FAST              5 (e)
+            434 RERAISE                  1
+
+779     >>  436 RERAISE                  0
+        >>  438 COPY                     3
+            440 POP_EXCEPT
+            442 RERAISE                  1
+
+784     >>  444 LOAD_FAST                0 (do_rebind)
+            446 POP_JUMP_FORWARD_IF_FALSE    43 (to 534)
+
+785         448 LOAD_FAST                3 (sc_info)
+            450 LOAD_METHOD              8 (items)
+            472 PRECALL                  0
+            476 CALL                     0
+            486 GET_ITER
+        >>  488 FOR_ITER                21 (to 532)
+            490 UNPACK_SEQUENCE          2
+            494 STORE_FAST               6 (sc_name)
+            496 STORE_FAST               7 (info)
+
+786         498 LOAD_GLOBAL             19 (NULL + _rebind_skin)
+            510 LOAD_FAST                6 (sc_name)
+            512 LOAD_FAST                7 (info)
+            514 PRECALL                  2
+            518 CALL                     2
+            528 POP_TOP
+            530 JUMP_BACKWARD           22 (to 488)
+
+785     >>  532 JUMP_FORWARD            15 (to 564)
+
+788     >>  534 LOAD_GLOBAL             11 (NULL + print)
+            546 LOAD_CONST              12 ('[MHEdit] Rebind skipped — envelope will be restored to 1.0 only.')
+            548 PRECALL                  1
+            552 CALL                     1
+            562 POP_TOP
+
+791     >>  564 LOAD_FAST                4 (saved_conns)
+            566 POP_JUMP_FORWARD_IF_TRUE   181 (to 930)
+
+793         568 LOAD_GLOBAL             21 (NULL + _load_rl4_from_scene)
+            580 PRECALL                  0
+            584 CALL                     0
+            594 STORE_FAST               4 (saved_conns)
+
+794         596 LOAD_FAST                4 (saved_conns)
+            598 POP_JUMP_FORWARD_IF_FALSE    48 (to 696)
+
+795         600 LOAD_GLOBAL             11 (NULL + print)
+            612 LOAD_CONST              13 ('[MHEdit] rl4 connections restored from scene backup ({} pairs).')
+            614 LOAD_METHOD              6 (format)
+
+796         636 LOAD_GLOBAL             23 (NULL + len)
+            648 LOAD_FAST                4 (saved_conns)
+            650 PRECALL                  1
+            654 CALL                     1
+
+795         664 PRECALL                  1
+            668 CALL                     1
+            678 PRECALL                  1
+            682 CALL                     1
+            692 POP_TOP
+            694 JUMP_FORWARD           117 (to 930)
+
+801     >>  696 LOAD_GLOBAL              5 (NULL + cmds)
+            708 LOAD_ATTR                3 (objExists)
+            718 LOAD_FAST                1 (rl4_node)
+            720 PRECALL                  1
+            724 CALL                     1
+
+798         734 POP_JUMP_FORWARD_IF_FALSE    27 (to 790)
+            736 LOAD_GLOBAL              5 (NULL + cmds)
+            748 LOAD_ATTR               12 (listConnections)
+
+799         758 LOAD_FAST                1 (rl4_node)
+            760 LOAD_CONST              14 (False)
+            762 LOAD_CONST              15 (True)
+
+800         764 LOAD_CONST              15 (True)
+            766 LOAD_CONST              15 (True)
+
+798         768 KW_NAMES                16
+            770 PRECALL                  5
+            774 CALL                     5
+            784 JUMP_IF_TRUE_OR_POP      1 (to 788)
+
+801         786 BUILD_LIST               0
+        >>  788 JUMP_FORWARD             1 (to 792)
+        >>  790 BUILD_LIST               0
+
+798     >>  792 STORE_FAST               8 (cur_out)
+
+802         794 LOAD_FAST                8 (cur_out)
+            796 POP_JUMP_FORWARD_IF_FALSE    51 (to 900)
+
+803         798 LOAD_GLOBAL             11 (NULL + print)
+            810 LOAD_CONST              17 ('[MHEdit] saved_conns 없음 — rl4 이미 연결 상태 ({} conns). 재연결 생략.')
+            812 LOAD_METHOD              6 (format)
+
+804         834 LOAD_GLOBAL             23 (NULL + len)
+            846 LOAD_FAST                8 (cur_out)
+            848 PRECALL                  1
+            852 CALL                     1
+            862 LOAD_CONST              18 (2)
+            864 BINARY_OP                2 (//)
+
+803         868 PRECALL                  1
+            872 CALL                     1
+            882 PRECALL                  1
+            886 CALL                     1
+            896 POP_TOP
+            898 JUMP_FORWARD            15 (to 930)
+
+806     >>  900 LOAD_GLOBAL             11 (NULL + print)
+            912 LOAD_CONST              19 ('[MHEdit] WARNING: saved_conns 없음 + rl4 disconnected! 씬 백업도 없음.')
+            914 PRECALL                  1
+            918 CALL                     1
+            928 POP_TOP
+
+808     >>  930 LOAD_CONST              20 (0)
+            932 STORE_FAST               9 (reconn)
+
+809         934 LOAD_GLOBAL              5 (NULL + cmds)
+            946 LOAD_ATTR               13 (undoInfo)
+            956 LOAD_CONST              15 (True)
+            958 LOAD_CONST              21 ('MHEdit_reconnectRL4')
+            960 KW_NAMES                22
+            962 PRECALL                  2
+            966 CALL                     2
+            976 POP_TOP
+
+810         978 NOP
+
+811         980 LOAD_FAST                4 (saved_conns)
+            982 GET_ITER
+        >>  984 EXTENDED_ARG             1
+            986 FOR_ITER               439 (to 1866)
+            988 UNPACK_SEQUENCE          2
+            992 STORE_FAST              10 (src)
+            994 STORE_FAST              11 (dst)
+
+812         996 NOP
+
+814         998 LOAD_FAST               11 (dst)
+           1000 LOAD_METHOD             14 (split)
+           1022 LOAD_CONST              23 ('.')
+           1024 PRECALL                  1
+           1028 CALL                     1
+           1038 LOAD_CONST              20 (0)
+           1040 BINARY_SUBSCR
+           1050 STORE_FAST              12 (dst_node)
+
+815        1052 LOAD_GLOBAL             31 (NULL + _is_secondary)
+           1064 LOAD_FAST               12 (dst_node)
+           1066 PRECALL                  1
+           1070 CALL                     1
+           1080 EXTENDED_ARG             1
+           1082 POP_JUMP_FORWARD_IF_FALSE   281 (to 1646)
+           1084 LOAD_GLOBAL              5 (NULL + cmds)
+           1096 LOAD_ATTR                3 (objExists)
+           1106 LOAD_FAST               12 (dst_node)
+           1108 PRECALL                  1
+           1112 CALL                     1
+           1122 EXTENDED_ARG             1
+           1124 POP_JUMP_FORWARD_IF_FALSE   260 (to 1646)
+
+816        1126 NOP
+
+817        1128 LOAD_GLOBAL              5 (NULL + cmds)
+           1140 LOAD_ATTR               16 (getAttr)
+           1150 LOAD_FAST               11 (dst)
+           1152 PRECALL                  1
+           1156 CALL                     1
+           1166 STORE_FAST              13 (cur)
+
+819        1168 LOAD_FAST               13 (cur)
+           1170 POP_JUMP_FORWARD_IF_FALSE    55 (to 1282)
+           1172 LOAD_GLOBAL             35 (NULL + isinstance)
+           1184 LOAD_FAST               13 (cur)
+           1186 LOAD_CONST              20 (0)
+           1188 BINARY_SUBSCR
+           1198 LOAD_GLOBAL             36 (list)
+           1210 LOAD_GLOBAL             38 (tuple)
+           1222 BUILD_TUPLE              2
+           1224 PRECALL                  2
+           1228 CALL                     2
+           1238 POP_JUMP_FORWARD_IF_FALSE    21 (to 1282)
+
+820        1240 LOAD_GLOBAL             37 (NULL + list)
+           1252 LOAD_FAST               13 (cur)
+           1254 LOAD_CONST              20 (0)
+           1256 BINARY_SUBSCR
+           1266 PRECALL                  1
+           1270 CALL                     1
+           1280 STORE_FAST              13 (cur)
+
+821     >> 1282 LOAD_GLOBAL             35 (NULL + isinstance)
+           1294 LOAD_FAST               13 (cur)
+           1296 LOAD_GLOBAL             36 (list)
+           1308 LOAD_GLOBAL             38 (tuple)
+           1320 BUILD_TUPLE              2
+           1322 PRECALL                  2
+           1326 CALL                     2
+           1336 POP_JUMP_FORWARD_IF_FALSE    63 (to 1464)
+           1338 LOAD_GLOBAL             23 (NULL + len)
+           1350 LOAD_FAST               13 (cur)
+           1352 PRECALL                  1
+           1356 CALL                     1
+           1366 LOAD_CONST              24 (3)
+           1368 COMPARE_OP               2 (==)
+           1374 POP_JUMP_FORWARD_IF_FALSE    44 (to 1464)
+
+822        1376 LOAD_GLOBAL              5 (NULL + cmds)
+           1388 LOAD_ATTR                4 (setAttr)
+           1398 LOAD_FAST               10 (src)
+           1400 LOAD_FAST               13 (cur)
+           1402 LOAD_CONST              20 (0)
+           1404 BINARY_SUBSCR
+           1414 LOAD_FAST               13 (cur)
+           1416 LOAD_CONST              25 (1)
+           1418 BINARY_SUBSCR
+           1428 LOAD_FAST               13 (cur)
+           1430 LOAD_CONST              18 (2)
+           1432 BINARY_SUBSCR
+           1442 LOAD_CONST              26 ('double3')
+           1444 KW_NAMES                 8
+           1446 PRECALL                  5
+           1450 CALL                     5
+           1460 POP_TOP
+           1462 JUMP_FORWARD            74 (to 1612)
+
+823     >> 1464 LOAD_GLOBAL             35 (NULL + isinstance)
+           1476 LOAD_FAST               13 (cur)
+           1478 LOAD_GLOBAL             36 (list)
+           1490 LOAD_GLOBAL             38 (tuple)
+           1502 BUILD_TUPLE              2
+           1504 PRECALL                  2
+           1508 CALL                     2
+           1518 POP_JUMP_FORWARD_IF_FALSE    46 (to 1612)
+           1520 LOAD_GLOBAL             23 (NULL + len)
+           1532 LOAD_FAST               13 (cur)
+           1534 PRECALL                  1
+           1538 CALL                     1
+           1548 LOAD_CONST              25 (1)
+           1550 COMPARE_OP               2 (==)
+           1556 POP_JUMP_FORWARD_IF_FALSE    27 (to 1612)
+
+824        1558 LOAD_GLOBAL              5 (NULL + cmds)
+           1570 LOAD_ATTR                4 (setAttr)
+           1580 LOAD_FAST               10 (src)
+           1582 LOAD_FAST               13 (cur)
+           1584 LOAD_CONST              20 (0)
+           1586 BINARY_SUBSCR
+           1596 PRECALL                  2
+           1600 CALL                     2
+           1610 POP_TOP
+        >> 1612 JUMP_FORWARD            16 (to 1646)
+        >> 1614 PUSH_EXC_INFO
+
+825        1616 LOAD_GLOBAL             14 (Exception)
+           1628 CHECK_EXC_MATCH
+           1630 POP_JUMP_FORWARD_IF_FALSE     3 (to 1638)
+           1632 POP_TOP
+
+826        1634 POP_EXCEPT
+           1636 JUMP_FORWARD             4 (to 1646)
+
+825     >> 1638 RERAISE                  0
+        >> 1640 COPY                     3
+           1642 POP_EXCEPT
+           1644 RERAISE                  1
+
+828     >> 1646 LOAD_GLOBAL              5 (NULL + cmds)
+           1658 LOAD_ATTR               20 (isConnected)
+           1668 LOAD_FAST               10 (src)
+           1670 LOAD_FAST               11 (dst)
+           1672 PRECALL                  2
+           1676 CALL                     2
+           1686 POP_JUMP_FORWARD_IF_TRUE    28 (to 1744)
+
+829        1688 LOAD_GLOBAL              5 (NULL + cmds)
+           1700 LOAD_ATTR               21 (connectAttr)
+           1710 LOAD_FAST               10 (src)
+           1712 LOAD_FAST               11 (dst)
+           1714 LOAD_CONST              15 (True)
+           1716 KW_NAMES                27
+           1718 PRECALL                  3
+           1722 CALL                     3
+           1732 POP_TOP
+
+830        1734 LOAD_FAST                9 (reconn)
+           1736 LOAD_CONST              25 (1)
+           1738 BINARY_OP               13 (+=)
+           1742 STORE_FAST               9 (reconn)
+        >> 1744 EXTENDED_ARG             1
+           1746 JUMP_BACKWARD          382 (to 984)
+        >> 1748 PUSH_EXC_INFO
+
+831        1750 LOAD_GLOBAL             14 (Exception)
+           1762 CHECK_EXC_MATCH
+           1764 POP_JUMP_FORWARD_IF_FALSE    46 (to 1858)
+           1766 STORE_FAST               5 (e)
+
+832        1768 LOAD_GLOBAL             11 (NULL + print)
+           1780 LOAD_CONST              28 ('[MHEdit] WARN reconnect {}: {}')
+           1782 LOAD_METHOD              6 (format)
+           1804 LOAD_FAST               10 (src)
+           1806 LOAD_FAST                5 (e)
+           1808 PRECALL                  2
+           1812 CALL                     2
+           1822 PRECALL                  1
+           1826 CALL                     1
+           1836 POP_TOP
+           1838 POP_EXCEPT
+           1840 LOAD_CONST              11 (None)
+           1842 STORE_FAST               5 (e)
+           1844 DELETE_FAST              5 (e)
+           1846 EXTENDED_ARG             1
+           1848 JUMP_BACKWARD          433 (to 984)
+        >> 1850 LOAD_CONST              11 (None)
+           1852 STORE_FAST               5 (e)
+           1854 DELETE_FAST              5 (e)
+           1856 RERAISE                  1
+
+831     >> 1858 RERAISE                  0
+        >> 1860 COPY                     3
+           1862 POP_EXCEPT
+           1864 RERAISE                  1
+
+811     >> 1866 NOP
+
+834        1868 LOAD_GLOBAL              5 (NULL + cmds)
+           1880 LOAD_ATTR               13 (undoInfo)
+           1890 LOAD_CONST              15 (True)
+           1892 KW_NAMES                29
+           1894 PRECALL                  1
+           1898 CALL                     1
+           1908 POP_TOP
+           1910 JUMP_FORWARD            26 (to 1964)
+        >> 1912 PUSH_EXC_INFO
+           1914 LOAD_GLOBAL              5 (NULL + cmds)
+           1926 LOAD_ATTR               13 (undoInfo)
+           1936 LOAD_CONST              15 (True)
+           1938 KW_NAMES                29
+           1940 PRECALL                  1
+           1944 CALL                     1
+           1954 POP_TOP
+           1956 RERAISE                  0
+        >> 1958 COPY                     3
+           1960 POP_EXCEPT
+           1962 RERAISE                  1
+
+835     >> 1964 LOAD_GLOBAL             11 (NULL + print)
+           1976 LOAD_CONST              30 ('[MHEdit] Reconnected {} rl4 connections.')
+           1978 LOAD_METHOD              6 (format)
+           2000 LOAD_FAST                9 (reconn)
+           2002 PRECALL                  1
+           2006 CALL                     1
+           2016 PRECALL                  1
+           2020 CALL                     1
+           2030 POP_TOP
+
+838        2032 LOAD_FAST                3 (sc_info)
+           2034 GET_ITER
+        >> 2036 FOR_ITER                46 (to 2130)
+           2038 STORE_FAST               6 (sc_name)
+
+839        2040 LOAD_GLOBAL              5 (NULL + cmds)
+           2052 LOAD_ATTR                3 (objExists)
+           2062 LOAD_FAST                6 (sc_name)
+           2064 PRECALL                  1
+           2068 CALL                     1
+           2078 POP_JUMP_FORWARD_IF_FALSE    24 (to 2128)
+
+840        2080 LOAD_GLOBAL              5 (NULL + cmds)
+           2092 LOAD_ATTR                4 (setAttr)
+           2102 LOAD_FAST                6 (sc_name)
+           2104 LOAD_CONST              31 ('.envelope')
+           2106 BINARY_OP                0 (+)
+           2110 LOAD_CONST              32 (1.0)
+           2112 PRECALL                  2
+           2116 CALL                     2
+           2126 POP_TOP
+        >> 2128 JUMP_BACKWARD           47 (to 2036)
+
+841     >> 2130 LOAD_GLOBAL             11 (NULL + print)
+           2142 LOAD_CONST              33 ('[MHEdit] Restored skinCluster envelopes to 1.0.')
+           2144 PRECALL                  1
+           2148 CALL                     1
+           2158 POP_TOP
+
+844        2160 LOAD_GLOBAL             45 (NULL + _delete_rl4_backup)
+           2172 PRECALL                  0
+           2176 CALL                     0
+           2186 POP_TOP
+
+845        2188 LOAD_GLOBAL             47 (NULL + reset_state)
+           2200 PRECALL                  0
+           2204 CALL                     0
+           2214 POP_TOP
+
+846        2216 LOAD_GLOBAL             11 (NULL + print)
+           2228 LOAD_CONST              34 ('[MHEdit] >>> Done. <<<')
+           2230 PRECALL                  1
+           2234 CALL                     1
+           2244 POP_TOP
+           2246 LOAD_CONST              11 (None)
+           2248 RETURN_VALUE
+ExceptionTable:
+  208 to 326 -> 330 [0]
+  330 to 348 -> 438 [1] lasti
+  350 to 416 -> 428 [1] lasti
+  428 to 436 -> 438 [1] lasti
+  980 to 994 -> 1912 [0]
+  998 to 1124 -> 1748 [1]
+  1128 to 1610 -> 1614 [1]
+  1612 to 1612 -> 1748 [1]
+  1614 to 1632 -> 1640 [2] lasti
+  1634 to 1636 -> 1748 [1]
+  1638 to 1638 -> 1640 [2] lasti
+  1640 to 1742 -> 1748 [1]
+  1744 to 1746 -> 1912 [0]
+  1748 to 1766 -> 1860 [2] lasti
+  1768 to 1836 -> 1850 [2] lasti
+  1838 to 1848 -> 1912 [0]
+  1850 to 1858 -> 1860 [2] lasti
+  1860 to 1864 -> 1912 [0]
+  1912 to 1956 -> 1958 [1] lasti
+============================================================def full_exit | line:853 | vars:[]consts: ['DNA export 없이 씬을 원래 상태로 완전히 되돌립니다.']names: ['restore_structure', 'reconnect_rl4']853           0 RESUME                   0
+
+855           2 LOAD_GLOBAL              1 (NULL + restore_structure)
+             14 PRECALL                  0
+             18 CALL                     0
+             28 POP_TOP
+
+856          30 LOAD_GLOBAL              3 (NULL + reconnect_rl4)
+             42 PRECALL                  0
+             46 CALL                     0
+             56 POP_TOP
+             58 LOAD_CONST               1 (None)
+             60 RETURN_VALUE
+============================================================def get_state | line:859 | vars:[]consts: ['현재 _state 를 출력합니다.', '[MHEdit] active            :', 'active', '[MHEdit] rl4 node          :', 'rl4_node']names: ['print', '_state', 'len', 'list', 'keys']859           0 RESUME                   0
+
+861           2 LOAD_GLOBAL              1 (NULL + print)
+             14 LOAD_CONST               1 ('[MHEdit] active            :')
+             16 LOAD_GLOBAL              2 (_state)
+             28 LOAD_CONST               2 ('active')
+             30 BINARY_SUBSCR
+             40 PRECALL                  2
+             44 CALL                     2
+             54 POP_TOP
+
+862          56 LOAD_GLOBAL              1 (NULL + print)
+             68 LOAD_CONST               3 ('[MHEdit] rl4 node          :')
+             70 LOAD_GLOBAL              2 (_state)
+             82 LOAD_CONST               4 ('rl4_node')
+             84 BINARY_SUBSCR
+             94 PRECALL                  2
+             98 CALL                     2
+            108 POP_TOP
+
+863         110 LOAD_GLOBAL              1 (NULL + print)
+            122 LOAD_CONST               5 ('[MHEdit] rl4 connections   :')
+            124 LOAD_GLOBAL              5 (NULL + len)
+            136 LOAD_GLOBAL              2 (_state)
+            148 LOAD_CONST               6 ('rl4_connections')
+            150 BINARY_SUBSCR
+            160 PRECALL                  1
+            164 CALL                     1
+            174 PRECALL                  2
+            178 CALL                     2
+            188 POP_TOP
+
+864         190 LOAD_GLOBAL              1 (NULL + print)
+            202 LOAD_CONST               7 ('[MHEdit] parent_map        :')
+            204 LOAD_GLOBAL              5 (NULL + len)
+            216 LOAD_GLOBAL              2 (_state)
+            228 LOAD_CONST               8 ('parent_map')
+            230 BINARY_SUBSCR
+            240 PRECALL                  1
+            244 CALL                     1
+            254 PRECALL                  2
+            258 CALL                     2
+            268 POP_TOP
+
+865         270 LOAD_GLOBAL              1 (NULL + print)
+            282 LOAD_CONST               9 ('[MHEdit] sc_info           :')
+            284 LOAD_GLOBAL              7 (NULL + list)
+            296 LOAD_GLOBAL              2 (_state)
+            308 LOAD_CONST              10 ('sc_info')
+            310 BINARY_SUBSCR
+            320 LOAD_METHOD              4 (keys)
+            342 PRECALL                  0
+            346 CALL                     0
+            356 PRECALL                  1
+            360 CALL                     1
+            370 PRECALL                  2
+            374 CALL                     2
+            384 POP_TOP
+
+866         386 LOAD_GLOBAL              1 (NULL + print)
+            398 LOAD_CONST              11 ('[MHEdit] last_exported_dna :')
+            400 LOAD_GLOBAL              2 (_state)
+            412 LOAD_CONST              12 ('last_exported_dna')
+            414 BINARY_SUBSCR
+            424 PRECALL                  2
+            428 CALL                     2
+            438 POP_TOP
+            440 LOAD_CONST              13 (None)
+            442 RETURN_VALUE
+============================================================def reset_state | line:869 | vars:[]consts: ['\n    _state 를 강제로 초기화합니다.\n    export / reconnect 중 오류로 active 플래그가 남아있을 때 사용합니다.\n    씬 상태(joint parent, rl4 연결)는 건드리지 않으므로\n    필요하면 full_exit() 를 먼저 호출하세요.\n    ', 'active', 'rl4_connections', 'parent_map', 'sc_info']names: ['_state', 'print']869           0 RESUME                   0
+
+876           2 LOAD_CONST               1 (False)
+              4 LOAD_GLOBAL              0 (_state)
+             16 LOAD_CONST               2 ('active')
+             18 STORE_SUBSCR
+
+877          22 BUILD_LIST               0
+             24 LOAD_GLOBAL              0 (_state)
+             36 LOAD_CONST               3 ('rl4_connections')
+             38 STORE_SUBSCR
+
+878          42 BUILD_MAP                0
+             44 LOAD_GLOBAL              0 (_state)
+             56 LOAD_CONST               4 ('parent_map')
+             58 STORE_SUBSCR
+
+879          62 BUILD_MAP                0
+             64 LOAD_GLOBAL              0 (_state)
+             76 LOAD_CONST               5 ('sc_info')
+             78 STORE_SUBSCR
+
+880          82 LOAD_CONST               6 ('')
+             84 LOAD_GLOBAL              0 (_state)
+             96 LOAD_CONST               7 ('last_exported_dna')
+             98 STORE_SUBSCR
+
+881         102 BUILD_MAP                0
+            104 LOAD_GLOBAL              0 (_state)
+            116 LOAD_CONST               8 ('local_transforms')
+            118 STORE_SUBSCR
+
+882         122 BUILD_MAP                0
+            124 LOAD_GLOBAL              0 (_state)
+            136 LOAD_CONST               9 ('joint_snapshot')
+            138 STORE_SUBSCR
+
+883         142 LOAD_GLOBAL              3 (NULL + print)
+            154 LOAD_CONST              10 ('[MHEdit] _state 초기화 완료.')
+            156 PRECALL                  1
+            160 CALL                     1
+            170 POP_TOP
+            172 LOAD_CONST              11 (None)
+            174 RETURN_VALUE

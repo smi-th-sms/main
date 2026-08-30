@@ -1,0 +1,50 @@
+{
+    "spine_fix": {
+        "forward_axis": 2,
+        "up_axis": 1,
+        "twist_axis": 0,
+        "validation": {
+            "required_objects": [
+                "adbIKSpine",
+                "bodyR", 
+                "headR"
+            ],
+            "optional_objects": [
+                "spine_01",
+                "spine_02",
+                "spine_03",
+                "spine_04",
+                "spine_05"
+            ],
+            "spine_chain": [
+                "spine_01",
+                "spine_02",
+                "spine_03",
+                "spine_04",
+                "spine_05",
+                "neck_01",
+                "neck_02",
+                "head"
+            ]
+        },
+        "fix_options": {
+            "ik_axis_fix": true,
+            "joint_orientation_fix": true,
+            "twist_fix": true,
+            "constraint_cleanup": true
+        },
+        "advanced_settings": {
+            "auto_save": true,
+            "create_backup": true,
+            "verbose_logging": true,
+            "undo_enabled": true
+        },
+        "ui_settings": {
+            "window_title": "Advanced Spine Fix Tool",
+            "window_width": 400,
+            "window_height": 500,
+            "show_validation_results": true,
+            "show_fix_summary": true
+        }
+    }
+} 

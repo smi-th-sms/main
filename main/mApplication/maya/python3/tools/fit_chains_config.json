@@ -1,0 +1,58 @@
+{
+  "parts": {
+    "arm_r": [
+      "clavicle_r",
+      "upperarm_r",
+      "lowerarm_r",
+      "hand_r"
+    ],
+    "leg_r": [
+      "thigh_r",
+      "calf_r",
+      "foot_r",
+      "ball_r"
+    ],
+    "spine": [
+      "pelvis",
+      "spine_01",
+      "spine_02",
+      "spine_03",
+      "spine_04",
+      "spine_05"
+    ],
+    "neck_head": [
+      "neck_01",
+      "neck_02",
+      "head"
+    ],
+    "thumb_r": [
+      "thumb_01_r",
+      "thumb_02_r",
+      "thumb_03_r"
+    ],
+    "index_r": [
+      "index_metacarpal_r",
+      "index_01_r",
+      "index_02_r",
+      "index_03_r"
+    ],
+    "middle_r": [
+      "middle_metacarpal_r",
+      "middle_01_r",
+      "middle_02_r",
+      "middle_03_r"
+    ],
+    "pinky_r": [
+      "pinky_metacarpal_r",
+      "pinky_01_r",
+      "pinky_02_r",
+      "pinky_03_r"
+    ],
+    "ring_r": [
+      "ring_metacarpal_r",
+      "ring_01_r",
+      "ring_02_r",
+      "ring_03_r"
+    ]
+  }
+}

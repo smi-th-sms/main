@@ -1,0 +1,82 @@
+import os
+from PySide6 import QtWidgets, QtCore, QtGui
+import maya.OpenMayaUI as omui
+from shiboken6 import wrapInstance
+
+def get_maya_main_window():
+    main_window_ptr = omui.MQtUtil.mainWindow()
+    return wrapInstance(int(main_window_ptr), QtWidgets.QWidget)
+
+class ContentBrowser(QtWidgets.QDialog):
+    def __init__(self, root_path, parent=None):
+        super(ContentBrowser, self).__init__(parent or get_maya_main_window())
+        self.setWindowTitle("Content Browser")
+        self.resize(900, 600)
+        self.root_path = root_path
+
+        # Layouts
+        main_layout = QtWidgets.QHBoxLayout(self)
+        self.folder_tree = QtWidgets.QTreeView()
+        self.file_list = QtWidgets.QListWidget()
+        self.file_list.setViewMode(QtWidgets.QListView.ViewMode.IconMode)
+        self.file_list.setIconSize(QtCore.QSize(64, 64))
+        self.file_list.setResizeMode(QtWidgets.QListView.ResizeMode.Adjust)
+        self.file_list.setMovement(QtWidgets.QListView.Movement.Static)
+
+        # File system model for folder tree
+        self.dir_model = QtWidgets.QFileSystemModel()
+        self.dir_model.setRootPath(self.root_path)
+        self.dir_model.setFilter(QtCore.QDir.Filter.AllDirs | QtCore.QDir.Filter.NoDotAndDotDot)
+        self.folder_tree.setModel(self.dir_model)
+        self.folder_tree.setRootIndex(self.dir_model.index(self.root_path))
+        self.folder_tree.setHeaderHidden(True)
+
+        # Connect signals
+        self.folder_tree.selectionModel().selectionChanged.connect(self.on_folder_selected)
+        self.file_list.itemDoubleClicked.connect(self.on_file_double_clicked)
+
+        # Add widgets
+        main_layout.addWidget(self.folder_tree, 2)
+        main_layout.addWidget(self.file_list, 5)
+
+        # Search bar
+        self.search_bar = QtWidgets.QLineEdit()
+        self.search_bar.setPlaceholderText("Search...")
+        self.search_bar.textChanged.connect(self.on_search)
+        main_layout.setContentsMargins(5, 5, 5, 5)
+        vbox = QtWidgets.QVBoxLayout()
+        vbox.addWidget(self.search_bar)
+        vbox.addWidget(self.file_list)
+        main_layout.addLayout(vbox, 5)
+
+    def on_folder_selected(self, selected, deselected):
+        index = self.folder_tree.selectionModel().currentIndex()
+        path = self.dir_model.filePath(index)
+        self.populate_file_list(path)
+
+    def populate_file_list(self, folder_path):
+        self.file_list.clear()
+        for fname in os.listdir(folder_path):
+            fpath = os.path.join(folder_path, fname)
+            if os.path.isfile(fpath):
+                icon = QtGui.QIcon(fpath) if fname.lower().endswith(('.png', '.jpg', '.jpeg', '.bmp', '.gif')) else self.style().standardIcon(QtWidgets.QStyle.StandardPixmap.SP_FileIcon)
+                item = QtWidgets.QListWidgetItem(icon, fname)
+                item.setData(QtCore.Qt.ItemDataRole.UserRole, fpath)
+                self.file_list.addItem(item)
+
+    def on_search(self, text):
+        for i in range(self.file_list.count()):
+            item = self.file_list.item(i)
+            item.setHidden(text.lower() not in item.text().lower())
+
+    def on_file_double_clicked(self, item):
+        fpath = item.data(QtCore.Qt.ItemDataRole.UserRole)
+        QtWidgets.QMessageBox.information(self, "File Selected", f"Double-clicked: {fpath}")
+
+def show_content_browser():
+    root_path = "C:/Users/Public/Documents"  # 원하는 루트 폴더로 변경
+    dlg = ContentBrowser(root_path)
+    dlg.show()
+
+# Maya에서 실행
+show_content_browser()

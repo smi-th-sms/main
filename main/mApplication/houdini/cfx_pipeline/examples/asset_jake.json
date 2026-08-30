@@ -1,0 +1,41 @@
+{
+  "_note": "Asset (character) config. Lives at the asset path (e.g. {asset_work}/cfx_asset.json) and is reused by every shot. Authored once per character.",
+  "path_rules": {
+    "root": "Z:/show",
+    "version_padding": 3,
+    "context": {
+      "asset_subpath": "assets/Character",
+      "seq_subpath": "sequences"
+    }
+  },
+  "show": "PUBGOM",
+  "asset": "Jake",
+  "asset_type": "Character",
+  "fbx": {
+    "asset_name": "Jake",
+    "root_name": "root",
+    "pelvis_name": "pelvis",
+    "character_import": "Z:/show/PUBGOM/assets/Character/Jake/RIG/wip/maya/fbx/Jake_TPose.fbx",
+    "hair_import": "Z:/show/PUBGOM/assets/Character/Jake/RIG/wip/maya/cache/alembic/jake_groom_hair_v004_guides.abc"
+  },
+  "_proxy_parts_note": "authored interactively via the Proxy HDA 'Cloth Parts' multiparm; geo_path is selected from the REST_MESH geo_path values (verified live: Pants_geo, Polo_shirts_geo, Belt_geo, Gloves_geo, Shoses_geo, ...). proxy_path defaults to *{name}*. Each part carries its OWN vellum constraint params in 'parameters' (stretch_stiffness/bend_stiffness/thickness/mass/pin_group); missing keys fall back to the top-level 'constraint' block. Hair parts (cloth:false) get a vellum 'hair' constraint and pin their root group (FirstPoints) by default.",
+  "proxy_parts": [
+    { "name": "pants", "cloth": true,
+      "geo_path": ["/Jake/geo_grp/geoPub_grp/Cloth_geo_grp/Pants_geo"],
+      "parameters": { "stretch_stiffness": 0.95, "bend_stiffness": 0.03, "thickness": 0.012,
+        "_pin_note": "pin_group is a REST-pose point group expression (or a painted group name); it is materialized at rest and rides through the per-frame deform so the pinned waistband follows the body. Example pins the waistband by rest height.",
+        "pin_group": "@P.y>0.95" } },
+    { "name": "shirts", "cloth": true,
+      "geo_path": ["/Jake/geo_grp/geoPub_grp/Cloth_geo_grp/Polo_shirts_geo"],
+      "parameters": { "stretch_stiffness": 0.8, "bend_stiffness": 0.01 } },
+    { "name": "belt", "cloth": true,
+      "geo_path": ["/Jake/geo_grp/geoPub_grp/Cloth_geo_grp/Belt_geo"],
+      "parameters": { "stretch_stiffness": 1.0, "bend_stiffness": 0.2, "thickness": 0.02 } },
+    { "name": "hair", "cloth": false,
+      "parameters": { "resample_length": 0.02, "stretch_stiffness": 1.0, "bend_stiffness": 0.005 } }
+  ],
+  "collision": { "collision_thickness": 0.015 },
+  "constraint": { "thickness": 0.015 },
+  "export_proxy_cache": true,
+  "metadata": { "version": "v001", "artist": "cfx_artist" }
+}

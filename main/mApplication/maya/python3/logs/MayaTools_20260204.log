@@ -1,0 +1,12 @@
+2026-02-04 11:37:14 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-02-04 11:37:20 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-02-04 11:37:20 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 3 items to A list
+2026-02-04 11:37:22 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-02-04 11:37:22 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 3 items to B list
+2026-02-04 11:37:28 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Apply Constraints
+2026-02-04 11:37:28 - MayaTools.CNTManager3 - ERROR - [CNTManager3] Error in constraints: '<' not supported between instances of 'str' and 'int'
+2026-02-04 11:37:28 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Apply Constraints completed
+2026-02-04 11:37:36 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Apply Constraints
+2026-02-04 11:37:36 - MayaTools.CNTManager3 - ERROR - [CNTManager3] Error in constraints: '<' not supported between instances of 'str' and 'int'
+2026-02-04 11:37:36 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Apply Constraints completed
+2026-02-04 11:38:11 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed

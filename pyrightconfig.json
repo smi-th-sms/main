@@ -1,0 +1,9 @@
+{
+  "typeCheckingMode": "basic",
+  "reportCallIssue": "none",
+  "reportArgumentType": "none",
+  "reportUnknownVariableType": "none",
+  "reportUnknownMemberType": "none",
+  "reportMissingModuleSource": "none",
+  "reportMissingImports": "warning"
+}

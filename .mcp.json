@@ -1,0 +1,10 @@
+{
+  "mcpServers": {
+    "MayaMCP": {
+      "command": "D:/main/main/mApplication/maya/mcp/MayaMCP/.venv/Scripts/python.exe",
+      "args": [
+        "D:/main/main/mApplication/maya/mcp/MayaMCP/src/maya_mcp_server.py"
+      ]
+    }
+  }
+}
