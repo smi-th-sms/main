@@ -86,6 +86,40 @@ class PathRulesTest(unittest.TestCase):
             "E:/local/X/chars/Y/houdini",
         )
 
+    def test_project_profile_is_merged_with_local_overrides(self):
+        with tempfile.TemporaryDirectory() as d:
+            profile = Path(d) / "profile.json"
+            profile.write_text(json.dumps({
+                "name": "production-v2",
+                "schema_version": 1,
+                "templates": {
+                    "asset_work": "{asset_root}/cfx/houdini",
+                    "shot_work": "{shot_root}/FX/cfx",
+                },
+                "context": {"seq_subpath": "episodes"},
+            }), encoding="utf-8")
+            rules = PipelinePathRules.from_dict({
+                "root": "P:/production",
+                "profile_file": profile.as_posix(),
+                "templates": {"asset_work": "{asset_root}/artist/cfx"},
+            })
+            self.assertEqual(rules.profile_name, "production-v2")
+            self.assertEqual(
+                rules.resolve("asset_work", show="S", asset="A"),
+                "P:/production/S/assets/Character/A/artist/cfx",
+            )
+            self.assertEqual(
+                rules.resolve("shot_work", show="S", sequence="E01", shot="SH010"),
+                "P:/production/S/episodes/E01/SH010/FX/cfx",
+            )
+
+    def test_missing_explicit_profile_fails_loudly(self):
+        with self.assertRaisesRegex(ValueError, "path profile does not exist"):
+            PipelinePathRules.from_dict({
+                "root": "Z:/show",
+                "profile_file": "missing/profile.json",
+            })
+
     def test_missing_context_raises(self):
         with self.assertRaises(KeyError):
             self.rules.resolve("shot_work", show="S")  # missing sequence/shot
@@ -112,6 +146,19 @@ class SchemaRoundTripTest(unittest.TestCase):
         self.assertEqual(c.hair_attach_chain[-1], "root")
         self.assertEqual(c.ue_scale, 100.0)
         self.assertEqual(c.ue_rotate, (-90.0, 0.0, 0.0))
+        self.assertEqual(c.hair_split_geo_path, "")
+        self.assertEqual(c.hair_uv_source, "")
+
+    def test_cache_out_hair_split_roundtrip(self):
+        c = CacheOutConfig.from_dict({
+            "export_hair": True,
+            "hair_split_geo_path": "/Lucy/rig_grp/hair_mesh",
+            "hair_uv_source": "uv2",
+        })
+        self.assertTrue(c.export_hair)
+        self.assertEqual(c.hair_split_geo_path, "/Lucy/rig_grp/hair_mesh")
+        self.assertEqual(c.hair_uv_source, "uv2")
+        self.assertEqual(CacheOutConfig.from_dict(c.as_dict()), c)
 
     def test_asset_roundtrip(self):
         data = {
@@ -143,6 +190,16 @@ class SchemaRoundTripTest(unittest.TestCase):
         self.assertEqual(
             p.geo_group(),
             "@geo_path=/C/head_grp/head @geo_path=/C/cloth_grp/collar",
+        )
+
+    def test_proxy_part_preserves_explicit_group_syntax(self):
+        p = ProxyPart.from_dict({
+            "name": "Suit",
+            "geo_path": "@geo_path=/Yuna/geo_grp/yuna_clothes_Geo",
+        })
+        self.assertEqual(
+            p.geo_group(),
+            "@geo_path=/Yuna/geo_grp/yuna_clothes_Geo",
         )
 
     def test_merge_parts_readback(self):

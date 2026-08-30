@@ -1,0 +1,30 @@
+(dp0
+Vid
+p1
+V3f6182570c9132
+p2
+sVname
+p3
+Vmh_tools_integrated
+p4
+sVinfo
+p5
+Vmh tool
+p6
+sVtags
+p7
+Vtools
+p8
+sVicon
+p9
+V
+p10
+sVcommand
+p11
+Vimport importlib\u000afrom python3.tools import mh_tools_integrated\u000aimportlib.reload(mh_tools_integrated)\u000amh_tools_integrated.show()
+p12
+sVsyntax
+p13
+Vpython
+p14
+s.

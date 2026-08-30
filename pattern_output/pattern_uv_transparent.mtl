@@ -1,0 +1,12 @@
+# Blender 5.2.0 LTS MTL File: 'pattern_uv_transparent.blend'
+# www.blender.org
+
+newmtl Pattern_UV_Alpha_Material
+Ns 39.999996
+Ka 1.000000 1.000000 1.000000
+Ks 0.500000 0.500000 0.500000
+Ke 0.000000 0.000000 0.000000
+Ni 1.500000
+illum 2
+map_Kd pattern_white_background_removed.png
+map_d pattern_white_background_removed.png

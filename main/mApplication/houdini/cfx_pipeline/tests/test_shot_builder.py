@@ -30,6 +30,14 @@ class ContainerNameTest(unittest.TestCase):
             SB._shot_container_name(_shot(asset="Jake")), "Jake_shot_setup"
         )
 
+    def test_hair_uv_export_vex_uses_rop_selection_without_swapping(self):
+        copy_vex = SB._hair_uv_export_copy_vex("/out/hair")
+        filter_vex = SB._hair_uv_export_filter_vex("/out/hair")
+        self.assertIn('chs("/out/hair/hair_uv0_source")', copy_vex)
+        self.assertIn("v@uv = value0;", copy_vex)
+        self.assertNotIn("original_uv", copy_vex)
+        self.assertIn('removeattrib(0, "detail", "varmap")', filter_vex)
+
 
 class ImportSafetyTest(unittest.TestCase):
     def test_hou_dependent_entry_points_require_houdini(self):

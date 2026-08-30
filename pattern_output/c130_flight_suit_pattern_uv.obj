@@ -1,0 +1,15 @@
+# Blender 5.2.0 LTS
+# www.blender.org
+mtllib c130_flight_suit_pattern_uv.mtl
+o C130_Flight_Suit_Pattern_UV
+v -0.916667 0.000000 0.500000
+v 0.916667 0.000000 0.500000
+v 0.916667 0.000000 -0.500000
+v -0.916667 0.000000 -0.500000
+vt 0.000000 0.000000
+vt 1.000000 0.000000
+vt 1.000000 1.000000
+vt 0.000000 1.000000
+s 0
+usemtl C130_Pattern_Transparent_Material
+f 1/1 2/2 3/3 4/4
