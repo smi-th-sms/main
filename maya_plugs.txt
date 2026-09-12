@@ -1,0 +1,6 @@
+item=blendShape4.inputTarget[0].inputTargetGroup[0].inputTargetItem[6000]
+0=blendShape4.inputTarget[0].inputTargetGroup[0].inputTargetItem[6000].inputGeomTarget
+1=blendShape4.inputTarget[0].inputTargetGroup[0].inputTargetItem[6000].inputRelativePointsTarget
+2=blendShape4.inputTarget[0].inputTargetGroup[0].inputTargetItem[6000].inputRelativeComponentsTarget
+3=blendShape4.inputTarget[0].inputTargetGroup[0].inputTargetItem[6000].inputPointsTarget
+4=blendShape4.inputTarget[0].inputTargetGroup[0].inputTargetItem[6000].inputComponentsTarget

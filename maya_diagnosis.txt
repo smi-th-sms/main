@@ -1,0 +1,5 @@
+input_to_weight0=1.0303924990817175
+stored_vs_target_delta=0.6925545058992691
+weight1_to_target=1.0293660995809562
+weight1_to_weight0=1.716203995331838
+applied_vs_stored_delta=0.36546812050991745

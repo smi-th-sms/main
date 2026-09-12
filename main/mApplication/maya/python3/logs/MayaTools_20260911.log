@@ -1,0 +1,32 @@
+2026-09-11 00:52:45 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-09-11 00:52:46 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-09-11 00:52:46 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 1 items to A list
+2026-09-11 00:52:50 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-09-11 00:52:50 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 4 items to B list
+2026-09-11 00:53:00 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: List Connect
+2026-09-11 00:53:00 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation List Connect completed
+2026-09-11 00:53:06 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-09-11 00:53:06 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 1 items to B list
+2026-09-11 00:53:11 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: List Connect
+2026-09-11 00:53:11 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation List Connect completed
+2026-09-11 00:53:20 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-09-11 00:53:20 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 1 items to B list
+2026-09-11 00:53:29 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: List Connect
+2026-09-11 00:53:29 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation List Connect completed
+2026-09-11 00:53:37 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-09-11 00:53:37 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 1 items to B list
+2026-09-11 00:53:40 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: List Connect
+2026-09-11 00:53:40 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation List Connect completed
+2026-09-11 00:53:42 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-09-11 00:53:42 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 1 items to B list
+2026-09-11 00:53:50 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: List Connect
+2026-09-11 00:53:50 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation List Connect completed
+2026-09-11 00:53:53 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed
+2026-09-11 02:17:55 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-09-11 02:17:57 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-09-11 02:17:57 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 1 items to A list
+2026-09-11 02:18:16 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-09-11 02:18:16 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 1 items to B list
+2026-09-11 02:18:25 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: List Connect
+2026-09-11 02:18:25 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation List Connect completed
+2026-09-11 02:18:26 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed

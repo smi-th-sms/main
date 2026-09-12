@@ -1,0 +1,1 @@
+{'input_source': [], 'output_dest': ['skinCluster1.input[0].inputGeometry'], 'geometry': ['gotoKey_finger_base_MESHShape'], 'target_input_source': ['gotoKey_gotoKey_base_MESHShapeOrig.worldMesh'], 'skin_connections': ['gotoKey_finger_base_MESHShape.inMesh']}

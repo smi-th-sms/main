@@ -1,0 +1,1 @@
+max_error=1.029366099581 vertices=9301

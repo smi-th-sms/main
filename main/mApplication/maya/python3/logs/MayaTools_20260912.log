@@ -1,0 +1,43 @@
+2026-09-12 21:43:32 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-09-12 21:43:34 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-09-12 21:43:34 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 1 items to A list
+2026-09-12 21:43:35 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-09-12 21:43:35 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 1 items to B list
+2026-09-12 21:43:39 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Matrix Constraint
+2026-09-12 21:43:39 - MayaTools.CNTManager3 - ERROR - [CNTManager3] Error in matrix constraint: Maya command error
+2026-09-12 21:43:39 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Matrix Constraint completed
+2026-09-12 21:43:40 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed
+2026-09-12 21:44:25 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed
+2026-09-12 21:44:25 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-09-12 21:44:28 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-09-12 21:44:28 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 1 items to A list
+2026-09-12 21:44:30 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-09-12 21:44:30 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 1 items to B list
+2026-09-12 21:44:43 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Matrix Constraint
+2026-09-12 21:44:43 - MayaTools.CNTManager3 - ERROR - [CNTManager3] Error in matrix constraint: Maya command error
+2026-09-12 21:44:43 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Matrix Constraint completed
+2026-09-12 21:44:56 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Matrix Constraint
+2026-09-12 21:44:56 - MayaTools.CNTManager3 - ERROR - [CNTManager3] Error in matrix constraint: Maya command error
+2026-09-12 21:44:56 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Matrix Constraint completed
+2026-09-12 21:45:07 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed
+2026-09-12 21:46:46 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed
+2026-09-12 21:46:46 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-09-12 21:46:55 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-09-12 21:46:55 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 1 items to A list
+2026-09-12 21:46:58 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-09-12 21:46:58 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 1 items to B list
+2026-09-12 21:47:03 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Apply Constraints
+2026-09-12 21:47:03 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Apply Constraints completed
+2026-09-12 21:47:15 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Apply Constraints
+2026-09-12 21:47:15 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Apply Constraints completed
+2026-09-12 21:48:06 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed
+2026-09-12 22:17:13 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed
+2026-09-12 22:17:13 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 initialized
+2026-09-12 22:17:16 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to A list
+2026-09-12 22:17:16 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 1 items to A list
+2026-09-12 22:17:17 - MayaTools.CNTManager3 - INFO - [CNTManager3] UI Action: Add items to B list
+2026-09-12 22:17:17 - MayaTools.CNTManager3 - INFO - [CNTManager3] Added 1 items to B list
+2026-09-12 22:17:20 - MayaTools.CNTManager3 - INFO - [CNTManager3] Starting operation: Matrix Constraint
+2026-09-12 22:17:20 - MayaTools.CNTManager3 - ERROR - [CNTManager3] Error in matrix constraint: Maya command error
+2026-09-12 22:17:20 - MayaTools.CNTManager3 - INFO - [CNTManager3] Operation Matrix Constraint completed
+2026-09-12 22:17:35 - MayaTools.CNTManager3 - INFO - [CNTManager3] CNTManager3 cleanup completed
