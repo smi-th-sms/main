@@ -107,11 +107,7 @@ class HoudiniMCPServer:
             # 명령 파싱
             command = json.loads(data.decode('utf-8'))
             
-            # Process directly on the client thread.  In Houdini 21,
-            # executeInMainThreadWithResult can remain queued forever when this
-            # server was started from the Python shell, leaving the TCP client
-            # connected but with no response.  Interactive viewer-state edits
-            # must not be driven through MCP while a paint stroke is active.
+            # 명령 처리
             response = self._process_command(command)
             
             # 응답 전송
@@ -128,7 +124,7 @@ class HoudiniMCPServer:
                 pass
         finally:
             conn.close()
-
+    
     def _process_command(self, command):
         """명령 처리"""
         cmd_type = command.get('type')
